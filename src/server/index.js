@@ -1,3 +1,4 @@
+const path = require("path");
 const express = require('express');
 const crypto = require('crypto');
 require('dotenv').config();
@@ -11,6 +12,9 @@ app.use(express.json({
     req.rawBody = buf.toString('utf8');
   }
 }));
+
+// Phục vụ trang admin + file tĩnh
+app.use(express.static(path.join(__dirname, "../../public")));
 
 const APP_SECRET_KEY = process.env.ZALO_APP_SECRET_KEY; // App Secret Key (dùng decode phone)
 const OA_SECRET_KEY = process.env.ZALO_OA_SECRET_KEY;   // OA Secret Key (dùng verify webhook)
@@ -83,7 +87,7 @@ app.post('/api/decode-phone', async (req, res) => {
 });
 
 // ==========================================
-// CÁC API QUẢN LÝ ĐƠN HÀNG (MỚI BỔ SUNG)
+// CÁC API QUẢN LÝ ĐƠN HÀNG
 // ==========================================
 
 const ordersDB = new Map();
@@ -115,26 +119,35 @@ app.get("/api/orders", (req, res) => {
   res.json(list);
 });
 
-// Admin cập nhật trạng thái đơn hàng
-// body: { status: "pending" | "preparing" | "shipping" | "completed" }
+const ADMIN_PASSWORD = "thuoccoba2026"; // đổi mật khẩu thật
+
+// Admin cập nhật trạng thái
 app.patch("/api/orders/:orderId/status", (req, res) => {
+  const password = req.headers["x-admin-password"] || req.body.password;
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: "Sai mật khẩu admin" });
+  }
   const { orderId } = req.params;
   const { status } = req.body;
   const allowed = ["pending", "preparing", "shipping", "completed"];
+  
   if (!allowed.includes(status)) {
-    return res.status(400).json({ error: "Invalid status" });
+    return res.status(400).json({ error: "Trạng thái không hợp lệ" });
   }
+  
   const order = ordersDB.get(orderId);
   if (!order) {
-    return res.status(404).json({ error: "Order not found" });
+    return res.status(404).json({ error: "Không tìm thấy đơn" });
   }
+  
   order.status = status;
   order.updatedAt = new Date().toISOString();
   if (status === "preparing") order.confirmedAt = order.updatedAt;
   if (status === "shipping") order.shippingAt = order.updatedAt;
   if (status === "completed") order.completedAt = order.updatedAt;
+  
   ordersDB.set(orderId, order);
-  console.log("Cập nhật đơn:", orderId, "→", status);
+  console.log("Admin cập nhật:", orderId, "→", status);
   res.json(order);
 });
 
