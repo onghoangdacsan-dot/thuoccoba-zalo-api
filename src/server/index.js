@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 const express = require('express');
 const crypto = require('crypto');
 require('dotenv').config();
@@ -13,7 +14,18 @@ app.use(express.json({
   }
 }));
 
-// Phục vụ trang admin + file tĩnh
+// Route trực tiếp trỏ tới trang admin (đặt ngay sau express.json)
+app.get(["/admin", "/admin.html"], (req, res) => {
+  const filePath = path.join(__dirname, "../../public/admin.html");
+  if (!fs.existsSync(filePath)) {
+    return res
+      .status(404)
+      .send("Không tìm thấy admin.html tại: " + filePath);
+  }
+  res.sendFile(filePath);
+});
+
+// Phục vụ trang admin + file tĩnh từ thư mục public gốc
 app.use(express.static(path.join(__dirname, "../../public")));
 
 const APP_SECRET_KEY = process.env.ZALO_APP_SECRET_KEY; // App Secret Key (dùng decode phone)
