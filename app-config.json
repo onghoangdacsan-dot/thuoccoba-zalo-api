@@ -1,0 +1,18 @@
+{
+  "app": {
+    "title": "Thuộc Cô Ba",
+    "headerColor": "#E05638",
+    "textColor": "white"
+  },
+  "pages": [
+    "pages/Home"
+  ],
+  "permission": {
+    "scope.userInfo": {
+      "message": "Thuộc Cô Ba xin phép lấy tên Zalo của bạn để điền sẵn thông tin nhận hàng, giúp đặt hàng nhanh hơn."
+    },
+    "scope.userPhonenumber": {
+      "message": "Thuộc Cô Ba xin phép lấy số điện thoại Zalo của bạn để xác nhận đơn hàng và liên hệ khi giao hàng."
+    }
+  }
+}
