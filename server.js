@@ -93,15 +93,40 @@ app.post("/api/zalo-notify", (req, res) => {
     if (!data || !mac) {
       return res.json({ returnCode: 0, returnMessage: "Missing data or mac" });
     }
-    const { appId, orderId, method } = data;
+
+    const { appId, orderId, method, extradata, resultCode } = data;
     const str = `appId=${appId}&orderId=${orderId}&method=${method}`;
     const reqMac = CryptoJS.HmacSHA256(str, PRIVATE_KEY).toString();
-    if (reqMac === mac) {
-      console.log("Zalo Notify OK:", orderId, method);
-      return res.json({ returnCode: 1, returnMessage: "Success" });
+
+    if (reqMac !== mac) {
+      return res.json({ returnCode: 0, returnMessage: "Invalid mac" });
     }
-    return res.json({ returnCode: 0, returnMessage: "Invalid mac" });
+
+    console.log("Zalo Notify OK:", orderId, method, "resultCode:", resultCode);
+
+    try {
+      const extra = typeof extradata === "string" ? JSON.parse(extradata) : extradata;
+      const myOrderId = extra?.orderId;
+
+      if (myOrderId && ordersDB.has(myOrderId)) {
+        const order = ordersDB.get(myOrderId);
+        if (String(resultCode) === "1" || resultCode === 1) {
+          order.status = "preparing";
+          order.confirmedAt = new Date().toISOString();
+          order.updatedAt = order.confirmedAt;
+          ordersDB.set(myOrderId, order);
+          console.log("Đã tự động chuyển đơn sang 'preparing':", myOrderId);
+        }
+      } else {
+        console.warn("Không tìm thấy đơn nội bộ khớp với extradata.orderId:", myOrderId);
+      }
+    } catch (parseErr) {
+      console.error("Không parse được extradata:", parseErr);
+    }
+
+    return res.json({ returnCode: 1, returnMessage: "Success" });
   } catch (err) {
+    console.error("zalo-notify error:", err);
     return res.json({ returnCode: 0, returnMessage: "Error" });
   }
 });
