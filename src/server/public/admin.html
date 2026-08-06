@@ -37,6 +37,7 @@
     button:hover { opacity: 0.9; }
     button.secondary { background: #666; }
     button.ok { background: #16a34a; }
+    button.print-btn { background: #2563eb; }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -66,6 +67,79 @@
     #app { display: none; }
     .muted { color: #888; font-size: 12px; }
     .err { color: #b91c1c; font-size: 13px; margin-top: 8px; }
+    .products {
+      margin-top: 6px;
+      padding: 6px 8px;
+      background: #fdf6e9;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .products strong { color: #8b4513; }
+
+    /* ===== PHIẾU IN ===== */
+    #printModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    #printModal.show { display: flex; }
+    .print-actions {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+    }
+    #print-area {
+      width: 100%;
+      max-width: 420px;
+      background: #fff;
+      padding: 18px 20px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13px;
+      color: #000;
+      line-height: 1.4;
+      border-radius: 4px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+
+    /* ===== CẤU HÌNH GIẤY IN 100x150mm (chuẩn J&T / Shopee) ===== */
+    @media print {
+      @page {
+        size: 100mm 150mm;
+        margin: 4mm;
+      }
+
+      body * {
+        visibility: hidden;
+      }
+
+      #print-area, #print-area * {
+        visibility: visible;
+      }
+
+      #print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        max-width: 100%;
+        box-shadow: none;
+        border-radius: 0;
+        padding: 3mm;
+        font-size: 12px;
+      }
+
+      .print-actions {
+        display: none !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -93,16 +167,25 @@
             <tr>
               <th>Mã đơn</th>
               <th>Thời gian</th>
-              <th>Khách</th>
+              <th>Khách + Sản phẩm</th>
               <th>Tổng</th>
               <th>Trạng thái</th>
-              <th>Đổi trạng thái</th>
+              <th>Thao tác</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
     </div>
+  </div>
+
+  <!-- Modal In phiếu -->
+  <div id="printModal">
+    <div class="print-actions">
+      <button class="ok" onclick="window.print()">🖨️ In phiếu</button>
+      <button class="secondary" onclick="closePrint()">Đóng</button>
+    </div>
+    <div id="print-area"></div>
   </div>
 
   <script>
@@ -112,6 +195,8 @@
       shipping: "Đang giao",
       completed: "Đã giao",
     };
+
+    let currentOrders = [];
 
     function getPwd() {
       return sessionStorage.getItem("admin_pwd") || "";
@@ -144,6 +229,7 @@
       try {
         const res = await fetch("/api/orders");
         const list = await res.json();
+        currentOrders = list;
         render(list);
       } catch (e) {
         alert("Không tải được đơn: " + e.message);
@@ -165,7 +251,7 @@
       }
 
       tbody.innerHTML = list
-        .map((o) => {
+        .map((o, index) => {
           const ship = o.shippingInfo || {};
           const name = ship.fullName || "—";
           const phone = ship.phone || "";
@@ -175,18 +261,38 @@
             ? new Date(o.createdAt).toLocaleString("vi-VN")
             : "—";
           const st = o.status || "pending";
+
+          let productsHtml = "";
+          if (o.items && o.items.length > 0) {
+            productsHtml = `
+              <div class="products">
+                <strong>Sản phẩm đã đặt:</strong><br/>
+                ${o.items
+                  .map(
+                    (item) =>
+                      `• ${item.quantity || 1} × ${item.name || "Sản phẩm"} 
+                       (${Number(item.price || 0).toLocaleString("vi-VN")} đ)`
+                  )
+                  .join("<br/>")}
+              </div>`;
+          } else {
+            productsHtml = `<div class="products muted">Không có thông tin sản phẩm</div>`;
+          }
+
           return `
             <tr>
               <td><strong>${o.id}</strong></td>
               <td>${time}</td>
               <td>
-                ${name}<br/>
+                <strong>${name}</strong><br/>
                 <span class="muted">${phone}</span><br/>
                 <span class="muted">${addr}</span>
+                ${productsHtml}
               </td>
               <td><strong>${total} đ</strong></td>
               <td><span class="badge ${st}">${STATUS_LABEL[st] || st}</span></td>
               <td class="actions">
+                <button class="print-btn" onclick="printOrder(${index})">In phiếu</button>
                 <button onclick="setStatus('${o.id}','preparing')">Chuẩn bị</button>
                 <button onclick="setStatus('${o.id}','shipping')">Đang giao</button>
                 <button class="ok" onclick="setStatus('${o.id}','completed')">Đã giao</button>
@@ -195,6 +301,98 @@
             </tr>`;
         })
         .join("");
+    }
+
+    function printOrder(index) {
+      const o = currentOrders[index];
+      if (!o) return;
+
+      const ship = o.shippingInfo || {};
+      const items = o.items || [];
+      const total = Number(o.total || 0).toLocaleString("vi-VN");
+      const orderId = o.id || "—";
+      const createdAt = o.createdAt
+        ? new Date(o.createdAt).toLocaleString("vi-VN")
+        : "—";
+
+      let itemsRows = "";
+      if (items.length > 0) {
+        itemsRows = items
+          .map(
+            (item) => `
+            <tr>
+              <td style="padding:5px 0;border-bottom:1px dashed #ccc">${item.name || "Sản phẩm"}</td>
+              <td style="text-align:center;border-bottom:1px dashed #ccc">${item.quantity || 1}</td>
+              <td style="text-align:right;border-bottom:1px dashed #ccc">
+                ${Number((item.price || 0) * (item.quantity || 1)).toLocaleString("vi-VN")}đ
+              </td>
+            </tr>`
+          )
+          .join("");
+      } else {
+        itemsRows = `<tr><td colspan="3" style="padding:8px 0;color:#666">Không có thông tin sản phẩm</td></tr>`;
+      }
+
+      document.getElementById("print-area").innerHTML = `
+        <div style="text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:12px">
+          <div style="font-size:18px;font-weight:900;letter-spacing:0.5px">THUỘC CÔ BA</div>
+          <div style="font-size:12px;margin-top:2px">Đặc sản mắm truyền thống OCOP 4 Sao</div>
+          <div style="font-size:11px;margin-top:4px;color:#333">1117/5 Võ Nguyên Giáp, Hoài Nhơn, Gia Lai</div>
+          <div style="font-size:11px">Hotline: 0909.xxx.xxx</div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:12px">
+          <div><strong>Mã đơn:</strong> ${orderId}</div>
+          <div>${createdAt}</div>
+        </div>
+
+        <div style="text-align:center;font-family:monospace;font-size:20px;font-weight:700;letter-spacing:2px;border:1px solid #000;padding:8px 0;margin-bottom:14px;background:#f9f9f9">
+          *${orderId}*
+        </div>
+
+        <div style="border:2px solid #000;padding:10px 12px;margin-bottom:14px;background:#fafafa">
+          <div style="font-size:11px;font-weight:700;margin-bottom:4px">NGƯỜI NHẬN:</div>
+          <div style="font-size:16px;font-weight:900">${ship.fullName || "—"}</div>
+          <div style="font-size:15px;font-weight:700;margin:4px 0">${ship.phone || "—"}</div>
+          <div style="font-size:13px;line-height:1.45">${ship.address || "—"}</div>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <div style="font-weight:700;margin-bottom:6px;border-bottom:1px solid #000;padding-bottom:4px">SẢN PHẨM</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead>
+              <tr>
+                <th style="text-align:left;padding:4px 0">Tên sản phẩm</th>
+                <th style="text-align:center;width:40px">SL</th>
+                <th style="text-align:right;width:80px">Thành tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsRows}
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:900;border-top:2px solid #000;padding-top:8px;margin-bottom:12px">
+          <span>TỔNG THU (COD)</span>
+          <span>${total} đ</span>
+        </div>
+
+        <div style="font-size:11px;color:#333;margin-bottom:10px">
+          <strong>Ghi chú:</strong> Thanh toán khi nhận hàng (COD). Kiểm tra hàng trước khi thanh toán.
+        </div>
+
+        <div style="text-align:center;font-size:11px;border-top:1px dashed #000;padding-top:8px;color:#444">
+          Cảm ơn quý khách đã tin tưởng Thuộc Cô Ba!<br/>
+          Hotline hỗ trợ: 0909.xxx.xxx
+        </div>
+      `;
+
+      document.getElementById("printModal").classList.add("show");
+    }
+
+    function closePrint() {
+      document.getElementById("printModal").classList.remove("show");
     }
 
     async function setStatus(orderId, status) {

@@ -1,13 +1,25 @@
 {
-  "name": "thuoccoba-zalo-api",
-  "version": "1.0.0",
-  "main": "server.js",
+  "name": "AppThuocCoBa",
+  "private": true,
+  "version": "0.0.1",
   "scripts": {
-    "start": "node server.js"
+    "dev": "zmp start",
+    "start": "zmp start",
+    "deploy": "zmp deploy"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "crypto-js": "^4.2.0",
-    "cors": "^2.8.5"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "zmp-sdk": "latest",
+    "zmp-ui": "latest"
+  },
+  "devDependencies": {
+    "vite": "^5.1.4",
+    "@vitejs/plugin-react": "^4.2.1",
+    "zmp-vite-plugin": "^1.0.16",
+    "tailwindcss": "^3.4.1",
+    "postcss": "^8.4.35",
+    "autoprefixer": "^10.4.18",
+    "sass": "^1.71.1"
   }
 }

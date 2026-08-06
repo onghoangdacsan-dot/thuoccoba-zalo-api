@@ -23,6 +23,20 @@ export default function ProfileTab({
   orderStatusFilter,
   onSelectOrderStatus
 }) {
+  // ===== Lọc chỉ lấy đơn hàng của chính user hiện tại =====
+  const myOrders = (orderHistory || []).filter((order) => {
+    // Nếu đơn có gắn userId thì so sánh
+    if (order.userId && userInfo?.id) {
+      return order.userId === userInfo.id;
+    }
+    // Nếu đơn có số điện thoại thì so sánh
+    if (order.shippingInfo?.phone && userInfo?.phone) {
+      return order.shippingInfo.phone === userInfo.phone;
+    }
+    // Nếu không có thông tin để so sánh → tạm thời hiện tất cả (tránh mất dữ liệu cũ)
+    return true;
+  });
+
   const handleOpenGoogleMap = () => {
     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(WAREHOUSE_ADDRESS)}`;
     try {
@@ -63,7 +77,6 @@ export default function ProfileTab({
     }
   };
 
-  // Hàm chuẩn hóa trạng thái giúp nhận diện linh hoạt mọi biến thể dữ liệu cũ/mới
   const normalizeStatus = (status) => {
     if (
       !status ||
@@ -97,16 +110,15 @@ export default function ProfileTab({
     ) {
       return "completed";
     }
-    // Mặc định coi là chờ xác nhận
     return "pending";
   };
 
   const countByStatus = (statusKey) =>
-    (orderHistory || []).filter(o => normalizeStatus(o.status) === statusKey).length;
+    myOrders.filter(o => normalizeStatus(o.status) === statusKey).length;
 
   const visibleOrders = orderStatusFilter
-    ? (orderHistory || []).filter(o => normalizeStatus(o.status) === orderStatusFilter)
-    : orderHistory;
+    ? myOrders.filter(o => normalizeStatus(o.status) === orderStatusFilter)
+    : myOrders;
 
   return (
     <Box style={{ background: "#FFFDF9", minHeight: "100vh", paddingBottom: 30 }}>
@@ -127,7 +139,6 @@ export default function ProfileTab({
           display: "flex", alignItems: "flex-end", padding: "16px"
         }}>
           <Box style={{ display: "flex", alignItems: "center", gap: 12, width: "100%" }}>
-
             <Box style={{
               width: 58, height: 58, borderRadius: "50%", overflow: "hidden",
               border: `2px solid #FFD54F`, backgroundColor: "#FFF",
@@ -187,7 +198,7 @@ export default function ProfileTab({
           <Box style={{ textAlign: "right", display: "flex", flexDirection: "column" }}>
             <Text style={{ fontSize: 10, color: "#666", display: "block" }}>Số đơn đã đặt</Text>
             <Text style={{ fontSize: 15, fontWeight: 900, color: PRIMARY_COLOR, marginTop: 4, display: "block" }}>
-              {orderHistory.length} đơn
+              {myOrders.length} đơn
             </Text>
           </Box>
         </Box>
@@ -250,9 +261,9 @@ export default function ProfileTab({
                       {order.date || (order.createdAt ? new Date(order.createdAt).toLocaleDateString("vi-VN") : "")}
                     </Text>
                   </Box>
-                  <Text style={{ fontSize: 11, color: "#444", marginBottom: 6 }}>
-                    Thanh toán: <span style={{ fontWeight: 600 }}>{order.paymentMethod || order.payment || "COD"}</span>
-                  </Text>
+
+                  {/* ĐÃ XÓA DÒNG THANH TOÁN COD */}
+
                   <Box style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #F4EBE1", paddingTop: 6 }}>
                     <Text style={{ fontSize: 12, fontWeight: "bold", color: "#D97706" }}>
                       Tổng: {(order.total || order.finalTotal || 0).toLocaleString()} đ
@@ -277,7 +288,7 @@ export default function ProfileTab({
           background: "#FFF", borderRadius: 12, overflow: "hidden",
           border: `1.5px solid ${BAMBOO_BORDER}`, boxShadow: "0 2px 6px rgba(139,69,19,0.04)"
         }}>
-
+          {/* ... phần tiện ích giữ nguyên như cũ ... */}
           <Box
             onClick={handleOpenGoogleMap}
             style={{ display: "flex", alignItems: "center", padding: "12px 14px", borderBottom: `1px solid #F4EBE1`, cursor: "pointer", background: "#FFF" }}
@@ -361,11 +372,10 @@ export default function ProfileTab({
               Chat ngay
             </Box>
           </Box>
-
         </Box>
       </Box>
 
-      {/* Footer Brand Info */}
+      {/* Footer */}
       <Box style={{ textAlign: "center", marginTop: 24, padding: "0 16px", display: "flex", flexDirection: "column", alignItems: "center" }}>
         <Text style={{ fontSize: 11, fontWeight: "bold", color: PRIMARY_COLOR, display: "block" }}>
           ĐẶC SẢN MẮM TRUYỀN THỐNG THUỘC CÔ BA
@@ -374,7 +384,6 @@ export default function ProfileTab({
           Tinh hoa mắm Việt – Đậm đà hương vị quê hương miền Trung
         </Text>
       </Box>
-
     </Box>
   );
 }

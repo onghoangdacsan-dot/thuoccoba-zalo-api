@@ -1,0 +1,17 @@
+import { getUserInfo } from "zmp-sdk/apis";
+
+export async function fetchZaloUser() {
+  try {
+    const user = await getUserInfo({});
+    return {
+      id: user.id,
+      name: user.name,
+      fullName: user.name,
+      avatar: user.avatar,
+      phone: user.phoneNumber || user.phone || "",
+    };
+  } catch (error) {
+    console.log("Lỗi lấy thông tin Zalo:", error);
+    return null;
+  }
+}

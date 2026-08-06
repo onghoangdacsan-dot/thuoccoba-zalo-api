@@ -32,11 +32,44 @@ export default function HomePage() {
   const [flyingItem, setFlyingItem] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("cod");
 
+  // State đồng bộ đơn hàng trực tiếp từ server
+  const [serverOrders, setServerOrders] = useState([]);
+
+  const fetchOrdersFromServer = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/api/orders`);
+      if (!res.ok) return;
+      const list = await res.json();
+      const mapped = (list || []).map((o) => ({
+        id: o.id,
+        date: o.createdAt
+          ? new Date(o.createdAt).toLocaleString("vi-VN")
+          : "",
+        items: o.items || [],
+        shippingInfo: o.shippingInfo || {},
+        paymentMethod: o.paymentMethod || "COD",
+        total: o.total || 0,
+        status: o.status || "pending", // pending | preparing | shipping | completed
+        createdAt: o.createdAt,
+      }));
+      setServerOrders(mapped);
+    } catch (e) {
+      console.warn("Không tải đơn từ server:", e);
+    }
+  }, []);
+
+  // Mỗi khi vào tab Cá nhân -> tải lại đơn từ server
+  useEffect(() => {
+    if (currentTab === "profile") {
+      fetchOrdersFromServer();
+    }
+  }, [currentTab, fetchOrdersFromServer]);
+
   const [isFollowingOA, setIsFollowingOA] = useState(() =>
     loadState("followingOA", false)
   );
   const [userInfo, setUserInfo] = useState(() =>
-    loadState("userInfo", { name: "", phone: "", avatar: "/logo.png" })
+    loadState("userInfo", { name: "", phone: "", avatar: "/logo.png.png" })
   );
   const [shippingInfo, setShippingInfo] = useState(() =>
     loadState("shippingInfo", { fullName: "", phone: "", address: "" })
@@ -192,7 +225,6 @@ export default function HomePage() {
     });
   }, []);
 
-  // Lưu đơn + xóa giỏ (items chốt trước khi gọi placeOrder)
   const handlePlaceOrder = useCallback(
     (paymentResult) => {
       const itemsSnapshot = [...cartItems];
@@ -206,13 +238,13 @@ export default function HomePage() {
         resultCode: paymentResult?.resultCode,
       });
 
-      // Đảm bảo giỏ luôn được xóa sau khi đặt hàng thành công
       clearCart();
       setShowSuccessModal(true);
+      fetchOrdersFromServer();
 
       return order;
     },
-    [placeOrder, clearCart, cartItems, shippingInfo, finalTotal]
+    [placeOrder, clearCart, cartItems, shippingInfo, finalTotal, fetchOrdersFromServer]
   );
 
   const handlePaymentDone = useCallback(
@@ -274,8 +306,10 @@ export default function HomePage() {
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error("Tạo đơn hàng thất bại");
-    return await res.json();
-  }, []);
+    const data = await res.json();
+    fetchOrdersFromServer();
+    return data;
+  }, [fetchOrdersFromServer]);
 
   const createMacOnServer = useCallback(async (orderData) => {
     const res = await fetch(`${API}/api/create-mac`, {
@@ -405,13 +439,17 @@ export default function HomePage() {
 
       {currentTab === "profile" && (
         <ProfileTab
-          userInfo={{ ...userInfo, ...shippingInfo }}
+          userInfo={{
+            fullName: userInfo.name || shippingInfo.fullName || "Khách hàng Thuộc Cô Ba",
+            phone: shippingInfo.phone || userInfo.phone || "",
+            avatar: userInfo.avatar || "/logo.png.png"
+          }}
           shippingInfo={shippingInfo}
           onChangeShippingInfo={setShippingInfo}
           onSyncZalo={handleSyncZalo}
           isFollowingOA={isFollowingOA}
           onFollowOA={handleFollowOA}
-          orderHistory={orderHistory}
+          orderHistory={serverOrders.length > 0 ? serverOrders : orderHistory}
           orderStatusFilter={orderStatusFilter}
           onSelectOrderStatus={handleSelectOrderStatus}
         />
