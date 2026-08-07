@@ -53,8 +53,6 @@ export default function CartTab({
   const { openSnackbar } = useSnackbar();
 
   // Chặn xử lý trùng lặp: đánh dấu các giao dịch (transId/orderId) đã xử lý
-  // để tránh sự kiện PaymentDone bị bắn nhiều lần cho cùng 1 lượt thanh toán,
-  // gây tạo trùng nhiều đơn hàng.
   const processedTransRef = useRef(new Set());
 
   const subTotal = cartItems.reduce(
@@ -71,7 +69,6 @@ export default function CartTab({
       try {
         const result = await Payment.checkTransaction({ data });
 
-        // Khóa duy nhất cho giao dịch này — ưu tiên transId, sau đó orderId
         const transKey =
           result?.transId || result?.orderId || JSON.stringify(data);
 
@@ -86,8 +83,8 @@ export default function CartTab({
         processedTransRef.current.add(transKey);
 
         switch (result.resultCode) {
-          case 1: // Thành công
-          case 0: // COD: đang xử lý = đã nhận đơn
+          case 1:
+          case 0:
             openSnackbar({ type: "success", text: "Đặt hàng thành công!" });
             if (typeof onPlaceOrder === "function") {
               onPlaceOrder(result);
@@ -155,13 +152,11 @@ export default function CartTab({
       return;
     }
 
-    // Chặn bấm nhiều lần liên tiếp khi đang xử lý
     if (isProcessing) return;
 
     setIsProcessing(true);
 
     try {
-      // 1. Tạo đơn hàng trên server
       const myOrder = await createOrderOnServer({
         items: cartItems,
         shippingInfo,
@@ -171,7 +166,6 @@ export default function CartTab({
         paymentMethod: "COD",
       });
 
-      // 2. Chuẩn bị dữ liệu Checkout SDK
       const items = cartItems.map((item) => ({
         id: String(item.id),
         amount: (item.price || 0) * (item.quantity || 0),
@@ -182,26 +176,30 @@ export default function CartTab({
         isCustom: false,
       };
 
+      // ===== ĐÃ THÊM DANH SÁCH SẢN PHẨM VÀO EXTRADATA =====
       const extradata = {
         orderId: myOrder?.orderId || "",
         fullName: shippingInfo.fullName || "",
         phone: shippingInfo.phone || "",
         address: shippingInfo.address || "",
+        items: cartItems.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+        })),
       };
 
       const orderData = {
         amount: finalTotal,
-        desc: `Đơn hàng #${myOrder?.orderId || ""} - Thuộc Cô Ba`,
+        desc: `Đơn hàng #${myOrder?.orderId || ""} - Mắm Thuộc Cô Ba`,
         item: items,
         extradata: JSON.stringify(extradata),
         method: JSON.stringify(paymentMethod),
       };
 
-      // 3. Lấy MAC từ server
       const mac = await createMacOnServer(orderData);
       orderData.mac = mac;
 
-      // 4. Gọi Checkout SDK
       await Payment.createOrder({
         ...orderData,
         success: (data) => {
@@ -259,7 +257,7 @@ export default function CartTab({
           ←
         </Text>
         <Text style={{ fontSize: 13, fontWeight: "600", color: PRIMARY_COLOR }}>
-          Thuộc Cô Ba
+          Mắm Thuộc Cô Ba
         </Text>
       </Box>
 
