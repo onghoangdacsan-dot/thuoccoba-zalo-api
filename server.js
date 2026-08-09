@@ -238,47 +238,126 @@ function printJnT(orderId){
     const items=o.items||[];
     const productNames=items.length
       ? items.map(i=>((i.name||"SP")+" x"+(i.quantity||1))).join(", ")
-      : "Đặc sản mắm Thuộc Cô Ba";
+      : "Mini App Thuộc Cô Ba Store";
     const total=Number(o.total||0).toLocaleString("vi-VN");
     const phone=s.phone||"";
     const fullName=s.fullName||"Khách hàng";
     const address=s.address||"—";
-    const orderCode=o.id||orderId;
-    const sortCode=String(orderCode).replace(/\\D/g,"").slice(-6)||String(orderCode).slice(-6).toUpperCase();
+    const orderCode=String(o.id||orderId);
+    const barcodeValue=orderCode.replace(/[^0-9A-Za-z]/g,"").slice(-12) || orderCode;
+    const sortCode=(orderCode.replace(/\\D/g,"").slice(-6) || orderCode.slice(-6)).toUpperCase();
 
-    const w=window.open("","_blank","width=420,height=700");
-    w.document.write('<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"/><title>Vận đơn J&T - '+orderCode+'</title><style>'+
-      '@page{size:100mm 150mm;margin:0}'+
-      '*{box-sizing:border-box;margin:0;padding:0}'+
-      'body{font-family:Arial,Helvetica,sans-serif;width:100mm;min-height:150mm;padding:3mm;color:#000;background:#fff}'+
-      '.header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #000;padding-bottom:2mm;margin-bottom:2mm}'+
-      '.logo-left{font-size:11px;font-weight:900}.logo-left span{color:#e11d48}'+
-      '.logo-right{font-size:14px;font-weight:900;letter-spacing:1px}'+
-      '.barcode-wrap{text-align:center;margin:2mm 0}'+
-      '.barcode-num{font-size:13px;font-weight:700;letter-spacing:2px;margin-top:1mm}'+
-      '.sort-code{text-align:center;font-size:26px;font-weight:900;letter-spacing:3px;margin:3mm 0;border:2px solid #000;padding:2mm}'+
-      '.section{border:1.5px solid #000;padding:2mm;margin-bottom:2mm;font-size:11px;line-height:1.35}'+
-      '.section-title{font-weight:900;margin-bottom:1mm;font-size:10px;text-transform:uppercase}'+
-      '.row{display:flex;gap:2mm}.col{flex:1}'+
-      '.qr-box{width:28mm;height:28mm;border:1.5px solid #000;display:flex;align-items:center;justify-content:center;font-size:9px;text-align:center;flex-shrink:0}'+
-      '.cod-box{border:2.5px solid #000;text-align:center;padding:2mm;margin:2mm 0}'+
-      '.cod-label{font-size:10px;font-weight:700}.cod-value{font-size:20px;font-weight:900;margin-top:1mm}'+
-      '.meta{font-size:10px;line-height:1.4;margin-top:2mm}'+
-      '.sign{border:1.5px dashed #000;height:16mm;margin-top:3mm;display:flex;align-items:flex-end;justify-content:center;padding-bottom:1mm;font-size:10px}'+
-      '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'+
-      '</style></head><body>'+
-      '<div class="header"><div class="logo-left">Thuộc Cô Ba <span>× J&T</span></div><div class="logo-right">J&T EXPRESS</div></div>'+
-      '<div class="barcode-wrap"><div style="font-size:16px;font-weight:900;letter-spacing:1px;">||||| '+orderCode+' |||||</div><div class="barcode-num">'+orderCode+'</div></div>'+
-      '<div class="sort-code">'+sortCode+'</div>'+
-      '<div class="row"><div class="col">'+
-      '<div class="section"><div class="section-title">Thông tin người gửi</div><div><b>Kho Thuộc Cô Ba</b></div><div>(+84) 0977 322 861</div><div>1117/5 Võ Nguyên Giáp, Hoài Nhơn, Gia Lai</div></div>'+
-      '<div class="section"><div class="section-title">Thông tin người nhận</div><div><b>'+fullName+'</b> &nbsp; (+84)'+phone+'</div><div>'+address+'</div></div>'+
-      '</div><div class="qr-box">QR<br/>'+String(orderCode).slice(-4)+'</div></div>'+
-      '<div class="meta"><div>TL tính phí: 0.500 KG</div><div>Nội dung hàng hóa: '+productNames+'</div><div>PTTT / Tổng cước phí: COD</div></div>'+
-      '<div class="cod-box"><div class="cod-label">Tiền thu hộ</div><div class="cod-value">'+total+' đ</div><div style="font-size:12px;font-weight:900;margin-top:1mm;">COD</div></div>'+
-      '<div class="sign">Người nhận ký</div>'+
-      '<script>window.onload=function(){setTimeout(function(){window.print()},300)}<\\/script>'+
-      '</body></html>');
+    const w=window.open("","_blank","width=420,height=720");
+    w.document.write(\`<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<title>Vận đơn J&T - \${orderCode}</title>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\\/script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\\/script>
+<style>
+  @page { size: 100mm 150mm; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    width: 100mm;
+    min-height: 150mm;
+    padding: 0;
+    color: #000;
+    background: #fff;
+  }
+  table.main { width: 100%; border-collapse: collapse; }
+  table.main td, table.main th { border: 1.5px solid #000; vertical-align: top; }
+  .header td { text-align: center; font-weight: 900; font-size: 12px; padding: 3mm 2mm; }
+  .tiktok { color: #000; }
+  .jt { color: #e11d48; font-size: 13px; }
+  .et { font-size: 14px; letter-spacing: 1px; }
+  .barcode-cell { text-align: center; padding: 2mm; }
+  .barcode-num { font-size: 12px; font-weight: 700; letter-spacing: 1px; margin-top: 1mm; }
+  .sort-code { text-align: center; font-size: 28px; font-weight: 900; letter-spacing: 2px; padding: 3mm; }
+  .info { font-size: 10.5px; line-height: 1.35; padding: 2mm; }
+  .info b { font-size: 11px; }
+  .label { font-weight: 900; font-size: 10px; margin-bottom: 1mm; }
+  .right-box { text-align: center; padding: 2mm; width: 32mm; }
+  .hub { font-size: 16px; font-weight: 900; margin-bottom: 2mm; }
+  #qrcode { margin: 0 auto; }
+  .meta { font-size: 10px; line-height: 1.4; padding: 2mm; }
+  .cod-title { font-size: 10px; font-weight: 700; }
+  .cod-value { font-size: 14px; font-weight: 900; margin-top: 1mm; }
+  .sign { height: 16mm; font-size: 10px; padding: 2mm; }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<table class="main">
+  <tr class="header">
+    <td class="tiktok" style="width:38%">Mini App<br/>Thuộc Cô Ba Store</td>
+    <td class="jt" style="width:38%">J&amp;T EXPRESS</td>
+    <td class="et" style="width:24%">ET</td>
+  </tr>
+  <tr>
+    <td colspan="3" class="barcode-cell">
+      <svg id="barcode"></svg>
+      <div class="barcode-num">\${barcodeValue}</div>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3" class="sort-code">\${sortCode}</td>
+  </tr>
+  <tr>
+    <td colspan="2" class="info">
+      <div class="label">Thông tin người gửi:</div>
+      <div><b>Kho Thuộc Cô Ba</b> &nbsp; (+84)0977322861</div>
+      <div>1117/5 Võ Nguyên Giáp, Hoài Nhơn, Gia Lai</div>
+      <div style="margin-top:2mm" class="label">Thông tin người nhận:</div>
+      <div><b>\${fullName}</b> &nbsp; (+84)\${phone}</div>
+      <div>\${address}</div>
+    </td>
+    <td class="right-box">
+      <div class="hub">SGN</div>
+      <canvas id="qrcode" width="90" height="90"></canvas>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" class="meta">
+      <div>TL tính phí: 0.500 KG</div>
+      <div>Nội dung hàng hóa: \${productNames}</div>
+      <div>PTTT/Tổng cước phí: COD</div>
+      <div>TT số thứ tự: \${orderCode}</div>
+      <div>Nhận xét:</div>
+    </td>
+    <td class="right-box">
+      <div class="cod-title">Tiền thu hộ:</div>
+      <div class="cod-value">\${total} đ</div>
+      <div style="font-weight:900;margin-top:2mm">COD</div>
+      <div class="sign" style="margin-top:3mm;border-top:1px dashed #000">Người nhận ký:</div>
+    </td>
+  </tr>
+</table>
+<script>
+  try {
+    JsBarcode("#barcode", "\${barcodeValue}", {
+      format: "CODE128",
+      width: 1.4,
+      height: 42,
+      displayValue: false,
+      margin: 0
+    });
+  } catch(e) {}
+  try {
+    QRCode.toCanvas(document.getElementById("qrcode"), "\${orderCode}", {
+      width: 90,
+      margin: 0
+    });
+  } catch(e) {}
+  window.onload = function() {
+    setTimeout(function(){ window.print(); }, 400);
+  };
+<\\/script>
+</body>
+</html>\`);
     w.document.close();
   }).catch(e=>alert("Lỗi tải thông tin in: "+e.message));
 }
