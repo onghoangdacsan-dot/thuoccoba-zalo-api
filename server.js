@@ -11,6 +11,38 @@ const ADMIN_PASSWORD = "thuoccoba2026";
 
 const ordersDB = new Map();
 
+// Giải mã token số điện thoại từ Zalo Mini App
+app.post("/api/get-phone-number", async (req, res) => {
+  try {
+    const { token, accessToken } = req.body;
+    const APP_SECRET_KEY = process.env.ZALO_APP_SECRET_KEY; // lấy từ Zalo Developer Console
+
+    if (!token || !accessToken) {
+      return res.status(400).json({ error: "Thiếu token hoặc accessToken" });
+    }
+
+    const params = new URLSearchParams();
+    params.append("code", token);
+    params.append("secret_key", APP_SECRET_KEY);
+
+    const zaloRes = await fetch("https://graph.zalo.me/v2.0/me/info?" + params.toString(), {
+      method: "GET",
+      headers: { access_token: accessToken },
+    });
+
+    const data = await zaloRes.json();
+    console.log("Zalo phone decode response:", data);
+
+    if (data?.data?.number) {
+      return res.json({ phoneNumber: data.data.number });
+    }
+    return res.status(400).json({ error: data?.message || "Không giải mã được số điện thoại" });
+  } catch (err) {
+    console.error("get-phone-number error:", err);
+    res.status(500).json({ error: "Lỗi server khi lấy số điện thoại" });
+  }
+});
+
 app.post("/api/orders", (req, res) => {
   try {
     const orderId = "ORD_" + Date.now();
