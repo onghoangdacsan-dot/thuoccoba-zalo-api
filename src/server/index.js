@@ -213,5 +213,23 @@ app.patch("/api/orders/:orderId/status", (req, res) => {
 
 // ==========================================
 
+// Tạo MAC cho Zalo Checkout SDK
+app.post("/api/create-mac", (req, res) => {  
+  try {    
+    if (!APP_SECRET_KEY) {      
+      return res.status(500).json({ error: "Thiếu ZALO_APP_SECRET_KEY" });    
+    }    
+    const data = req.body || {};    
+    // Chuỗi ký theo thứ tự key alphabet (chuẩn Zalo)    
+    const keys = Object.keys(data).sort();    
+    const raw = keys.map((k) => `${k}=${data[k]}`).join("&");    
+    const mac = crypto      .createHmac("sha256", APP_SECRET_KEY)      .update(raw)      .digest("hex");    
+    return res.json({ mac });  
+  } catch (err) {    
+    console.error("create-mac error:", err);    
+    return res.status(500).json({ error: "Cannot create MAC" });  
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server webhook đang chạy cổng ${PORT}`));

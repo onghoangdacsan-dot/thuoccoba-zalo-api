@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Box, Text, Icon, useSnackbar } from "zmp-ui";
-import { Payment, events, EventName } from "zmp-sdk/apis";
+import { Box, Text, useSnackbar } from "zmp-ui";
+import { Payment, events, EventName, openWebview } from "zmp-sdk/apis";
 import { validateShippingInfo } from "../utils/validation";
 
 const PRIMARY_COLOR = "#8B4513";
@@ -224,10 +224,17 @@ export default function CartTab({
     }
   };
 
+  // Mở bài viết Zalo OA đúng chuẩn zmp-sdk, có fallback nếu thất bại
   const handleOpenZaloArticle = (url) => {
-    if (window?.ZaloJavaScriptInterface?.openWebview) {
-      window.ZaloJavaScriptInterface.openWebview({ url });
-    } else {
+    try {
+      openWebview({
+        url,
+        success: () => {},
+        fail: () => {
+          window.open(url, "_blank");
+        },
+      });
+    } catch (err) {
       window.open(url, "_blank");
     }
   };
@@ -566,10 +573,10 @@ export default function CartTab({
             >
               <Text style={{ fontSize: 18 }}>💵</Text>
               <Box>
-                <Text style={{ fontSize: 13, fontWeight: "bold" }}>
+                <Text style={{ fontSize: 13, fontWeight: "bold", display: "block" }}>
                   Thanh toán khi nhận hàng (COD)
                 </Text>
-                <Text style={{ fontSize: 11, color: "#555", marginTop: 2 }}>
+                <Text style={{ fontSize: 11, color: "#555", marginTop: 2, display: "block" }}>
                   Thanh toán bằng tiền mặt khi shipper giao hàng tận nơi.
                 </Text>
               </Box>
@@ -828,8 +835,7 @@ export default function CartTab({
                     gap: 4,
                   }}
                 >
-                  Xem chi tiết trên Zalo OA{" "}
-                  <Icon icon="zi-arrow-right" style={{ fontSize: 10 }} />
+                  Xem chi tiết trên Zalo OA <span>›</span>
                 </Text>
               </Box>
             </Box>

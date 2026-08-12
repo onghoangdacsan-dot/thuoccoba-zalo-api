@@ -2,6 +2,9 @@ import React from "react";
 import { Box, Text } from "zmp-ui";
 import ProductCard from "./ProductCard";
 import { CATEGORIES } from "../constants/data";
+import banner1 from "../assets/banners/banner-1.png";
+import banner2 from "../assets/banners/banner-2.png";
+import banner3 from "../assets/banners/banner-3.jpg";
 
 const PRIMARY_COLOR = "#8B4513";
 const BAMBOO_BORDER = "#DEB887";
@@ -21,25 +24,25 @@ export default function HomeTab({
 }) {
   const banners = [
     {
-      badge: "CHUẨN CHẤT LƯỢNG",
-      title: "OCOP 4 SAO & HACCP",
+      badge: "CAM KẾT VÀNG",
+      title: "100% NGUYÊN CHẤT",
       highlight:
-        "Sản phẩm OCOP 4 sao, đạt chuẩn ATVSTP, HACCP và bảo hộ bởi Cục Sở hữu trí tuệ.",
-      image: "./10.jpg",
+        "Trọn vẹn hương vị quê hương trong từng hũ mắm, chai nước mắm nguyên chất.",
+      image: banner1,
     },
     {
       badge: "ĐẶC SẢN TRUYỀN THỐNG",
       title: "MẮM NGUYÊN CHẤT LÀNG CHÀI",
       highlight:
         "Cam kết không chất bảo quản – Hương vị mắm truyền thống đậm đà chuẩn vị.",
-      image: "./11.jpg",
+      image: banner2,
     },
     {
-      badge: "GIAO HÀNG HỎA TỐC",
-      title: "VẬN CHUYỂN SIÊU TỐC",
-      highlight: "Nhận hàng nhanh chóng tận tay – Đảm bảo chất lượng nguyên vẹn.",
-      image:
-        "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&auto=format&fit=crop&q=80",
+      badge: "CÂU CHUYỆN THƯƠNG HIỆU",
+      title: "NGƯỜI GIỮ HỒN MẮM QUÊ",
+      highlight:
+        "Từ tâm huyết gìn giữ hương vị truyền thống đến từng hũ mắm gửi trọn đến tay khách hàng.",
+      image: banner3,
     },
   ];
 
@@ -183,7 +186,7 @@ export default function HomeTab({
       <Box
         style={{
           margin: "14px 16px",
-          height: 150,
+          aspectRatio: "16 / 9",
           borderRadius: 14,
           overflow: "hidden",
           position: "relative",
@@ -213,7 +216,7 @@ export default function HomeTab({
             padding: 14,
             display: "flex",
             flexDirection: "column",
-            justifyContent: "center",
+            justifyContent: "flex-start",
             color: "#FFF",
             width: "72%",
             background:

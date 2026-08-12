@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Page, useSnackbar } from "zmp-ui";
-import { getUserInfo, Payment, events, EventName } from "zmp-sdk/apis";
+import { getUserInfo, Payment, events, EventName, followOA } from "zmp-sdk/apis";
 
 import { PRODUCTS } from "../constants/data";
 import { loadState, saveState } from "../utils/storage";
@@ -48,8 +48,7 @@ export default function HomePage() {
   const { openSnackbar } = useSnackbar();
   const processedTransRef = useRef(new Set());
 
-  // ===== KEY RIÊNG CHO TỪNG TÀI KHOẢN =====
-  // Ưu tiên: Zalo id → số điện thoại → guest
+  // Key riêng cho từng tài khoản
   const userKey =
     userInfo?.id ||
     shippingInfo?.phone ||
@@ -65,9 +64,9 @@ export default function HomePage() {
     removeItem,
     clearCart,
     placeOrder,
-  } = useCart(userKey); // <-- TRUYỀN userKey VÀO ĐÂY
+  } = useCart(userKey);
 
-  // Lấy đơn từ server rồi LỌC theo số điện thoại của user hiện tại
+  // Lấy đơn từ server + lọc theo SĐT của user hiện tại
   const fetchOrdersFromServer = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/orders`);
@@ -90,9 +89,8 @@ export default function HomePage() {
           createdAt: o.createdAt,
           userId: o.userId || null,
         }))
-        // Chỉ lấy đơn của chính user này
         .filter((o) => {
-          if (!myPhone) return false; // chưa có SĐT → không hiện đơn nào
+          if (!myPhone) return false;
           const orderPhone = (o.shippingInfo?.phone || "").trim();
           return orderPhone && orderPhone === myPhone;
         });
@@ -103,7 +101,6 @@ export default function HomePage() {
     }
   }, [shippingInfo?.phone, userInfo?.phone]);
 
-  // Mỗi khi vào tab Cá nhân → tải lại đơn
   useEffect(() => {
     if (currentTab === "profile") {
       fetchOrdersFromServer();
@@ -221,24 +218,23 @@ export default function HomePage() {
   }, []);
 
   const handleFollowOA = useCallback((zaloOAId) => {
-    import("zmp-sdk/apis").then(({ followOA }) => {
-      try {
-        followOA({
-          id: zaloOAId,
-          success: () => {
-            setIsFollowingOA(true);
-            alert("Cảm ơn bạn đã quan tâm Zalo OA Mắm Thuộc Cô Ba!");
-          },
-          fail: () => {
-            alert("Không thể cập nhật trạng thái quan tâm. Vui lòng thử lại sau.");
-          },
-        });
-      } catch (err) {
-        alert("Tính năng này chỉ hoạt động trong ứng dụng Zalo.");
-      }
-    });
+    try {
+      followOA({
+        id: zaloOAId,
+        success: () => {
+          setIsFollowingOA(true);
+          alert("Cảm ơn bạn đã quan tâm Zalo OA Mắm Thuộc Cô Ba!");
+        },
+        fail: () => {
+          alert("Không thể cập nhật trạng thái quan tâm. Vui lòng thử lại sau.");
+        },
+      });
+    } catch (err) {
+      alert("Tính năng này chỉ hoạt động trong ứng dụng Zalo.");
+    }
   }, []);
 
+  // ===== GIỮ NGUYÊN: ghi nhận đơn sau Checkout SDK =====
   const handlePlaceOrder = useCallback(
     (paymentResult) => {
       const itemsSnapshot = [...cartItems];
@@ -254,7 +250,6 @@ export default function HomePage() {
 
       clearCart();
       setShowSuccessModal(true);
-      // Tải lại đơn từ server sau khi đặt thành công
       setTimeout(() => fetchOrdersFromServer(), 800);
 
       return order;
@@ -262,6 +257,7 @@ export default function HomePage() {
     [placeOrder, clearCart, cartItems, shippingInfo, finalTotal, fetchOrdersFromServer]
   );
 
+  // ===== GIỮ NGUYÊN: lắng nghe PaymentDone từ Checkout SDK =====
   const handlePaymentDone = useCallback(
     async (data) => {
       try {
@@ -314,6 +310,7 @@ export default function HomePage() {
     };
   }, [handlePaymentDone]);
 
+  // ===== GIỮ NGUYÊN: tạo đơn + MAC trên server cho Checkout SDK =====
   const createOrderOnServer = useCallback(async (payload) => {
     const res = await fetch(`${API}/api/orders`, {
       method: "POST",
@@ -341,7 +338,6 @@ export default function HomePage() {
     setOrderStatusFilter(statusKey);
   }, []);
 
-  // Ưu tiên đơn từ server (đã lọc), nếu chưa có thì dùng local
   const displayOrders = serverOrders.length > 0 ? serverOrders : orderHistory;
 
   return (

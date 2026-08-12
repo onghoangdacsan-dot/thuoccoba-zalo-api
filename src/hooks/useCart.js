@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { loadState, saveState } from "../utils/storage";
 
 export function useCart(userId = null) {
-  // Mỗi tài khoản có key riêng
   const ordersKey = userId ? `orders_${userId}` : "orders_guest";
   const orderCountKey = userId ? `orderCount_${userId}` : "orderCount_guest";
 
@@ -10,7 +9,6 @@ export function useCart(userId = null) {
   const [orderHistory, setOrderHistory] = useState(() => loadState(ordersKey, []));
   const [orderCount, setOrderCount] = useState(() => loadState(orderCountKey, 0));
 
-  // Khi userId thay đổi → load lại đơn hàng của người đó
   useEffect(() => {
     setOrderHistory(loadState(ordersKey, []));
     setOrderCount(loadState(orderCountKey, 0));
