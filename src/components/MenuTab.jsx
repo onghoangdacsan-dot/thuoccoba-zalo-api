@@ -1,9 +1,25 @@
 import React, { useState, useMemo } from "react";
 import { Box, Text } from "zmp-ui";
 import { PRODUCTS, CATEGORIES, BANNERS } from "../constants/data";
+import menuBanner from "../assets/banners/banner-menu.jpg";
 
 const PRIMARY_COLOR = "#8B4513";
 const BAMBOO_BORDER = "#DEB887";
+
+// Tách phần "tặng ..." trong tên sản phẩm ra để hiển thị in nghiêng, trong ngoặc đơn
+function renderProductName(name) {
+  if (!name) return name;
+  const idx = name.toLowerCase().indexOf(" tặng ");
+  if (idx === -1) return name;
+  const main = name.slice(0, idx);
+  const gift = name.slice(idx + 1); // bỏ khoảng trắng đầu, giữ lại "tặng ..."
+  return (
+    <>
+      {main}{" "}
+      <span style={{ fontStyle: "italic" }}>({gift})</span>
+    </>
+  );
+}
 
 export default function MenuTab({ onAddToCart, onGoToCart, cartCount = 0 }) {
   const [activeCategory, setActiveCategory] = useState("Tất cả");
@@ -26,41 +42,20 @@ export default function MenuTab({ onAddToCart, onGoToCart, cartCount = 0 }) {
   return (
     <Box style={{ background: "#FFFDF9", minHeight: "100vh", paddingBottom: 20 }}>
       {/* Banner đầu trang */}
-      {BANNERS?.[0] && (
-        <Box
-          style={{
-            position: "relative",
-            height: 150,
-            overflow: "hidden",
-            marginBottom: 12,
-          }}
-        >
-          <img
-            src={BANNERS[0].image}
-            alt={BANNERS[0].title}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-          <Box
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(47,24,16,0.8) 100%)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "flex-end",
-              padding: 14,
-            }}
-          >
-            <Text style={{ fontSize: 10, color: "#FFD54F", fontWeight: "bold" }}>
-              {BANNERS[0].badge}
-            </Text>
-            <Text style={{ fontSize: 18, color: "#FFF", fontWeight: 900 }}>
-              {BANNERS[0].title}
-            </Text>
-            <Text style={{ fontSize: 12, color: "#EEE" }}>{BANNERS[0].highlight}</Text>
-          </Box>
-        </Box>
-      )}
+      <Box
+        style={{
+          position: "relative",
+          aspectRatio: "16 / 9",
+          overflow: "hidden",
+          marginBottom: 12,
+        }}
+      >
+        <img
+          src={menuBanner}
+          alt="Mắm truyền thống Thuộc Cô Ba"
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      </Box>
 
       <Box style={{ padding: "0 16px" }}>
         {/* Danh mục sản phẩm */}
@@ -171,10 +166,10 @@ export default function MenuTab({ onAddToCart, onGoToCart, cartCount = 0 }) {
                       </Text>
                     )}
                   </Box>
-                  <Text style={{ fontSize: 13, fontWeight: "bold", color: "#333" }}>
-                    {product.name}
+                  <Text style={{ fontSize: 13, fontWeight: "bold", color: "#333", display: "block" }}>
+                    {renderProductName(product.name)}
                   </Text>
-                  <Text style={{ fontSize: 11, color: "#888", marginTop: 2 }}>
+                  <Text style={{ fontSize: 11, color: "#888", marginTop: 4, display: "block" }}>
                     ⭐ {product.rating} · Đã bán {product.sold}
                   </Text>
                 </Box>

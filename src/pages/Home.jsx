@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Page, useSnackbar } from "zmp-ui";
-import { getUserInfo, Payment, events, EventName } from "zmp-sdk/apis";
+import { getUserInfo, Payment, events, EventName, followOA } from "zmp-sdk/apis";
 
 import { PRODUCTS } from "../constants/data";
 import { loadState, saveState } from "../utils/storage";
@@ -32,44 +32,13 @@ export default function HomePage() {
   const [flyingItem, setFlyingItem] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("cod");
 
-  // State đồng bộ đơn hàng trực tiếp từ server
   const [serverOrders, setServerOrders] = useState([]);
-
-  const fetchOrdersFromServer = useCallback(async () => {
-    try {
-      const res = await fetch(`${API}/api/orders`);
-      if (!res.ok) return;
-      const list = await res.json();
-      const mapped = (list || []).map((o) => ({
-        id: o.id,
-        date: o.createdAt
-          ? new Date(o.createdAt).toLocaleString("vi-VN")
-          : "",
-        items: o.items || [],
-        shippingInfo: o.shippingInfo || {},
-        paymentMethod: o.paymentMethod || "COD",
-        total: o.total || 0,
-        status: o.status || "pending", // pending | preparing | shipping | completed
-        createdAt: o.createdAt,
-      }));
-      setServerOrders(mapped);
-    } catch (e) {
-      console.warn("Không tải đơn từ server:", e);
-    }
-  }, []);
-
-  // Mỗi khi vào tab Cá nhân -> tải lại đơn từ server
-  useEffect(() => {
-    if (currentTab === "profile") {
-      fetchOrdersFromServer();
-    }
-  }, [currentTab, fetchOrdersFromServer]);
 
   const [isFollowingOA, setIsFollowingOA] = useState(() =>
     loadState("followingOA", false)
   );
   const [userInfo, setUserInfo] = useState(() =>
-    loadState("userInfo", { name: "", phone: "", avatar: "/logo.png.png" })
+    loadState("userInfo", { id: "", name: "", phone: "", avatar: "/logo.png.png" })
   );
   const [shippingInfo, setShippingInfo] = useState(() =>
     loadState("shippingInfo", { fullName: "", phone: "", address: "" })
@@ -78,6 +47,13 @@ export default function HomePage() {
 
   const { openSnackbar } = useSnackbar();
   const processedTransRef = useRef(new Set());
+
+  // Key riêng cho từng tài khoản
+  const userKey =
+    userInfo?.id ||
+    shippingInfo?.phone ||
+    userInfo?.phone ||
+    null;
 
   const {
     cartItems,
@@ -88,7 +64,48 @@ export default function HomePage() {
     removeItem,
     clearCart,
     placeOrder,
-  } = useCart();
+  } = useCart(userKey);
+
+  // Lấy đơn từ server + lọc theo SĐT của user hiện tại
+  const fetchOrdersFromServer = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/api/orders`);
+      if (!res.ok) return;
+      const list = await res.json();
+
+      const myPhone = (shippingInfo?.phone || userInfo?.phone || "").trim();
+
+      const mapped = (list || [])
+        .map((o) => ({
+          id: o.id,
+          date: o.createdAt
+            ? new Date(o.createdAt).toLocaleString("vi-VN")
+            : "",
+          items: o.items || [],
+          shippingInfo: o.shippingInfo || {},
+          paymentMethod: o.paymentMethod || "COD",
+          total: o.total || 0,
+          status: o.status || "pending",
+          createdAt: o.createdAt,
+          userId: o.userId || null,
+        }))
+        .filter((o) => {
+          if (!myPhone) return false;
+          const orderPhone = (o.shippingInfo?.phone || "").trim();
+          return orderPhone && orderPhone === myPhone;
+        });
+
+      setServerOrders(mapped);
+    } catch (e) {
+      console.warn("Không tải đơn từ server:", e);
+    }
+  }, [shippingInfo?.phone, userInfo?.phone]);
+
+  useEffect(() => {
+    if (currentTab === "profile") {
+      fetchOrdersFromServer();
+    }
+  }, [currentTab, fetchOrdersFromServer]);
 
   useEffect(() => {
     saveState("followingOA", isFollowingOA);
@@ -166,65 +183,58 @@ export default function HomePage() {
         getUserInfo({
           success: (data) => {
             const zaloUser = data?.userInfo;
-            if (zaloUser?.name) {
+            if (zaloUser) {
               setUserInfo((prev) => ({
                 ...prev,
-                name: zaloUser.name,
+                id: zaloUser.id || prev.id || "",
+                name: zaloUser.name || prev.name,
                 avatar: zaloUser.avatar || prev.avatar,
+                phone: zaloUser.phoneNumber || zaloUser.phone || prev.phone || "",
               }));
               setShippingInfo((prev) => ({
                 ...prev,
-                fullName: zaloUser.name,
+                fullName: zaloUser.name || prev.fullName,
+                phone: zaloUser.phoneNumber || zaloUser.phone || prev.phone || "",
               }));
               alert(
-                `Đã lấy tên từ Zalo: ${zaloUser.name}. Vui lòng kiểm tra và bổ sung số điện thoại, địa chỉ nhận hàng.`
+                `Đã lấy thông tin từ Zalo: ${zaloUser.name || ""}. Vui lòng kiểm tra số điện thoại và địa chỉ nhận hàng.`
               );
               resolve(true);
             } else {
-              alert(
-                "Không lấy được thông tin từ Zalo. Vui lòng nhập thủ công thông tin nhận hàng."
-              );
+              alert("Không lấy được thông tin từ Zalo. Vui lòng nhập thủ công.");
               resolve(false);
             }
           },
           fail: () => {
-            alert(
-              "Không thể lấy thông tin từ Zalo (bạn có thể đã từ chối cấp quyền). Vui lòng nhập thủ công."
-            );
+            alert("Không thể lấy thông tin từ Zalo. Vui lòng nhập thủ công.");
             resolve(false);
           },
         });
       } catch (error) {
-        alert(
-          "Không thể lấy thông tin từ Zalo trên thiết bị này. Vui lòng nhập thủ công."
-        );
+        alert("Không thể lấy thông tin từ Zalo trên thiết bị này.");
         resolve(false);
       }
     });
   }, []);
 
   const handleFollowOA = useCallback((zaloOAId) => {
-    import("zmp-sdk/apis").then(({ followOA }) => {
-      try {
-        followOA({
-          id: zaloOAId,
-          success: () => {
-            setIsFollowingOA(true);
-            alert("Cảm ơn bạn đã quan tâm Zalo OA Mắm Thuộc Cô Ba!");
-          },
-          fail: (err) => {
-            console.log("followOA fail:", err);
-            alert(
-              "Không thể cập nhật trạng thái quan tâm ngay lúc này. Vui lòng thử lại sau."
-            );
-          },
-        });
-      } catch (err) {
-        alert("Tính năng này chỉ hoạt động trong ứng dụng Zalo.");
-      }
-    });
+    try {
+      followOA({
+        id: zaloOAId,
+        success: () => {
+          setIsFollowingOA(true);
+          alert("Cảm ơn bạn đã quan tâm Zalo OA Mắm Thuộc Cô Ba!");
+        },
+        fail: () => {
+          alert("Không thể cập nhật trạng thái quan tâm. Vui lòng thử lại sau.");
+        },
+      });
+    } catch (err) {
+      alert("Tính năng này chỉ hoạt động trong ứng dụng Zalo.");
+    }
   }, []);
 
+  // ===== GIỮ NGUYÊN: ghi nhận đơn sau Checkout SDK =====
   const handlePlaceOrder = useCallback(
     (paymentResult) => {
       const itemsSnapshot = [...cartItems];
@@ -240,13 +250,14 @@ export default function HomePage() {
 
       clearCart();
       setShowSuccessModal(true);
-      fetchOrdersFromServer();
+      setTimeout(() => fetchOrdersFromServer(), 800);
 
       return order;
     },
     [placeOrder, clearCart, cartItems, shippingInfo, finalTotal, fetchOrdersFromServer]
   );
 
+  // ===== GIỮ NGUYÊN: lắng nghe PaymentDone từ Checkout SDK =====
   const handlePaymentDone = useCallback(
     async (data) => {
       try {
@@ -299,6 +310,7 @@ export default function HomePage() {
     };
   }, [handlePaymentDone]);
 
+  // ===== GIỮ NGUYÊN: tạo đơn + MAC trên server cho Checkout SDK =====
   const createOrderOnServer = useCallback(async (payload) => {
     const res = await fetch(`${API}/api/orders`, {
       method: "POST",
@@ -325,6 +337,8 @@ export default function HomePage() {
   const handleSelectOrderStatus = useCallback((statusKey) => {
     setOrderStatusFilter(statusKey);
   }, []);
+
+  const displayOrders = serverOrders.length > 0 ? serverOrders : orderHistory;
 
   return (
     <Page
@@ -440,16 +454,17 @@ export default function HomePage() {
       {currentTab === "profile" && (
         <ProfileTab
           userInfo={{
+            id: userInfo.id || "",
             fullName: userInfo.name || shippingInfo.fullName || "Khách hàng Thuộc Cô Ba",
             phone: shippingInfo.phone || userInfo.phone || "",
-            avatar: userInfo.avatar || "/logo.png.png"
+            avatar: userInfo.avatar || "/logo.png.png",
           }}
           shippingInfo={shippingInfo}
           onChangeShippingInfo={setShippingInfo}
           onSyncZalo={handleSyncZalo}
           isFollowingOA={isFollowingOA}
           onFollowOA={handleFollowOA}
-          orderHistory={serverOrders.length > 0 ? serverOrders : orderHistory}
+          orderHistory={displayOrders}
           orderStatusFilter={orderStatusFilter}
           onSelectOrderStatus={handleSelectOrderStatus}
         />

@@ -4,6 +4,21 @@ import { Box, Text } from "zmp-ui";
 const PRIMARY_COLOR = "#8B4513";
 const BAMBOO_BORDER = "#DEB887";
 
+// Tách phần "tặng ..." trong tên sản phẩm ra để hiển thị in nghiêng, trong ngoặc đơn
+function renderProductName(name) {
+  if (!name) return name;
+  const idx = name.toLowerCase().indexOf(" tặng ");
+  if (idx === -1) return name;
+  const main = name.slice(0, idx);
+  const gift = name.slice(idx + 1); // bỏ khoảng trắng đầu, giữ lại "tặng ..."
+  return (
+    <>
+      {main}{" "}
+      <span style={{ fontStyle: "italic" }}>({gift})</span>
+    </>
+  );
+}
+
 const ProductCard = React.memo(({ product, onAdd, onBuy, onSelect }) => (
   <Box
     onClick={() => onSelect(product)}
@@ -45,14 +60,14 @@ const ProductCard = React.memo(({ product, onAdd, onBuy, onSelect }) => (
         overflow: "hidden",
         minHeight: 36
       }}>
-        {product.name}
+        {renderProductName(product.name)}
       </Text>
 
-      <Text style={{ fontSize: 14, fontWeight: 900, color: PRIMARY_COLOR, marginBottom: 2 }}>
+      <Text style={{ fontSize: 14, fontWeight: 900, color: PRIMARY_COLOR, display: "block", marginBottom: 4 }}>
         {product.displayPrice}
       </Text>
 
-      <Text style={{ fontSize: 10.5, color: "#888" }}>
+      <Text style={{ fontSize: 10.5, color: "#888", display: "block" }}>
         ⭐ {product.rating} · Đã bán {product.sold}
       </Text>
 

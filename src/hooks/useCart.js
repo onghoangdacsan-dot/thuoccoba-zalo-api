@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { loadState, saveState } from "../utils/storage";
 
 export function useCart(userId = null) {
-  // Mỗi tài khoản có key riêng
   const ordersKey = userId ? `orders_${userId}` : "orders_guest";
   const orderCountKey = userId ? `orderCount_${userId}` : "orderCount_guest";
 
@@ -10,11 +9,10 @@ export function useCart(userId = null) {
   const [orderHistory, setOrderHistory] = useState(() => loadState(ordersKey, []));
   const [orderCount, setOrderCount] = useState(() => loadState(orderCountKey, 0));
 
-  // Khi userId thay đổi → load lại đơn hàng của người đó
   useEffect(() => {
     setOrderHistory(loadState(ordersKey, []));
     setOrderCount(loadState(orderCountKey, 0));
-  }, [userId]);
+  }, [userId, ordersKey, orderCountKey]);
 
   useEffect(() => {
     saveState("cart", cartItems);
@@ -64,8 +62,10 @@ export function useCart(userId = null) {
 
   const placeOrder = useCallback(
     (orderData) => {
-      const items = orderData?.items?.length > 0 ? orderData.items : [...cartItems];
-      const newOrderId = orderData?.zaloOrderId || orderData?.orderId || "ORD_" + Date.now();
+      const items =
+        orderData?.items?.length > 0 ? orderData.items : [...cartItems];
+      const newOrderId =
+        orderData?.zaloOrderId || orderData?.orderId || "ORD_" + Date.now();
 
       if (!items.length) {
         console.warn("placeOrder: không có sản phẩm");
@@ -89,7 +89,7 @@ export function useCart(userId = null) {
         total: orderData?.finalTotal ?? orderData?.total ?? 0,
         status: "pending",
         createdAt: new Date().toISOString(),
-        userId: userId || null, // gắn userId vào đơn
+        userId: userId || null,
       };
 
       setOrderHistory((prev) => [newOrder, ...prev]);
