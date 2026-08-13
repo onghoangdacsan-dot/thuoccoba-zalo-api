@@ -11,12 +11,17 @@ const PRIVATE_KEY = "fe49f1b0e06649e498929a7379cfdfbf";
 const ADMIN_PASSWORD = "thuoccoba2026";
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 
-const pool = new Pool({
+// Khởi tạo Pool an toàn, tránh crash ứng dụng nếu chưa có DATABASE_URL
+const pool = process.env.DATABASE_URL ? new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
-});
+}) : null;
 
 async function initDB() {
+  if (!pool) {
+    console.error("⚠️ THIẾU DATABASE_URL — server vẫn chạy nhưng không lưu đơn được!");
+    return;
+  }
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS orders (
@@ -70,6 +75,7 @@ app.post("/api/get-phone-number", async (req, res) => {
 });
 
 app.post("/api/orders", async (req, res) => {
+  if (!pool) return res.status(500).json({ error: "Chưa cấu hình DATABASE_URL" });
   try {
     const orderId = "ORD_" + Date.now();
     const createdAt = new Date().toISOString();
@@ -99,6 +105,7 @@ app.post("/api/orders", async (req, res) => {
 });
 
 app.get("/api/orders", async (req, res) => {
+  if (!pool) return res.json([]);
   try {
     const result = await pool.query("SELECT data FROM orders ORDER BY created_at DESC");
     res.json(result.rows.map((r) => r.data));
@@ -109,6 +116,7 @@ app.get("/api/orders", async (req, res) => {
 });
 
 app.post("/api/orders/:orderId/cancel", async (req, res) => {
+  if (!pool) return res.status(500).json({ error: "Chưa cấu hình DATABASE_URL" });
   try {
     const { orderId } = req.params;
     const { reason, phone } = req.body || {};
@@ -150,6 +158,7 @@ app.post("/api/orders/:orderId/cancel", async (req, res) => {
 });
 
 app.patch("/api/orders/:orderId/status", async (req, res) => {
+  if (!pool) return res.status(500).json({ error: "Chưa cấu hình DATABASE_URL" });
   const password = req.headers["x-admin-password"] || req.body.password;
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: "Sai mật khẩu admin" });
@@ -204,6 +213,7 @@ app.post("/api/create-mac", (req, res) => {
 });
 
 app.post("/api/zalo-notify", async (req, res) => {
+  if (!pool) return res.json({ returnCode: 0, returnMessage: "No database" });
   try {
     const { data, mac } = req.body || {};
     if (!data || !mac) return res.json({ returnCode: 0, returnMessage: "Missing data or mac" });
@@ -627,9 +637,9 @@ function printJnT(orderId){
   const barcodeValue=orderCode.replace(/[^0-9A-Za-z]/g,"").slice(-12)||orderCode;
   const sortCode=(orderCode.replace(/\D/g,"").slice(-6)||orderCode.slice(-6)).toUpperCase();
   const w=window.open("","_blank","width=420,height=720");
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>J&T ${orderCode}</title>
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\/script>
+  w.document.write(\`<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>J&T \${orderCode}</title>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\\/script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\\/script>
 <style>
 @page{size:100mm 150mm;margin:0}*{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;width:100mm;min-height:150mm}
@@ -646,35 +656,35 @@ table.main td{border:1.5px solid #000;vertical-align:top}
 <table class="main">
 <tr class="header"><td style="width:38%">Mini App<br/>Thuộc Cô Ba Store</td>
 <td style="width:38%;color:#e11d48">J&amp;T EXPRESS</td><td style="width:24%">ET</td></tr>
-<tr><td colspan="3" class="barcode-cell"><svg id="barcode"></svg><div class="barcode-num">${barcodeValue}</div></td></tr>
-<tr><td colspan="3" class="sort-code">${sortCode}</td></tr>
+<tr><td colspan="3" class="barcode-cell"><svg id="barcode"></svg><div class="barcode-num">\${barcodeValue}</div></td></tr>
+<tr><td colspan="3" class="sort-code">\${sortCode}</td></tr>
 <tr>
 <td colspan="2" class="info">
 <div class="label">Người gửi</div>
 <div><b>Kho Thuộc Cô Ba</b> (+84)0977322861</div>
 <div>1117/5 Võ Nguyên Giáp, Hoài Nhơn, Gia Lai</div>
 <div style="margin-top:2mm" class="label">Người nhận</div>
-<div><b>${fullName}</b> (+84)${phone}</div><div>${address}</div>
+<div><b>\${fullName}</b> (+84)\${phone}</div><div>\${address}</div>
 </td>
 <td class="right-box"><div class="hub">SGN</div><canvas id="qrcode" width="90" height="90"></canvas></td>
 </tr>
 <tr>
 <td colspan="2" class="meta">
-<div>TL: 0.500 KG</div><div>Hàng: ${productNames}</div>
-<div>PTTT: COD</div><div>Mã: ${orderCode}</div>
+<div>TL: 0.500 KG</div><div>Hàng: \${productNames}</div>
+<div>PTTT: COD</div><div>Mã: \${orderCode}</div>
 </td>
 <td class="right-box">
-<div>Tiền thu hộ</div><div class="cod-value">${total} đ</div>
+<div>Tiền thu hộ</div><div class="cod-value">\${total} đ</div>
 <div style="font-weight:900;margin-top:2mm">COD</div>
 <div class="sign" style="margin-top:3mm;border-top:1px dashed #000">Người nhận ký</div>
 </td>
 </tr>
 </table>
 <script>
-try{JsBarcode("#barcode","${barcodeValue}",{format:"CODE128",width:1.4,height:42,displayValue:false,margin:0})}catch(e){}
-try{QRCode.toCanvas(document.getElementById("qrcode"),"${orderCode}",{width:90,margin:0})}catch(e){}
+try{JsBarcode("#barcode","\${barcodeValue}",{format:"CODE128",width:1.4,height:42,displayValue:false,margin:0})}catch(e){}
+try{QRCode.toCanvas(document.getElementById("qrcode"),"\${orderCode}",{width:90,margin:0})}catch(e){}
 window.onload=function(){setTimeout(function(){window.print()},400)};
-<\/script></body></html>`);
+<\\/script></body></html>\`);
   w.document.close();
 }
 if(getPwd()){
@@ -687,7 +697,7 @@ if(getPwd()){
 });
 
 app.get("/", (req, res) => {
-  res.send("Database PostgreSQL đã sẵn sàng...");
+  res.send("Thuộc Cô Ba Zalo API (PostgreSQL) đang chạy ổn định!");
 });
 
 const PORT = process.env.PORT || 3000;
