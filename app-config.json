@@ -14,5 +14,10 @@
     "scope.userPhonenumber": {
       "message": "Thuộc Cô Ba xin phép lấy số điện thoại Zalo của bạn để xác nhận đơn hàng và liên hệ khi giao hàng."
     }
-  }
+  },
+  "domain": [
+    "https://thuoccoba-zalo-api-production.up.railway.app",
+    "https://provinces.open-api.vn",
+    "https://graph.zalo.me"
+  ]
 }

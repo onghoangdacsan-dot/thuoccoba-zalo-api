@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Box, Text, useSnackbar } from "zmp-ui";
-import { Payment, events, EventName, openWebview } from "zmp-sdk/apis";
-import { validateShippingInfo } from "../utils/validation";
+import { Box, Text, Icon, useSnackbar } from "zmp-ui";
+import { Payment, events, EventName } from "zmp-sdk/apis";
+import AddressForm from "./AddressForm";
 
-const PRIMARY_COLOR = "#8B4513";
-const BAMBOO_BORDER = "#DEB887";
+const PRIMARY = "#8B4513";
+const BORDER = "#E8D5C0";
+const BG = "#FBF7F2";
+const MUTED = "#6B7280";
+const TEXT = "#1F2937";
 
-// Đã đổi thành "COD" cho production
 const PAYMENT_METHOD_ID = "COD";
 
 const ZALO_ARTICLES = [
@@ -17,24 +19,48 @@ const ZALO_ARTICLES = [
     icon: "🥭",
     link: "https://post.oa.zalo.me/d?id=9cd034fbf5be1ce045af&pageId=1624808365073207434",
     badge: "HOT",
+    badgeColor: "#EF4444",
   },
   {
     id: 2,
     title: "Thịt ba rọi xào mắm ruốc sả ớt - Đưa cơm ngày mưa",
-    desc: "Bữa cơm gia đình thêm đậm đà với hũ mắm ruốc muối xổi thơm lừng, xào cùng thịt heo...",
+    desc: "Bữa cơm gia đình thêm đậm đà với hũ mắm ruốc muối xổi thơm lừng...",
     icon: "🥘",
     link: "https://post.oa.zalo.me/d?id=16bbb7cc76899fd7c698&pageId=1624808365073207434",
     badge: "GỢI Ý",
+    badgeColor: "#D97706",
   },
   {
     id: 3,
     title: "Bí quyết chọn mắm ruốc ngon chuẩn vị miền Nam",
-    desc: "Khám phá cách phân biệt và lựa chọn loại mắm ruốc chuẩn chất lượng để làm gia vị...",
+    desc: "Khám phá cách phân biệt và lựa chọn loại mắm ruốc chuẩn chất lượng...",
     icon: "📜",
     link: "https://post.oa.zalo.me/d?id=c4ca734ab20f5b51021e&pageId=1624808365073207434",
     badge: "MẸO HAY",
+    badgeColor: "#0284C7",
   },
 ];
+
+function Card({ children, onClick, style = {} }) {
+  return (
+    <Box
+      onClick={onClick}
+      style={{
+        background: "#FFF",
+        borderRadius: 14,
+        padding: "14px 16px",
+        marginBottom: 12,
+        border: `1px solid ${BORDER}`,
+        boxShadow: "0 1px 3px rgba(139,69,19,0.04)",
+        boxSizing: "border-box",
+        width: "100%",
+        ...style,
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
 
 export default function CartTab({
   cartItems = [],
@@ -48,35 +74,55 @@ export default function CartTab({
   createOrderOnServer,
   createMacOnServer,
 }) {
-  const [errors, setErrors] = useState({});
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [note, setNote] = useState("");
   const { openSnackbar } = useSnackbar();
-
-  // Chặn xử lý trùng lặp: đánh dấu các giao dịch (transId/orderId) đã xử lý
   const processedTransRef = useRef(new Set());
 
   const subTotal = cartItems.reduce(
     (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
     0
   );
-  const calculatedShipping =
-    cartItems.length === 0 ? 0 : subTotal >= 500000 ? 0 : 20000;
-  const finalTotal = subTotal + calculatedShipping;
+  const shippingFee = cartItems.length === 0 ? 0 : subTotal >= 500000 ? 0 : 20000;
+  const finalTotal = subTotal + shippingFee;
 
-  // Lắng nghe kết quả thanh toán từ Checkout SDK
+  const name = String(shippingInfo?.fullName || "").trim();
+  const phone = String(shippingInfo?.phone || "").trim();
+  const addressLine = String(
+    shippingInfo?.address ||
+      [shippingInfo?.detailAddress, shippingInfo?.wardName, shippingInfo?.provinceName]
+        .filter(Boolean)
+        .join(", ") ||
+      ""
+  ).trim();
+
+  const hasAddress = Boolean(name && phone && addressLine);
+
+  const handleSaveAddress = (addressData) => {
+    onChangeShippingInfo?.({
+      ...shippingInfo,
+      fullName: addressData.fullName,
+      phone: addressData.phone,
+      address: addressData.address,
+      provinceCode: addressData.provinceCode,
+      provinceName: addressData.provinceName,
+      wardCode: addressData.wardCode,
+      wardName: addressData.wardName,
+      detailAddress: addressData.detailAddress,
+      isDefault: addressData.isDefault,
+    });
+    setShowAddressForm(false);
+    openSnackbar({ type: "success", text: "Đã lưu địa chỉ nhận hàng!" });
+  };
+
   const handlePaymentDone = useCallback(
     async (data) => {
       try {
         const result = await Payment.checkTransaction({ data });
-
-        const transKey =
-          result?.transId || result?.orderId || JSON.stringify(data);
+        const transKey = result?.transId || result?.orderId || JSON.stringify(data);
 
         if (processedTransRef.current.has(transKey)) {
-          console.warn(
-            "PaymentDone: giao dịch đã được xử lý trước đó, bỏ qua:",
-            transKey
-          );
           setIsProcessing(false);
           return;
         }
@@ -86,31 +132,20 @@ export default function CartTab({
           case 1:
           case 0:
             openSnackbar({ type: "success", text: "Đặt hàng thành công!" });
-            if (typeof onPlaceOrder === "function") {
-              onPlaceOrder(result);
-            }
+            if (typeof onPlaceOrder === "function") onPlaceOrder(result);
             break;
           case -1:
-            openSnackbar({
-              type: "error",
-              text: result.msg || "Thanh toán thất bại",
-            });
+            openSnackbar({ type: "error", text: result.msg || "Thanh toán thất bại" });
             break;
           case -2:
             openSnackbar({ type: "info", text: "Bạn đã hủy thanh toán" });
             break;
           default:
-            openSnackbar({
-              type: "error",
-              text: result.msg || "Có lỗi xảy ra",
-            });
+            openSnackbar({ type: "error", text: result.msg || "Có lỗi xảy ra" });
         }
       } catch (err) {
         console.error("checkTransaction error:", err);
-        openSnackbar({
-          type: "error",
-          text: "Không thể kiểm tra kết quả thanh toán",
-        });
+        openSnackbar({ type: "error", text: "Không thể kiểm tra kết quả thanh toán" });
       } finally {
         setIsProcessing(false);
       }
@@ -120,38 +155,26 @@ export default function CartTab({
 
   useEffect(() => {
     events.on(EventName.PaymentDone, handlePaymentDone);
-    return () => {
-      events.off(EventName.PaymentDone, handlePaymentDone);
-    };
+    return () => events.off(EventName.PaymentDone, handlePaymentDone);
   }, [handlePaymentDone]);
 
   const handleConfirm = async () => {
-    const { isValid, errors: validationErrors } =
-      validateShippingInfo(shippingInfo);
-    setErrors(validationErrors || {});
-    if (!isValid) return;
-
+    if (!hasAddress) {
+      openSnackbar({ type: "error", text: "Vui lòng thêm địa chỉ nhận hàng" });
+      setShowAddressForm(true);
+      return;
+    }
     if (cartItems.length === 0) {
       openSnackbar({ type: "error", text: "Giỏ hàng đang trống" });
       return;
     }
-
-    if (typeof createOrderOnServer !== "function") {
+    if (typeof createOrderOnServer !== "function" || typeof createMacOnServer !== "function") {
       openSnackbar({
         type: "error",
-        text: "Thiếu createOrderOnServer. Kiểm tra component cha.",
+        text: "Thiếu cấu hình thanh toán. Kiểm tra component cha.",
       });
       return;
     }
-
-    if (typeof createMacOnServer !== "function") {
-      openSnackbar({
-        type: "error",
-        text: "Thiếu createMacOnServer. Kiểm tra component cha.",
-      });
-      return;
-    }
-
     if (isProcessing) return;
 
     setIsProcessing(true);
@@ -160,8 +183,9 @@ export default function CartTab({
       const myOrder = await createOrderOnServer({
         items: cartItems,
         shippingInfo,
+        note,
         subTotal,
-        shippingFee: calculatedShipping,
+        shippingFee,
         total: finalTotal,
         paymentMethod: "COD",
       });
@@ -171,17 +195,12 @@ export default function CartTab({
         amount: (item.price || 0) * (item.quantity || 0),
       }));
 
-      const paymentMethod = {
-        id: PAYMENT_METHOD_ID,
-        isCustom: false,
-      };
-
-      // ===== ĐÃ THÊM DANH SÁCH SẢN PHẨM VÀO EXTRADATA =====
       const extradata = {
         orderId: myOrder?.orderId || "",
-        fullName: shippingInfo.fullName || "",
-        phone: shippingInfo.phone || "",
-        address: shippingInfo.address || "",
+        fullName: name,
+        phone,
+        address: addressLine,
+        note: note || "",
         items: cartItems.map((item) => ({
           name: item.name,
           quantity: item.quantity,
@@ -194,7 +213,7 @@ export default function CartTab({
         desc: `Đơn hàng #${myOrder?.orderId || ""} - Mắm Thuộc Cô Ba`,
         item: items,
         extradata: JSON.stringify(extradata),
-        method: JSON.stringify(paymentMethod),
+        method: JSON.stringify({ id: PAYMENT_METHOD_ID, isCustom: false }),
       };
 
       const mac = await createMacOnServer(orderData);
@@ -202,9 +221,7 @@ export default function CartTab({
 
       await Payment.createOrder({
         ...orderData,
-        success: (data) => {
-          console.log("createOrder success:", data);
-        },
+        success: (data) => console.log("createOrder success:", data),
         fail: (err) => {
           console.error("createOrder fail:", err);
           openSnackbar({
@@ -224,29 +241,32 @@ export default function CartTab({
     }
   };
 
-  // Mở bài viết Zalo OA đúng chuẩn zmp-sdk, có fallback nếu thất bại
   const handleOpenZaloArticle = (url) => {
-    try {
-      openWebview({
-        url,
-        success: () => {},
-        fail: () => {
-          window.open(url, "_blank");
-        },
-      });
-    } catch (err) {
+    if (window?.ZaloJavaScriptInterface?.openWebview) {
+      window.ZaloJavaScriptInterface.openWebview({ url });
+    } else {
       window.open(url, "_blank");
     }
   };
 
+  if (showAddressForm) {
+    return (
+      <AddressForm
+        initialAddress={shippingInfo}
+        onSave={handleSaveAddress}
+        onClose={() => setShowAddressForm(false)}
+      />
+    );
+  }
+
   return (
     <Box
       style={{
-        padding: 16,
-        paddingBottom: 60,
+        background: BG,
+        minHeight: "100%",
+        padding: "12px 14px 140px",
         boxSizing: "border-box",
         width: "100%",
-        overflowX: "hidden",
       }}
     >
       {/* Header */}
@@ -255,593 +275,728 @@ export default function CartTab({
         style={{
           display: "flex",
           alignItems: "center",
-          cursor: "pointer",
+          gap: 8,
           marginBottom: 14,
-          gap: 6,
+          cursor: "pointer",
         }}
       >
-        <Text style={{ fontSize: 16, fontWeight: "bold", color: PRIMARY_COLOR }}>
-          ←
-        </Text>
-        <Text style={{ fontSize: 13, fontWeight: "600", color: PRIMARY_COLOR }}>
-          Mắm Thuộc Cô Ba
-        </Text>
+        <Box
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 10,
+            background: "#FFF",
+            border: `1px solid ${BORDER}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ fontSize: 16, color: PRIMARY, display: "block" }}>←</Text>
+        </Box>
+        <Box>
+          <Text style={{ fontSize: 15, fontWeight: 800, color: TEXT, display: "block" }}>
+            Thanh toán
+          </Text>
+          <Text style={{ fontSize: 11, color: MUTED, display: "block", marginTop: 1 }}>
+            Mắm Thuộc Cô Ba
+          </Text>
+        </Box>
       </Box>
 
-      {cartItems.length === 0 ? (
+      {/* Địa chỉ */}
+      <Card
+        onClick={() => setShowAddressForm(true)}
+        style={{
+          cursor: "pointer",
+          borderColor: hasAddress ? BORDER : "#FECACA",
+          background: hasAddress ? "#FFF" : "#FEF2F2",
+        }}
+      >
+        <Box style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <Box
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: hasAddress ? "#FEF3C7" : "#FEE2E2",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Text style={{ fontSize: 16, display: "block" }}>{hasAddress ? "📍" : "⚠️"}</Text>
+          </Box>
+
+          <Box style={{ flex: 1, minWidth: 0 }}>
+            {hasAddress ? (
+              <>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: TEXT,
+                    display: "block",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {name}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: PRIMARY,
+                    fontWeight: 600,
+                    display: "block",
+                    marginTop: 3,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {phone}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: MUTED,
+                    display: "block",
+                    marginTop: 4,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {addressLine}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "#DC2626",
+                    display: "block",
+                  }}
+                >
+                  Chưa có địa chỉ nhận hàng
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: MUTED,
+                    display: "block",
+                    marginTop: 3,
+                  }}
+                >
+                  Nhấn để thêm địa chỉ giao hàng
+                </Text>
+              </>
+            )}
+          </Box>
+
+          <Text style={{ fontSize: 18, color: "#9CA3AF", display: "block", marginTop: 6 }}>›</Text>
+        </Box>
+      </Card>
+
+      {/* Lời nhắn */}
+      <Card>
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            color: TEXT,
+            display: "block",
+            marginBottom: 8,
+          }}
+        >
+          Lời nhắn cho shop
+        </Text>
+        <input
+          type="text"
+          placeholder="Ví dụ: Giao giờ hành chính, gọi trước khi giao..."
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          style={{
+            width: "100%",
+            border: "none",
+            outline: "none",
+            fontSize: 13,
+            color: TEXT,
+            background: "transparent",
+            padding: 0,
+          }}
+        />
+      </Card>
+
+      {/* Vận chuyển */}
+      <Card>
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            color: TEXT,
+            display: "block",
+            marginBottom: 12,
+          }}
+        >
+          Phương thức vận chuyển
+        </Text>
         <Box
           style={{
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
-            justifyContent: "center",
-            padding: "30px 20px",
-            background: "#FFF",
-            borderRadius: 14,
-            border: `1px solid ${BAMBOO_BORDER}`,
-            gap: 14,
-            textAlign: "center",
-            marginBottom: 16,
-            boxSizing: "border-box",
-            width: "100%",
+            gap: 12,
+            padding: 12,
+            borderRadius: 12,
+            background: "#FFF7ED",
+            border: `1.5px solid ${PRIMARY}`,
           }}
         >
-          <Text style={{ fontSize: 36 }}>🛒</Text>
-          <Text style={{ fontSize: 15, fontWeight: "bold", color: "#444" }}>
-            Giỏ hàng đang trống!
+          <Box
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: "#FFF",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Text style={{ fontSize: 18, display: "block" }}>🚚</Text>
+          </Box>
+          <Box style={{ flex: 1, minWidth: 0 }}>
+            <Text style={{ fontSize: 13, fontWeight: 700, color: TEXT, display: "block" }}>
+              Giao nhanh
+            </Text>
+            <Text style={{ fontSize: 11, color: MUTED, display: "block", marginTop: 2 }}>
+              Nhận hàng trong 1–2 ngày
+            </Text>
+          </Box>
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: 800,
+              color: shippingFee === 0 ? "#16A34A" : PRIMARY,
+              display: "block",
+              flexShrink: 0,
+            }}
+          >
+            {shippingFee === 0 ? "Miễn phí" : `${shippingFee.toLocaleString("vi-VN")}đ`}
+          </Text>
+        </Box>
+      </Card>
+
+      {/* Giỏ hàng */}
+      {cartItems.length === 0 ? (
+        <Card style={{ textAlign: "center", padding: "36px 20px" }}>
+          <Box
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 20,
+              background: "#F3F4F6",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+            }}
+          >
+            <Text style={{ fontSize: 32, display: "block" }}>🛒</Text>
+          </Box>
+          <Text
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: TEXT,
+              display: "block",
+              marginBottom: 6,
+            }}
+          >
+            Giỏ hàng trống
+          </Text>
+          <Text
+            style={{
+              fontSize: 12,
+              color: MUTED,
+              display: "block",
+              marginBottom: 18,
+            }}
+          >
+            Thêm sản phẩm mắm truyền thống để tiếp tục
           </Text>
           <Box
             onClick={onGoToMenu}
             style={{
-              background: PRIMARY_COLOR,
+              display: "inline-block",
+              background: PRIMARY,
               color: "#FFF",
-              padding: "10px 24px",
-              borderRadius: 10,
+              padding: "12px 28px",
+              borderRadius: 999,
               fontSize: 13,
-              fontWeight: "bold",
+              fontWeight: 700,
               cursor: "pointer",
-              boxShadow: "0 2px 6px rgba(139,69,19,0.3)",
+              boxShadow: "0 4px 12px rgba(139,69,19,0.25)",
             }}
           >
-            KHÁM PHÁ SẢN PHẨM
+            Khám phá sản phẩm
           </Box>
-        </Box>
+        </Card>
       ) : (
         <>
-          {/* Danh sách sản phẩm */}
-          {cartItems.map((item) => (
-            <Box
-              key={item.id}
+          <Card style={{ padding: "12px 14px" }}>
+            <Text
               style={{
-                background: "#FFF",
-                padding: 12,
-                borderRadius: 12,
-                marginBottom: 10,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                border: `1px solid ${BAMBOO_BORDER}`,
-                boxSizing: "border-box",
-                width: "100%",
+                fontSize: 12,
+                fontWeight: 700,
+                color: TEXT,
+                display: "block",
+                marginBottom: 12,
               }}
             >
-              <Box style={{ flex: 1, paddingRight: 8, minWidth: 0 }}>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "bold",
-                    lineHeight: 1.3,
-                    marginBottom: 6,
-                    display: "block",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {item.name}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 900,
-                    color: PRIMARY_COLOR,
-                    display: "block",
-                  }}
-                >
-                  {item.displayPrice}
-                </Text>
-              </Box>
-
+              Sản phẩm ({cartItems.length})
+            </Text>
+            {cartItems.map((item, idx) => (
               <Box
+                key={item.id}
                 style={{
                   display: "flex",
-                  flexDirection: "column",
-                  alignItems: "flex-end",
-                  gap: 8,
-                  flexShrink: 0,
+                  gap: 12,
+                  alignItems: "center",
+                  paddingTop: idx === 0 ? 0 : 12,
+                  paddingBottom: idx === cartItems.length - 1 ? 0 : 12,
+                  borderBottom:
+                    idx === cartItems.length - 1 ? "none" : `1px solid ${BORDER}`,
                 }}
               >
-                <Text
-                  onClick={() => onRemoveItem?.(item.id)}
-                  style={{ fontSize: 14, cursor: "pointer" }}
+                <Box
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 10,
+                    background: "#F5EDE4",
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                  }}
                 >
-                  🗑️
-                </Text>
-                <Box style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Box
-                    onClick={() => onUpdateQuantity?.(item.id, -1)}
+                  {item.image ? (
+                    <img
+                      src={item.image}
+                      alt=""
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <Text style={{ fontSize: 22, display: "block" }}>🫙</Text>
+                  )}
+                </Box>
+
+                <Box style={{ flex: 1, minWidth: 0 }}>
+                  <Text
                     style={{
-                      width: 26,
-                      height: 26,
-                      background: "#F4EBE1",
-                      borderRadius: 6,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: "bold",
-                      cursor: "pointer",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: TEXT,
+                      display: "block",
+                      lineHeight: 1.35,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    −
-                  </Box>
+                    {item.name}
+                  </Text>
                   <Text
                     style={{
                       fontSize: 13,
-                      fontWeight: "bold",
-                      minWidth: 18,
-                      textAlign: "center",
+                      fontWeight: 800,
+                      color: PRIMARY,
+                      display: "block",
+                      marginTop: 4,
                     }}
                   >
-                    {item.quantity}
+                    {item.displayPrice ||
+                      `${Number(item.price || 0).toLocaleString("vi-VN")}đ`}
                   </Text>
-                  <Box
-                    onClick={() => onUpdateQuantity?.(item.id, 1)}
+                </Box>
+
+                <Box
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-end",
+                    gap: 8,
+                    flexShrink: 0,
+                  }}
+                >
+                  <Text
+                    onClick={() => onRemoveItem?.(item.id)}
                     style={{
-                      width: 26,
-                      height: 26,
-                      background: PRIMARY_COLOR,
-                      borderRadius: 6,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#FFF",
-                      fontWeight: "bold",
+                      fontSize: 11,
+                      color: MUTED,
                       cursor: "pointer",
+                      display: "block",
                     }}
                   >
-                    +
+                    Xóa
+                  </Text>
+                  <Box style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <Box
+                      onClick={() => onUpdateQuantity?.(item.id, -1)}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 8,
+                        background: "#F3F4F6",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        fontWeight: 700,
+                        fontSize: 14,
+                        color: TEXT,
+                      }}
+                    >
+                      −
+                    </Box>
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        minWidth: 20,
+                        textAlign: "center",
+                        display: "block",
+                      }}
+                    >
+                      {item.quantity}
+                    </Text>
+                    <Box
+                      onClick={() => onUpdateQuantity?.(item.id, 1)}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 8,
+                        background: PRIMARY,
+                        color: "#FFF",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        fontWeight: 700,
+                        fontSize: 14,
+                      }}
+                    >
+                      +
+                    </Box>
                   </Box>
                 </Box>
               </Box>
-            </Box>
-          ))}
+            ))}
+          </Card>
 
-          {/* Thông tin nhận hàng */}
-          <Box
-            style={{
-              background: "#FFF",
-              padding: 14,
-              borderRadius: 12,
-              marginTop: 14,
-              border: `1px solid ${BAMBOO_BORDER}`,
-              boxSizing: "border-box",
-              width: "100%",
-            }}
-          >
-            <Box
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: 10,
-              }}
-            >
-              <Text
-                style={{ fontSize: 13, fontWeight: 900, color: PRIMARY_COLOR }}
-              >
-                📍 THÔNG TIN NHẬN HÀNG
-              </Text>
-              <Box
-                onClick={onSyncZalo}
-                style={{
-                  background: "#0068FF",
-                  color: "#FFF",
-                  fontSize: 10,
-                  padding: "4px 8px",
-                  borderRadius: 4,
-                  fontWeight: "bold",
-                  whiteSpace: "nowrap",
-                  cursor: "pointer",
-                }}
-              >
-                Đồng bộ Zalo
-              </Box>
-            </Box>
-
-            <input
-              type="text"
-              placeholder="Họ tên người nhận"
-              value={shippingInfo.fullName || ""}
-              onChange={(e) =>
-                onChangeShippingInfo?.({
-                  ...shippingInfo,
-                  fullName: e.target.value,
-                })
-              }
-              style={{
-                width: "100%",
-                boxSizing: "border-box",
-                border: `1px solid ${errors.fullName ? "#DC2626" : "#D1D5DB"}`,
-                borderRadius: 6,
-                padding: 9,
-                fontSize: 13,
-                marginBottom: 4,
-                outline: "none",
-              }}
-            />
-            {errors.fullName && (
-              <Text style={{ fontSize: 11, color: "#DC2626", marginBottom: 6 }}>
-                {errors.fullName}
-              </Text>
-            )}
-
-            <input
-              type="text"
-              placeholder="Số điện thoại"
-              value={shippingInfo.phone || ""}
-              onChange={(e) =>
-                onChangeShippingInfo?.({
-                  ...shippingInfo,
-                  phone: e.target.value,
-                })
-              }
-              style={{
-                width: "100%",
-                boxSizing: "border-box",
-                border: `1px solid ${errors.phone ? "#DC2626" : "#D1D5DB"}`,
-                borderRadius: 6,
-                padding: 9,
-                fontSize: 13,
-                marginBottom: 4,
-                outline: "none",
-              }}
-            />
-            {errors.phone && (
-              <Text style={{ fontSize: 11, color: "#DC2626", marginBottom: 6 }}>
-                {errors.phone}
-              </Text>
-            )}
-
-            <input
-              type="text"
-              placeholder="Địa chỉ nhận hàng"
-              value={shippingInfo.address || ""}
-              onChange={(e) =>
-                onChangeShippingInfo?.({
-                  ...shippingInfo,
-                  address: e.target.value,
-                })
-              }
-              style={{
-                width: "100%",
-                boxSizing: "border-box",
-                border: `1px solid ${errors.address ? "#DC2626" : "#D1D5DB"}`,
-                borderRadius: 6,
-                padding: 9,
-                fontSize: 13,
-                outline: "none",
-              }}
-            />
-            {errors.address && (
-              <Text style={{ fontSize: 11, color: "#DC2626", marginTop: 4 }}>
-                {errors.address}
-              </Text>
-            )}
-          </Box>
-
-          {/* Phương thức thanh toán */}
-          <Box
-            style={{
-              background: "#FFF",
-              padding: 14,
-              borderRadius: 12,
-              marginTop: 14,
-              border: `1px solid ${BAMBOO_BORDER}`,
-              boxSizing: "border-box",
-              width: "100%",
-            }}
-          >
+          {/* Thanh toán */}
+          <Card>
             <Text
               style={{
-                fontSize: 13,
-                fontWeight: 900,
-                color: PRIMARY_COLOR,
-                marginBottom: 10,
+                fontSize: 12,
+                fontWeight: 700,
+                color: TEXT,
+                display: "block",
+                marginBottom: 12,
               }}
             >
-              💳 PHƯƠNG THỨC THANH TOÁN
+              Phương thức thanh toán
             </Text>
             <Box
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
+                gap: 12,
                 padding: 12,
-                borderRadius: 8,
-                background: "#FCE7D5",
-                border: `1.5px solid ${PRIMARY_COLOR}`,
-                boxSizing: "border-box",
-                width: "100%",
+                borderRadius: 12,
+                background: "#FFF7ED",
+                border: `1.5px solid ${PRIMARY}`,
               }}
             >
-              <Text style={{ fontSize: 18 }}>💵</Text>
-              <Box>
-                <Text style={{ fontSize: 13, fontWeight: "bold", display: "block" }}>
-                  Thanh toán khi nhận hàng (COD)
+              <Box
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  background: "#FFF",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Text style={{ fontSize: 18, display: "block" }}>💵</Text>
+              </Box>
+              <Box style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, fontWeight: 700, color: TEXT, display: "block" }}>
+                  COD — Thanh toán khi nhận hàng
                 </Text>
-                <Text style={{ fontSize: 11, color: "#555", marginTop: 2, display: "block" }}>
-                  Thanh toán bằng tiền mặt khi shipper giao hàng tận nơi.
+                <Text style={{ fontSize: 11, color: MUTED, display: "block", marginTop: 2 }}>
+                  Trả tiền mặt cho shipper khi giao tận nơi
                 </Text>
               </Box>
+              <Box
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: "50%",
+                  background: PRIMARY,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ fontSize: 10, color: "#FFF", display: "block" }}>✓</Text>
+              </Box>
             </Box>
-          </Box>
+          </Card>
 
-          {/* Tổng tiền + nút đặt hàng */}
-          <Box
-            style={{
-              background: "#FFF",
-              padding: 14,
-              borderRadius: 12,
-              marginTop: 14,
-              border: `1px solid ${BAMBOO_BORDER}`,
-              boxSizing: "border-box",
-              width: "100%",
-            }}
-          >
+          {/* Tóm tắt tiền */}
+          <Card>
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: TEXT,
+                display: "block",
+                marginBottom: 12,
+              }}
+            >
+              Chi tiết thanh toán
+            </Text>
+            {[
+              ["Tạm tính", `${subTotal.toLocaleString("vi-VN")}đ`],
+              [
+                "Phí vận chuyển",
+                shippingFee === 0 ? "Miễn phí" : `${shippingFee.toLocaleString("vi-VN")}đ`,
+              ],
+            ].map(([label, value]) => (
+              <Box
+                key={label}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: 8,
+                }}
+              >
+                <Text style={{ fontSize: 13, color: MUTED, display: "block" }}>{label}</Text>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: value === "Miễn phí" ? "#16A34A" : TEXT,
+                    fontWeight: value === "Miễn phí" ? 700 : 500,
+                    display: "block",
+                  }}
+                >
+                  {value}
+                </Text>
+              </Box>
+            ))}
             <Box
               style={{
                 display: "flex",
                 justifyContent: "space-between",
-                marginBottom: 6,
-                fontSize: 12,
-                color: "#666",
+                marginTop: 10,
+                paddingTop: 12,
+                borderTop: `1px dashed ${BORDER}`,
               }}
             >
-              <Text>Tạm tính</Text>
-              <Text>{subTotal.toLocaleString()} đ</Text>
-            </Box>
-            <Box
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: 6,
-                fontSize: 12,
-                color: "#666",
-              }}
-            >
-              <Text>
-                Phí vận chuyển{" "}
-                {subTotal >= 500000 && (
-                  <span style={{ color: "#16A34A", fontWeight: "bold" }}>
-                    (Miễn phí)
-                  </span>
-                )}
+              <Text style={{ fontSize: 14, fontWeight: 700, color: TEXT, display: "block" }}>
+                Tổng cộng
               </Text>
               <Text
                 style={{
-                  color: calculatedShipping === 0 ? "#16A34A" : "inherit",
-                  fontWeight: calculatedShipping === 0 ? "bold" : "normal",
+                  fontSize: 16,
+                  fontWeight: 900,
+                  color: PRIMARY,
+                  display: "block",
                 }}
               >
-                {calculatedShipping === 0
-                  ? "0 đ"
-                  : `${calculatedShipping.toLocaleString()} đ`}
+                {finalTotal.toLocaleString("vi-VN")}đ
               </Text>
             </Box>
-
-            <Box
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: 14,
-                fontSize: 15,
-                fontWeight: 900,
-                color: PRIMARY_COLOR,
-                borderTop: `1px dashed ${BAMBOO_BORDER}`,
-                paddingTop: 8,
-              }}
-            >
-              <Text>Tổng thanh toán</Text>
-              <Text>{finalTotal.toLocaleString()} đ</Text>
-            </Box>
-
-            <Box
-              onClick={!isProcessing ? handleConfirm : undefined}
-              style={{
-                width: "100%",
-                background: PRIMARY_COLOR,
-                color: "#FFF",
-                textAlign: "center",
-                padding: "14px 0",
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: "bold",
-                cursor: isProcessing ? "not-allowed" : "pointer",
-                boxSizing: "border-box",
-                opacity: isProcessing ? 0.7 : 1,
-                boxShadow: "0 2px 6px rgba(139,69,19,0.3)",
-              }}
-            >
-              {isProcessing ? "Đang xử lý..." : "XÁC NHẬN ĐẶT HÀNG NGAY"}
-            </Box>
-          </Box>
+          </Card>
         </>
       )}
 
-      {/* Blog Zalo OA */}
-      <Box
-        style={{
-          background: "#FFF",
-          padding: 14,
-          borderRadius: 12,
-          marginTop: 16,
-          border: "1px solid #FCD34D",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-          boxSizing: "border-box",
-          width: "100%",
-        }}
-      >
+      {/* Blog OA */}
+      <Card style={{ borderColor: "#FDE68A", background: "#FFFBEB" }}>
         <Box
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             marginBottom: 12,
-            flexWrap: "wrap",
-            gap: 6,
           }}
         >
-          <Box style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Text style={{ fontSize: 18 }}>🥗</Text>
-            <Text style={{ fontSize: 14, fontWeight: "900", color: "#B45309" }}>
-              Món ngon mỗi ngày cùng Mắm Ruốc
-            </Text>
-          </Box>
-          <Text
+          <Text style={{ fontSize: 13, fontWeight: 800, color: "#B45309", display: "block" }}>
+            🥗 Món ngon mỗi ngày
+          </Text>
+          <Box
             style={{
-              fontSize: 10,
               background: "#FEF3C7",
               color: "#D97706",
+              fontSize: 10,
+              fontWeight: 700,
               padding: "3px 8px",
-              borderRadius: 12,
-              fontWeight: "bold",
+              borderRadius: 999,
             }}
           >
-            Zalo OA Blog
-          </Text>
+            Zalo OA
+          </Box>
         </Box>
 
-        <Box
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-            boxSizing: "border-box",
-            width: "100%",
-          }}
-        >
-          {ZALO_ARTICLES.map((article, index) => (
+        {ZALO_ARTICLES.map((article, index) => (
+          <Box
+            key={article.id}
+            onClick={() => handleOpenZaloArticle(article.link)}
+            style={{
+              display: "flex",
+              gap: 10,
+              alignItems: "center",
+              background: "#FFF",
+              border: "1px solid #FDE68A",
+              padding: 10,
+              borderRadius: 12,
+              cursor: "pointer",
+              marginBottom: index === ZALO_ARTICLES.length - 1 ? 0 : 8,
+            }}
+          >
             <Box
-              key={article.id}
-              onClick={() => handleOpenZaloArticle(article.link)}
               style={{
+                width: 48,
+                height: 48,
+                borderRadius: 10,
+                background: "#FEF3C7",
                 display: "flex",
-                gap: 10,
                 alignItems: "center",
-                background: index === 0 ? "#FFFBEB" : "#F9FAFB",
-                border:
-                  index === 0 ? "1px solid #FDE68A" : "1px solid #E5E7EB",
-                padding: 10,
-                borderRadius: 8,
-                cursor: "pointer",
-                boxSizing: "border-box",
-                width: "100%",
+                justifyContent: "center",
+                fontSize: 22,
+                flexShrink: 0,
+                position: "relative",
               }}
             >
+              {article.icon}
               <Box
                 style={{
-                  width: 56,
-                  height: 56,
-                  background:
-                    index === 0
-                      ? "#FEF3C7"
-                      : index === 1
-                      ? "#FCE7D5"
-                      : "#E0F2FE",
-                  borderRadius: 8,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 26,
-                  flexShrink: 0,
-                  position: "relative",
+                  position: "absolute",
+                  bottom: -4,
+                  right: -4,
+                  background: article.badgeColor,
+                  color: "#FFF",
+                  fontSize: 7,
+                  padding: "1px 4px",
+                  borderRadius: 4,
+                  fontWeight: 700,
                 }}
               >
-                {article.icon}
-                <Box
-                  style={{
-                    position: "absolute",
-                    bottom: -4,
-                    right: -4,
-                    background:
-                      index === 0
-                        ? "#EF4444"
-                        : index === 1
-                        ? "#D97706"
-                        : "#0284C7",
-                    color: "#FFF",
-                    fontSize: 7,
-                    padding: "1px 3px",
-                    borderRadius: 3,
-                    fontWeight: "bold",
-                  }}
-                >
-                  {article.badge}
-                </Box>
-              </Box>
-
-              <Box
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "bold",
-                    color: "#333",
-                    lineHeight: 1.3,
-                    display: "-webkit-box",
-                    WebkitLineClamp: 1,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                  }}
-                >
-                  {article.title}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 11,
-                    color: "#666",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                    marginTop: 2,
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {article.desc}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 10.5,
-                    color: "#0068FF",
-                    fontWeight: "bold",
-                    marginTop: 4,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  Xem chi tiết trên Zalo OA <span>›</span>
-                </Text>
+                {article.badge}
               </Box>
             </Box>
-          ))}
+            <Box style={{ flex: 1, minWidth: 0 }}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: TEXT,
+                  display: "block",
+                  lineHeight: 1.3,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {article.title}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: MUTED,
+                  display: "block",
+                  marginTop: 2,
+                  lineHeight: 1.35,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {article.desc}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: "#0068FF",
+                  fontWeight: 700,
+                  marginTop: 4,
+                  display: "block",
+                }}
+              >
+                Xem trên Zalo OA →
+              </Text>
+            </Box>
+          </Box>
+        ))}
+      </Card>
+
+      {/* Nút Đặt hàng — cố định phía trên BottomNav */}
+      {cartItems.length > 0 && (
+        <Box
+          style={{
+            position: "fixed",
+            left: 0,
+            right: 0,
+            bottom: 64,
+            zIndex: 90,
+            background: "#FFF",
+            borderTop: `1px solid ${BORDER}`,
+            padding: "12px 16px",
+            boxShadow: "0 -4px 20px rgba(0,0,0,0.08)",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <Box style={{ flex: 1, minWidth: 0 }}>
+            <Text style={{ fontSize: 11, color: MUTED, display: "block" }}>
+              Tổng thanh toán
+            </Text>
+            <Text
+              style={{
+                fontSize: 17,
+                fontWeight: 900,
+                color: PRIMARY,
+                display: "block",
+                marginTop: 2,
+              }}
+            >
+              {finalTotal.toLocaleString("vi-VN")}đ
+            </Text>
+          </Box>
+          <Box
+            onClick={!isProcessing ? handleConfirm : undefined}
+            style={{
+              background: isProcessing ? "#A78B71" : PRIMARY,
+              color: "#FFF",
+              padding: "14px 24px",
+              borderRadius: 12,
+              fontSize: 14,
+              fontWeight: 800,
+              cursor: isProcessing ? "not-allowed" : "pointer",
+              boxShadow: isProcessing ? "none" : "0 4px 14px rgba(139,69,19,0.3)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {isProcessing ? "Đang xử lý..." : "Đặt hàng"}
+          </Box>
         </Box>
-      </Box>
+      )}
     </Box>
   );
 }

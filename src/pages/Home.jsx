@@ -234,7 +234,6 @@ export default function HomePage() {
     }
   }, []);
 
-  // ===== GIỮ NGUYÊN: ghi nhận đơn sau Checkout SDK =====
   const handlePlaceOrder = useCallback(
     (paymentResult) => {
       const itemsSnapshot = [...cartItems];
@@ -257,7 +256,6 @@ export default function HomePage() {
     [placeOrder, clearCart, cartItems, shippingInfo, finalTotal, fetchOrdersFromServer]
   );
 
-  // ===== GIỮ NGUYÊN: lắng nghe PaymentDone từ Checkout SDK =====
   const handlePaymentDone = useCallback(
     async (data) => {
       try {
@@ -310,7 +308,6 @@ export default function HomePage() {
     };
   }, [handlePaymentDone]);
 
-  // ===== GIỮ NGUYÊN: tạo đơn + MAC trên server cho Checkout SDK =====
   const createOrderOnServer = useCallback(async (payload) => {
     const res = await fetch(`${API}/api/orders`, {
       method: "POST",
@@ -467,6 +464,7 @@ export default function HomePage() {
           orderHistory={displayOrders}
           orderStatusFilter={orderStatusFilter}
           onSelectOrderStatus={handleSelectOrderStatus}
+          onRefreshOrders={fetchOrdersFromServer}
         />
       )}
 

@@ -68,63 +68,90 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
 
   // Xin quyền lấy tên + số điện thoại từ Zalo (hiện popup xác nhận của Zalo)
   const handleRequestZaloInfo = useCallback(() => {
-    getUserInfo({
-      success: (data) => {
-        const zaloUser = data?.userInfo;
-        if (zaloUser?.name) {
-          setFullName(zaloUser.name);
-        }
-      },
-      fail: (err) => {
-        console.warn("getUserInfo fail:", err);
-      },
-    });
+    openSnackbar({ type: "info", text: "Đang gọi Zalo..." });
 
-    getPhoneNumber({
-      success: async (res) => {
-        // res.token là dữ liệu đã mã hoá, cần gửi kèm access_token lên server để giải mã
-        try {
-          const accessToken = await new Promise((resolve) => {
-            getAccessToken({
-              success: (token) => resolve(token),
-              fail: () => resolve(null),
-            });
-          });
-
-          const response = await fetch(`${API}/api/get-phone-number`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: res.token, accessToken }),
-          });
-          const result = await response.json();
-          if (result?.phoneNumber) {
-            setPhone(result.phoneNumber);
-            openSnackbar({
-              type: "success",
-              text: "Đã lấy số điện thoại từ Zalo!",
-            });
-          } else {
-            openSnackbar({
-              type: "error",
-              text: "Không lấy được số điện thoại. Vui lòng nhập thủ công.",
-            });
+    try {
+      getUserInfo({
+        success: (data) => {
+          const zaloUser = data?.userInfo;
+          if (zaloUser?.name) {
+            setFullName(zaloUser.name);
           }
-        } catch (err) {
-          console.error("get-phone-number error:", err);
+        },
+        fail: (err) => {
+          console.warn("getUserInfo fail:", err);
           openSnackbar({
             type: "error",
-            text: "Lỗi khi lấy số điện thoại. Vui lòng nhập thủ công.",
+            text: "Lỗi getUserInfo: " + JSON.stringify(err),
           });
-        }
-      },
-      fail: (err) => {
-        console.warn("getPhoneNumber fail:", err);
-        openSnackbar({
-          type: "info",
-          text: "Bạn đã từ chối cấp quyền số điện thoại. Vui lòng nhập thủ công.",
-        });
-      },
-    });
+        },
+      });
+    } catch (err) {
+      openSnackbar({
+        type: "error",
+        text: "Exception getUserInfo: " + err.message,
+      });
+    }
+
+    try {
+      getPhoneNumber({
+        success: async (res) => {
+          openSnackbar({ type: "info", text: "Đã có token, đang giải mã..." });
+          // res.token là dữ liệu đã mã hoá, cần gửi kèm access_token lên server để giải mã
+          try {
+            const accessToken = await new Promise((resolve) => {
+              getAccessToken({
+                success: (token) => resolve(token),
+                fail: (err) => {
+                  openSnackbar({
+                    type: "error",
+                    text: "Lỗi getAccessToken: " + JSON.stringify(err),
+                  });
+                  resolve(null);
+                },
+              });
+            });
+
+            const response = await fetch(`${API}/api/get-phone-number`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ token: res.token, accessToken }),
+            });
+            const result = await response.json();
+            if (result?.phoneNumber) {
+              setPhone(result.phoneNumber);
+              openSnackbar({
+                type: "success",
+                text: "Đã lấy số điện thoại từ Zalo!",
+              });
+            } else {
+              openSnackbar({
+                type: "error",
+                text: "Server trả về: " + JSON.stringify(result),
+              });
+            }
+          } catch (err) {
+            console.error("get-phone-number error:", err);
+            openSnackbar({
+              type: "error",
+              text: "Lỗi khi gọi server: " + err.message,
+            });
+          }
+        },
+        fail: (err) => {
+          console.warn("getPhoneNumber fail:", err);
+          openSnackbar({
+            type: "error",
+            text: "Lỗi getPhoneNumber: " + JSON.stringify(err),
+          });
+        },
+      });
+    } catch (err) {
+      openSnackbar({
+        type: "error",
+        text: "Exception getPhoneNumber: " + err.message,
+      });
+    }
   }, [openSnackbar]);
 
   const handleSubmit = () => {
