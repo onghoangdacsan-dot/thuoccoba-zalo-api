@@ -1,264 +1,3 @@
-const express = require("express");
-const CryptoJS = require("crypto-js");
-const cors = require("cors");
-const { Pool } = require("pg");
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-const PRIVATE_KEY = "fe49f1b0e06649e498929a7379cfdfbf";
-const ADMIN_PASSWORD = "thuoccoba2026";
-const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
-
-const pool = process.env.DATABASE_URL
-  ? new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
-    })
-  : null;
-
-async function initDB() {
-  if (!pool) {
-    console.error("THIẾU DATABASE_URL — server chạy nhưng không lưu đơn được");
-    return;
-  }
-  try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS orders (
-        id VARCHAR(50) PRIMARY KEY,
-        data JSONB NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL,
-        status VARCHAR(50) NOT NULL
-      );
-    `);
-    console.log("Database PostgreSQL sẵn sàng (bảng orders).");
-  } catch (err) {
-    console.error("Lỗi initDB:", err);
-  }
-}
-initDB();
-
-function normalizePhone(p) {
-  let s = String(p || "").replace(/\D/g, "");
-  if (s.startsWith("84") && s.length >= 11) s = "0" + s.slice(2);
-  if (s.startsWith("840")) s = "0" + s.slice(3);
-  return s;
-}
-
-app.post("/api/get-phone-number", async (req, res) => {
-  try {
-    const { token, accessToken } = req.body;
-    const APP_SECRET_KEY = process.env.ZALO_APP_SECRET_KEY || process.env.ZALO_SECRET_KEY;
-    if (!token || !accessToken) {
-      return res.status(400).json({ error: "Thiếu token hoặc accessToken" });
-    }
-    if (!APP_SECRET_KEY) {
-      return res.status(500).json({ error: "Chưa cấu hình ZALO_APP_SECRET_KEY" });
-    }
-    const zaloRes = await fetch("https://graph.zalo.me/v2.0/me/info", {
-      method: "GET",
-      headers: {
-        access_token: accessToken,
-        code: token,
-        secret_key: APP_SECRET_KEY,
-      },
-    });
-    const data = await zaloRes.json();
-    if (data?.data?.number) {
-      return res.json({ phoneNumber: data.data.number, phone: data.data.number });
-    }
-    return res.status(400).json({ error: data?.message || "Không giải mã được SĐT" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Lỗi server khi lấy SĐT" });
-  }
-});
-
-app.post("/api/orders", async (req, res) => {
-  if (!pool) return res.status(500).json({ error: "Chưa cấu hình DATABASE_URL" });
-  try {
-    const orderId = "ORD_" + Date.now();
-    const createdAt = new Date().toISOString();
-    const order = {
-      id: orderId,
-      items: req.body.items || [],
-      shippingInfo: req.body.shippingInfo || {},
-      subTotal: req.body.subTotal || 0,
-      shippingFee: req.body.shippingFee || 0,
-      total: req.body.total || req.body.finalTotal || 0,
-      paymentMethod: req.body.paymentMethod || "COD",
-      note: req.body.note || "",
-      status: "pending",
-      createdAt,
-      updatedAt: createdAt,
-    };
-    await pool.query(
-      "INSERT INTO orders (id, data, created_at, status) VALUES ($1, $2, $3, $4)",
-      [orderId, order, createdAt, "pending"]
-    );
-    console.log("Tạo đơn:", orderId);
-    res.json({ orderId, status: "pending" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Cannot create order" });
-  }
-});
-
-app.get("/api/orders", async (req, res) => {
-  if (!pool) return res.json([]);
-  try {
-    const result = await pool.query("SELECT data FROM orders ORDER BY created_at DESC");
-    res.json(result.rows.map((r) => r.data));
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Cannot get orders" });
-  }
-});
-
-app.post("/api/orders/:orderId/cancel", async (req, res) => {
-  if (!pool) return res.status(500).json({ error: "Chưa cấu hình DATABASE_URL" });
-  try {
-    const { orderId } = req.params;
-    const { reason, phone } = req.body || {};
-    const result = await pool.query("SELECT data FROM orders WHERE id = $1", [orderId]);
-    if (!result.rows.length) return res.status(404).json({ error: "Không tìm thấy đơn" });
-
-    const order = result.rows[0].data;
-    const a = normalizePhone(phone);
-    const b = normalizePhone(order.shippingInfo?.phone);
-    if (a && b && a !== b) {
-      return res.status(403).json({ error: "Bạn không có quyền hủy đơn này" });
-    }
-    if (order.status !== "pending") {
-      return res.status(400).json({ error: "Chỉ hủy được đơn đang chờ xác nhận" });
-    }
-    const created = new Date(order.createdAt).getTime();
-    if (Number.isNaN(created) || Date.now() - created > TWO_HOURS_MS) {
-      return res.status(400).json({ error: "Đã quá 2 giờ — không thể hủy đơn." });
-    }
-    if (!reason || !String(reason).trim()) {
-      return res.status(400).json({ error: "Vui lòng chọn lý do hủy" });
-    }
-
-    order.status = "cancelled";
-    order.cancelReason = String(reason).trim();
-    order.cancelledAt = new Date().toISOString();
-    order.updatedAt = order.cancelledAt;
-
-    await pool.query("UPDATE orders SET data = $1, status = $2 WHERE id = $3", [
-      order,
-      "cancelled",
-      orderId,
-    ]);
-    res.json(order);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Không hủy được đơn" });
-  }
-});
-
-app.patch("/api/orders/:orderId/status", async (req, res) => {
-  if (!pool) return res.status(500).json({ error: "Chưa cấu hình DATABASE_URL" });
-  const password = req.headers["x-admin-password"] || req.body.password;
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: "Sai mật khẩu admin" });
-  }
-  const { orderId } = req.params;
-  const { status } = req.body;
-  const allowed = ["pending", "preparing", "shipping", "completed", "cancelled"];
-  if (!allowed.includes(status)) {
-    return res.status(400).json({ error: "Trạng thái không hợp lệ" });
-  }
-  try {
-    const result = await pool.query("SELECT data FROM orders WHERE id = $1", [orderId]);
-    if (!result.rows.length) return res.status(404).json({ error: "Không tìm thấy đơn" });
-
-    const order = result.rows[0].data;
-    order.status = status;
-    order.updatedAt = new Date().toISOString();
-    if (status === "preparing") order.confirmedAt = order.updatedAt;
-    if (status === "shipping") order.shippingAt = order.updatedAt;
-    if (status === "completed") order.completedAt = order.updatedAt;
-    if (status === "cancelled") {
-      order.cancelledAt = order.updatedAt;
-      if (req.body.reason) order.cancelReason = String(req.body.reason);
-    }
-
-    await pool.query("UPDATE orders SET data = $1, status = $2 WHERE id = $3", [
-      order,
-      status,
-      orderId,
-    ]);
-    res.json(order);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Lỗi cập nhật trạng thái" });
-  }
-});
-
-app.post("/api/create-mac", (req, res) => {
-  try {
-    const body = req.body;
-    const dataMac = Object.keys(body)
-      .sort()
-      .map((key) => {
-        const value = typeof body[key] === "object" ? JSON.stringify(body[key]) : body[key];
-        return key + "=" + value;
-      })
-      .join("&");
-    res.json({ mac: CryptoJS.HmacSHA256(dataMac, PRIVATE_KEY).toString() });
-  } catch (err) {
-    res.status(500).json({ error: "Cannot create mac" });
-  }
-});
-
-app.post("/api/zalo-notify", async (req, res) => {
-  if (!pool) return res.json({ returnCode: 0, returnMessage: "No database" });
-  try {
-    const { data, mac } = req.body || {};
-    if (!data || !mac) return res.json({ returnCode: 0, returnMessage: "Missing data or mac" });
-    const { appId, orderId, method, extradata, resultCode } = data;
-    const str = "appId=" + appId + "&orderId=" + orderId + "&method=" + method;
-    if (CryptoJS.HmacSHA256(str, PRIVATE_KEY).toString() !== mac) {
-      return res.json({ returnCode: 0, returnMessage: "Invalid mac" });
-    }
-    try {
-      const extra = typeof extradata === "string" ? JSON.parse(extradata) : extradata;
-      const myOrderId = extra && extra.orderId;
-      if (myOrderId) {
-        const result = await pool.query("SELECT data FROM orders WHERE id = $1", [myOrderId]);
-        if (result.rows.length) {
-          const order = result.rows[0].data;
-          if ((String(resultCode) === "1" || resultCode === 1) && order.status !== "cancelled") {
-            order.status = "preparing";
-            order.confirmedAt = new Date().toISOString();
-            order.updatedAt = order.confirmedAt;
-            await pool.query("UPDATE orders SET data = $1, status = $2 WHERE id = $3", [
-              order,
-              "preparing",
-              myOrderId,
-            ]);
-          }
-        }
-      }
-    } catch (e) {}
-    return res.json({ returnCode: 1, returnMessage: "Success" });
-  } catch (err) {
-    return res.json({ returnCode: 0, returnMessage: "Error" });
-  }
-});
-
-app.post("/api/zalo-callback", (req, res) => {
-  res.json({ returnCode: 1, returnMessage: "Success" });
-});
-
-app.get(["/admin", "/admin.html"], (req, res) => {
-  res.setHeader("Content-Type", "text/html; charset=utf-8");
-  // Dùng string thường + concat để tránh lỗi escape template literal
-  res.send(getAdminHTML());
-});
-
 function getAdminHTML() {
   return `<!DOCTYPE html>
 <html lang="vi">
@@ -268,75 +7,102 @@ function getAdminHTML() {
 <title>Thuộc Cô Ba · Command Center</title>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
-:root{--bg:#0f0c0a;--panel:#1a1512;--card:#231c18;--line:#3d322b;--gold:#d4a017;--gold2:#f0c14b;--brown:#8B4513;--text:#f5efe6;--muted:#a89a8c}
-*{box-sizing:border-box}body{margin:0;font-family:'Be Vietnam Pro',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-button,input,select{font:inherit}button{cursor:pointer;border:none;border-radius:10px;padding:9px 14px;font-weight:600}
+:root{
+  --bg:#F5F0E8;
+  --panel:#FFFFFF;
+  --card:#FFFFFF;
+  --line:#E8DFD2;
+  --sidebar:#2C1810;
+  --sidebar-text:#F5EDE4;
+  --gold:#C4A35A;
+  --gold2:#8B4513;
+  --brown:#6B3E26;
+  --text:#1C1410;
+  --muted:#7A6A5A;
+  --soft:#FBF7F2;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Be Vietnam Pro',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+button,input,select{font:inherit}
+button{cursor:pointer;border:none;border-radius:10px;padding:9px 14px;font-weight:600;transition:.15s}
+button:hover{filter:brightness(1.05)}
 .layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
-.sidebar{background:#1a1512;border-right:1px solid var(--line);padding:20px 14px;position:sticky;top:0;height:100vh}
-.brand{display:flex;gap:10px;align-items:center;padding:8px 10px 22px}
-.brand-badge{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--gold),var(--brown));display:flex;align-items:center;justify-content:center;font-weight:800;color:#1a1008}
-.brand h1{font-size:14px;margin:0}.brand span{font-size:11px;color:var(--muted)}
-.nav button{width:100%;text-align:left;background:transparent;color:var(--muted);margin-bottom:4px}
-.nav button.on,.nav button:hover{background:rgba(212,160,23,.12);color:var(--gold2)}
-.main{padding:20px 22px 40px}
-.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
-.topbar h2{margin:0;font-size:22px;font-weight:800}
+.sidebar{background:var(--sidebar);padding:22px 14px;position:sticky;top:0;height:100vh;color:var(--sidebar-text)}
+.brand{display:flex;gap:12px;align-items:center;padding:6px 10px 24px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:16px}
+.brand-badge{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#E8C87A,var(--gold2));display:flex;align-items:center;justify-content:center;font-weight:800;color:#2C1810;font-size:14px}
+.brand h1{font-size:15px;margin:0;color:#FFF;font-weight:700}
+.brand span{font-size:11px;color:rgba(245,237,228,.65)}
+.nav button{width:100%;text-align:left;background:transparent;color:rgba(245,237,228,.7);margin-bottom:4px;padding:11px 14px;border-radius:10px}
+.nav button.on,.nav button:hover{background:rgba(196,163,90,.2);color:#F5E6C8}
+.main{padding:24px 28px 48px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.topbar h2{margin:0;font-size:24px;font-weight:800;color:var(--brown);letter-spacing:-.02em}
 .sub{color:var(--muted);font-size:12px;margin-top:4px}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
-.btn-gold{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#1a1008}
-.btn-ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
-.hero{border-radius:18px;margin-bottom:18px;background:linear-gradient(120deg,#3b2416,#1a1512);border:1px solid var(--line);padding:22px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
-.hero h3{margin:0 0 6px;font-size:20px}.hero p{margin:0;color:var(--muted);font-size:13px;max-width:520px;line-height:1.5}
-.hero-chip{background:rgba(240,193,75,.15);border:1px solid rgba(240,193,75,.35);color:var(--gold2);padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700}
-.kpis{display:grid;grid-template-columns:repeat(6,minmax(110px,1fr));gap:12px;margin-bottom:16px}
+.btn-gold{background:linear-gradient(135deg,#C4A35A,#8B4513);color:#FFF;box-shadow:0 2px 8px rgba(139,69,19,.2)}
+.btn-ghost{background:#FFF;border:1px solid var(--line);color:var(--brown)}
+.hero{
+  border-radius:16px;margin-bottom:20px;padding:22px 24px;
+  background:linear-gradient(120deg,#FFF9F0 0%,#F3E6D4 50%,#EDE0CC 100%);
+  border:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;
+  box-shadow:0 1px 3px rgba(44,24,16,.04);
+}
+.hero h3{margin:0 0 6px;font-size:18px;color:var(--brown);font-weight:800}
+.hero p{margin:0;color:var(--muted);font-size:13px;max-width:520px;line-height:1.55}
+.hero-chip{background:#FFF;border:1px solid var(--line);color:var(--gold2);padding:7px 14px;border-radius:999px;font-size:12px;font-weight:700}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(110px,1fr));gap:12px;margin-bottom:18px}
 @media(max-width:1100px){.layout{grid-template-columns:1fr}.sidebar{display:none}.kpis{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
-.kpi .label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase}
-.kpi .value{font-size:20px;font-weight:800;margin-top:6px;color:var(--gold2)}
+@media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}.main{padding:16px}}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(44,24,16,.04)}
+.kpi .label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.kpi .value{font-size:22px;font-weight:800;margin-top:8px;color:var(--gold2)}
 .kpi .hint{font-size:11px;color:var(--muted);margin-top:4px}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
-.panel-title{font-size:14px;font-weight:700;margin:0 0 12px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(44,24,16,.04)}
+.panel-title{font-size:14px;font-weight:700;margin:0 0 14px;color:var(--brown)}
 .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
-.chip{background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:8px 14px;font-size:12px}
-.chip.on{background:rgba(212,160,23,.15);border-color:var(--gold);color:var(--gold2)}
-input,select{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:9px 12px}
+.chip{background:var(--soft);border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:8px 14px;font-size:12px}
+.chip.on{background:var(--gold2);border-color:var(--gold2);color:#FFF}
+input,select{background:#FFF;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:9px 12px}
+input:focus,select:focus{outline:2px solid rgba(139,69,19,.25);border-color:var(--gold2)}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;color:var(--muted);font-weight:600;padding:10px 8px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase}
-td{padding:12px 8px;border-bottom:1px solid rgba(61,50,43,.55);vertical-align:top}
+th{text-align:left;color:var(--muted);font-weight:600;padding:12px 8px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.03em}
+td{padding:14px 8px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--text)}
+tr:hover td{background:var(--soft)}
 .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700}
-.pending{background:rgba(245,158,11,.15);color:#fbbf24}
-.preparing{background:rgba(59,130,246,.15);color:#60a5fa}
-.shipping{background:rgba(99,102,241,.15);color:#a5b4fc}
-.completed{background:rgba(34,197,94,.15);color:#4ade80}
-.cancelled{background:rgba(239,68,68,.15);color:#f87171}
+.pending{background:#FEF3C7;color:#92400E}
+.preparing{background:#DBEAFE;color:#1E40AF}
+.shipping{background:#E0E7FF;color:#3730A3}
+.completed{background:#DCFCE7;color:#166534}
+.cancelled{background:#FEE2E2;color:#991B1B}
 .row-btns{display:flex;flex-wrap:wrap;gap:4px}
-.row-btns button{font-size:11px;padding:5px 8px;border-radius:8px}
-.b-prep{background:#1e3a5f;color:#93c5fd}.b-ship{background:#312e81;color:#c7d2fe}
-.b-ok{background:#14532d;color:#86efac}.b-bad{background:#7f1d1d;color:#fecaca}.b-jnt{background:#9a3412;color:#fdba74}
+.row-btns button{font-size:11px;padding:6px 10px;border-radius:8px}
+.b-prep{background:#1E40AF;color:#FFF}.b-ship{background:#4338CA;color:#FFF}
+.b-ok{background:#166534;color:#FFF}.b-bad{background:#B91C1C;color:#FFF}.b-jnt{background:#C2410C;color:#FFF}
 .muted{color:var(--muted);font-size:12px}
-.products{font-size:11px;color:#c4b5a5;margin-top:4px;line-height:1.4}
-.chart{display:flex;align-items:flex-end;gap:8px;height:110px}
+.products{font-size:11px;color:#6B5B4B;margin-top:4px;line-height:1.45}
+.chart{display:flex;align-items:flex-end;gap:10px;height:140px;padding:8px 4px 0}
 .bar-wrap{flex:1;text-align:center}
-.bar{background:linear-gradient(180deg,var(--gold2),var(--brown));border-radius:8px 8px 4px 4px;min-height:4px}
-.bar-label{font-size:10px;color:var(--muted);margin-top:6px}
-#loginBox{max-width:400px;margin:10vh auto;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px}
-#loginBox h1{margin:0 0 8px;font-size:20px}#loginBox p{color:var(--muted);font-size:13px}
-#loginBox input{width:100%;margin:12px 0}
-#loginBox button{width:100%;background:linear-gradient(135deg,var(--gold2),var(--gold));color:#1a1008}
-.err{color:#f87171;font-size:13px;margin-top:8px}
-.banner-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-.banner-card{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--panel);min-height:120px;position:relative}
-.banner-card .bg{position:absolute;inset:0;opacity:.35;background-size:cover;background-position:center}
-.banner-card .body{position:relative;padding:14px}
-.banner-card h4{margin:0 0 4px;font-size:14px}.banner-card p{margin:0;font-size:12px;color:var(--muted)}
+.bar{background:linear-gradient(180deg,#C4A35A,var(--gold2));border-radius:8px 8px 4px 4px;min-height:6px;box-shadow:0 2px 6px rgba(139,69,19,.15)}
+.bar-label{font-size:11px;color:var(--muted);margin-top:8px;font-weight:500}
+#loginBox{max-width:400px;margin:12vh auto;background:#FFF;border:1px solid var(--line);border-radius:18px;padding:32px;box-shadow:0 8px 30px rgba(44,24,16,.08)}
+#loginBox h1{margin:0 0 6px;font-size:22px;color:var(--brown)}
+#loginBox p{color:var(--muted);font-size:13px;margin:0}
+#loginBox input{width:100%;margin:16px 0;padding:12px 14px}
+#loginBox button{width:100%;background:linear-gradient(135deg,#C4A35A,#8B4513);color:#FFF;padding:12px}
+.err{color:#B91C1C;font-size:13px;margin-top:8px}
+.banner-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.banner-card{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--soft);min-height:130px;position:relative}
+.banner-card .bg{position:absolute;inset:0;opacity:.4;background-size:cover;background-position:center}
+.banner-card .body{position:relative;padding:16px}
+.banner-card h4{margin:0 0 4px;font-size:14px;color:var(--brown)}.banner-card p{margin:0;font-size:12px;color:var(--muted)}
 .hidden{display:none!important}
 </style>
 </head>
 <body>
 <div id="loginBox">
   <h1>Thuộc Cô Ba</h1>
-  <p>Command Center · Quản trị đơn hàng cao cấp</p>
+  <p>Command Center · Quản trị đơn hàng</p>
   <input id="pwd" type="password" placeholder="Mật khẩu admin" onkeydown="if(event.key==='Enter')login()"/>
   <button type="button" onclick="login()">Đăng nhập</button>
   <div id="loginErr" class="err"></div>
@@ -601,7 +367,7 @@ function applyFilters(){
       : '';
     var note = o.note ? '<div class="products">Ghi chú: ' + escapeHtml(o.note) + '</div>' : '';
     var cancel = (st === 'cancelled' && o.cancelReason)
-      ? '<div class="products" style="color:#f87171">Hủy: ' + escapeHtml(o.cancelReason) + '</div>'
+      ? '<div class="products" style="color:#991B1B">Hủy: ' + escapeHtml(o.cancelReason) + '</div>'
       : '';
     var time = o.createdAt ? new Date(o.createdAt).toLocaleString('vi-VN') : '—';
     return '<tr>' +
@@ -729,10 +495,3 @@ if (getPwd() === ADMIN_PASS) {
 </body>
 </html>`;
 }
-
-app.get("/", (req, res) => {
-  res.send("Thuộc Cô Ba Zalo API (PostgreSQL) đang chạy ổn định!");
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server chạy cổng", PORT));
