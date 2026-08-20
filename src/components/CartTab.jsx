@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Box, Text, Icon, useSnackbar } from "zmp-ui";
-import { Payment, events, EventName } from "zmp-sdk/apis";
+import { Box, Text, useSnackbar } from "zmp-ui";
+import { Payment, events, EventName, openWebview } from "zmp-sdk/apis";
 import AddressForm from "./AddressForm";
 
 const PRIMARY = "#8B4513";
@@ -41,6 +41,22 @@ const ZALO_ARTICLES = [
   },
 ];
 
+function buildFullAddress(info = {}) {
+  const detail = String(info.detailAddress || "").trim();
+  const ward = String(info.wardName || "").trim();
+  const province = String(info.provinceName || "").trim();
+  const legacy = String(info.address || "").trim();
+
+  const parts = [detail, ward, province].filter(Boolean);
+  if (parts.length > 0) return parts.join(", ");
+
+  return legacy
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(", ");
+}
+
 function Card({ children, onClick, style = {} }) {
   return (
     <Box
@@ -73,6 +89,7 @@ export default function CartTab({
   onGoToMenu,
   createOrderOnServer,
   createMacOnServer,
+  autoDiscount = 0,
 }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -85,31 +102,26 @@ export default function CartTab({
     0
   );
   const shippingFee = cartItems.length === 0 ? 0 : subTotal >= 500000 ? 0 : 20000;
-  const finalTotal = subTotal + shippingFee;
+  const discount = Math.min(Math.max(0, Number(autoDiscount) || 0), subTotal);
+  const finalTotal = Math.max(0, subTotal + shippingFee - discount);
 
   const name = String(shippingInfo?.fullName || "").trim();
   const phone = String(shippingInfo?.phone || "").trim();
-  const addressLine = String(
-    shippingInfo?.address ||
-      [shippingInfo?.detailAddress, shippingInfo?.wardName, shippingInfo?.provinceName]
-        .filter(Boolean)
-        .join(", ") ||
-      ""
-  ).trim();
-
+  const addressLine = buildFullAddress(shippingInfo);
   const hasAddress = Boolean(name && phone && addressLine);
 
   const handleSaveAddress = (addressData) => {
+    const fullAddress = buildFullAddress(addressData);
     onChangeShippingInfo?.({
       ...shippingInfo,
-      fullName: addressData.fullName,
-      phone: addressData.phone,
-      address: addressData.address,
-      provinceCode: addressData.provinceCode,
-      provinceName: addressData.provinceName,
-      wardCode: addressData.wardCode,
-      wardName: addressData.wardName,
-      detailAddress: addressData.detailAddress,
+      fullName: String(addressData.fullName || "").trim(),
+      phone: String(addressData.phone || "").trim(),
+      address: fullAddress,
+      provinceCode: addressData.provinceCode || "",
+      provinceName: addressData.provinceName || "",
+      wardCode: addressData.wardCode || "",
+      wardName: addressData.wardName || "",
+      detailAddress: addressData.detailAddress || "",
       isDefault: addressData.isDefault,
     });
     setShowAddressForm(false);
@@ -160,7 +172,7 @@ export default function CartTab({
 
   const handleConfirm = async () => {
     if (!hasAddress) {
-      openSnackbar({ type: "error", text: "Vui lòng thêm địa chỉ nhận hàng" });
+      openSnackbar({ type: "error", text: "Vui lòng nhập địa chỉ nhận hàng" });
       setShowAddressForm(true);
       return;
     }
@@ -169,23 +181,31 @@ export default function CartTab({
       return;
     }
     if (typeof createOrderOnServer !== "function" || typeof createMacOnServer !== "function") {
-      openSnackbar({
-        type: "error",
-        text: "Thiếu cấu hình thanh toán. Kiểm tra component cha.",
-      });
+      openSnackbar({ type: "error", text: "Hệ thống chưa sẵn sàng. Thử lại sau." });
       return;
     }
     if (isProcessing) return;
 
     setIsProcessing(true);
 
+    const normalizedShipping = {
+      ...shippingInfo,
+      fullName: name,
+      phone,
+      address: addressLine,
+      detailAddress: shippingInfo.detailAddress || "",
+      wardName: shippingInfo.wardName || "",
+      provinceName: shippingInfo.provinceName || "",
+    };
+
     try {
       const myOrder = await createOrderOnServer({
         items: cartItems,
-        shippingInfo,
+        shippingInfo: normalizedShipping,
         note,
         subTotal,
         shippingFee,
+        discount,
         total: finalTotal,
         paymentMethod: "COD",
       });
@@ -201,6 +221,7 @@ export default function CartTab({
         phone,
         address: addressLine,
         note: note || "",
+        discount,
         items: cartItems.map((item) => ({
           name: item.name,
           quantity: item.quantity,
@@ -221,12 +242,12 @@ export default function CartTab({
 
       await Payment.createOrder({
         ...orderData,
-        success: (data) => console.log("createOrder success:", data),
+        success: () => {},
         fail: (err) => {
           console.error("createOrder fail:", err);
           openSnackbar({
             type: "error",
-            text: err?.message || "Không thể tạo yêu cầu thanh toán",
+            text: err?.message || "Không mở được thanh toán Zalo",
           });
           setIsProcessing(false);
         },
@@ -235,19 +256,41 @@ export default function CartTab({
       console.error("handleConfirm error:", error);
       openSnackbar({
         type: "error",
-        text: error?.message || "Có lỗi xảy ra khi đặt hàng",
+        text: error?.message || "Đặt hàng thất bại. Thử lại.",
       });
       setIsProcessing(false);
     }
   };
 
-  const handleOpenZaloArticle = (url) => {
-    if (window?.ZaloJavaScriptInterface?.openWebview) {
-      window.ZaloJavaScriptInterface.openWebview({ url });
-    } else {
-      window.open(url, "_blank");
-    }
-  };
+  /** Mở bài viết OA trên điện thoại Zalo */
+  const handleOpenZaloArticle = useCallback(
+    (url) => {
+      if (!url) {
+        openSnackbar({ type: "error", text: "Thiếu link bài viết" });
+        return;
+      }
+
+      openWebview({
+        url,
+        success: () => {},
+        fail: (err) => {
+          console.warn("openWebview fail:", err);
+          // Fallback lần 1
+          try {
+            if (typeof window !== "undefined" && window.open) {
+              window.open(url, "_blank");
+              return;
+            }
+          } catch (e) {}
+          openSnackbar({
+            type: "error",
+            text: "Không mở được bài viết. Thử lại trong Zalo.",
+          });
+        },
+      });
+    },
+    [openSnackbar]
+  );
 
   if (showAddressForm) {
     return (
@@ -269,7 +312,6 @@ export default function CartTab({
         width: "100%",
       }}
     >
-      {/* Header */}
       <Box
         onClick={onGoToMenu}
         style={{
@@ -304,7 +346,6 @@ export default function CartTab({
         </Box>
       </Box>
 
-      {/* Địa chỉ */}
       <Card
         onClick={() => setShowAddressForm(true)}
         style={{
@@ -328,86 +369,36 @@ export default function CartTab({
           >
             <Text style={{ fontSize: 16, display: "block" }}>{hasAddress ? "📍" : "⚠️"}</Text>
           </Box>
-
           <Box style={{ flex: 1, minWidth: 0 }}>
             {hasAddress ? (
               <>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: TEXT,
-                    display: "block",
-                    lineHeight: 1.4,
-                  }}
-                >
+                <Text style={{ fontSize: 13, fontWeight: 700, color: TEXT, display: "block", lineHeight: 1.4 }}>
                   {name}
                 </Text>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: PRIMARY,
-                    fontWeight: 600,
-                    display: "block",
-                    marginTop: 3,
-                    lineHeight: 1.4,
-                  }}
-                >
+                <Text style={{ fontSize: 12, color: PRIMARY, fontWeight: 600, display: "block", marginTop: 3 }}>
                   {phone}
                 </Text>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: MUTED,
-                    display: "block",
-                    marginTop: 4,
-                    lineHeight: 1.4,
-                  }}
-                >
+                <Text style={{ fontSize: 12, color: MUTED, display: "block", marginTop: 4, lineHeight: 1.45 }}>
                   {addressLine}
                 </Text>
               </>
             ) : (
               <>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: "#DC2626",
-                    display: "block",
-                  }}
-                >
+                <Text style={{ fontSize: 13, fontWeight: 700, color: "#DC2626", display: "block" }}>
                   Chưa có địa chỉ nhận hàng
                 </Text>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: MUTED,
-                    display: "block",
-                    marginTop: 3,
-                  }}
-                >
-                  Nhấn để thêm địa chỉ giao hàng
+                <Text style={{ fontSize: 12, color: MUTED, display: "block", marginTop: 3 }}>
+                  Nhấn để thêm số nhà, phường/xã, tỉnh/thành
                 </Text>
               </>
             )}
           </Box>
-
           <Text style={{ fontSize: 18, color: "#9CA3AF", display: "block", marginTop: 6 }}>›</Text>
         </Box>
       </Card>
 
-      {/* Lời nhắn */}
       <Card>
-        <Text
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: TEXT,
-            display: "block",
-            marginBottom: 8,
-          }}
-        >
+        <Text style={{ fontSize: 12, fontWeight: 700, color: TEXT, display: "block", marginBottom: 8 }}>
           Lời nhắn cho shop
         </Text>
         <input
@@ -427,17 +418,8 @@ export default function CartTab({
         />
       </Card>
 
-      {/* Vận chuyển */}
       <Card>
-        <Text
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: TEXT,
-            display: "block",
-            marginBottom: 12,
-          }}
-        >
+        <Text style={{ fontSize: 12, fontWeight: 700, color: TEXT, display: "block", marginBottom: 12 }}>
           Phương thức vận chuyển
         </Text>
         <Box
@@ -451,20 +433,7 @@ export default function CartTab({
             border: `1.5px solid ${PRIMARY}`,
           }}
         >
-          <Box
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: "#FFF",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Text style={{ fontSize: 18, display: "block" }}>🚚</Text>
-          </Box>
+          <Text style={{ fontSize: 18, display: "block" }}>🚚</Text>
           <Box style={{ flex: 1, minWidth: 0 }}>
             <Text style={{ fontSize: 13, fontWeight: 700, color: TEXT, display: "block" }}>
               Giao nhanh
@@ -479,7 +448,6 @@ export default function CartTab({
               fontWeight: 800,
               color: shippingFee === 0 ? "#16A34A" : PRIMARY,
               display: "block",
-              flexShrink: 0,
             }}
           >
             {shippingFee === 0 ? "Miễn phí" : `${shippingFee.toLocaleString("vi-VN")}đ`}
@@ -487,42 +455,13 @@ export default function CartTab({
         </Box>
       </Card>
 
-      {/* Giỏ hàng */}
       {cartItems.length === 0 ? (
         <Card style={{ textAlign: "center", padding: "36px 20px" }}>
-          <Box
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: 20,
-              background: "#F3F4F6",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 16px",
-            }}
-          >
-            <Text style={{ fontSize: 32, display: "block" }}>🛒</Text>
-          </Box>
-          <Text
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: TEXT,
-              display: "block",
-              marginBottom: 6,
-            }}
-          >
+          <Text style={{ fontSize: 32, display: "block", marginBottom: 12 }}>🛒</Text>
+          <Text style={{ fontSize: 15, fontWeight: 700, color: TEXT, display: "block", marginBottom: 6 }}>
             Giỏ hàng trống
           </Text>
-          <Text
-            style={{
-              fontSize: 12,
-              color: MUTED,
-              display: "block",
-              marginBottom: 18,
-            }}
-          >
+          <Text style={{ fontSize: 12, color: MUTED, display: "block", marginBottom: 18 }}>
             Thêm sản phẩm mắm truyền thống để tiếp tục
           </Text>
           <Box
@@ -536,7 +475,6 @@ export default function CartTab({
               fontSize: 13,
               fontWeight: 700,
               cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(139,69,19,0.25)",
             }}
           >
             Khám phá sản phẩm
@@ -545,15 +483,7 @@ export default function CartTab({
       ) : (
         <>
           <Card style={{ padding: "12px 14px" }}>
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: TEXT,
-                display: "block",
-                marginBottom: 12,
-              }}
-            >
+            <Text style={{ fontSize: 12, fontWeight: 700, color: TEXT, display: "block", marginBottom: 12 }}>
               Sản phẩm ({cartItems.length})
             </Text>
             {cartItems.map((item, idx) => (
@@ -565,8 +495,7 @@ export default function CartTab({
                   alignItems: "center",
                   paddingTop: idx === 0 ? 0 : 12,
                   paddingBottom: idx === cartItems.length - 1 ? 0 : 12,
-                  borderBottom:
-                    idx === cartItems.length - 1 ? "none" : `1px solid ${BORDER}`,
+                  borderBottom: idx === cartItems.length - 1 ? "none" : `1px solid ${BORDER}`,
                 }}
               >
                 <Box
@@ -576,23 +505,15 @@ export default function CartTab({
                     borderRadius: 10,
                     background: "#F5EDE4",
                     flexShrink: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
                     overflow: "hidden",
                   }}
                 >
                   {item.image ? (
-                    <img
-                      src={item.image}
-                      alt=""
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
+                    <img src={item.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   ) : (
-                    <Text style={{ fontSize: 22, display: "block" }}>🫙</Text>
+                    <Text style={{ fontSize: 22, display: "block", textAlign: "center", lineHeight: "52px" }}>🫙</Text>
                   )}
                 </Box>
-
                 <Box style={{ flex: 1, minWidth: 0 }}>
                   <Text
                     style={{
@@ -600,7 +521,6 @@ export default function CartTab({
                       fontWeight: 600,
                       color: TEXT,
                       display: "block",
-                      lineHeight: 1.35,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -608,37 +528,14 @@ export default function CartTab({
                   >
                     {item.name}
                   </Text>
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 800,
-                      color: PRIMARY,
-                      display: "block",
-                      marginTop: 4,
-                    }}
-                  >
-                    {item.displayPrice ||
-                      `${Number(item.price || 0).toLocaleString("vi-VN")}đ`}
+                  <Text style={{ fontSize: 13, fontWeight: 800, color: PRIMARY, display: "block", marginTop: 4 }}>
+                    {item.displayPrice || `${Number(item.price || 0).toLocaleString("vi-VN")}đ`}
                   </Text>
                 </Box>
-
-                <Box
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "flex-end",
-                    gap: 8,
-                    flexShrink: 0,
-                  }}
-                >
+                <Box style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
                   <Text
                     onClick={() => onRemoveItem?.(item.id)}
-                    style={{
-                      fontSize: 11,
-                      color: MUTED,
-                      cursor: "pointer",
-                      display: "block",
-                    }}
+                    style={{ fontSize: 11, color: MUTED, cursor: "pointer", display: "block" }}
                   >
                     Xóa
                   </Text>
@@ -655,21 +552,11 @@ export default function CartTab({
                         justifyContent: "center",
                         cursor: "pointer",
                         fontWeight: 700,
-                        fontSize: 14,
-                        color: TEXT,
                       }}
                     >
                       −
                     </Box>
-                    <Text
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        minWidth: 20,
-                        textAlign: "center",
-                        display: "block",
-                      }}
-                    >
+                    <Text style={{ fontSize: 13, fontWeight: 700, minWidth: 20, textAlign: "center", display: "block" }}>
                       {item.quantity}
                     </Text>
                     <Box
@@ -685,7 +572,6 @@ export default function CartTab({
                         justifyContent: "center",
                         cursor: "pointer",
                         fontWeight: 700,
-                        fontSize: 14,
                       }}
                     >
                       +
@@ -696,17 +582,8 @@ export default function CartTab({
             ))}
           </Card>
 
-          {/* Thanh toán */}
           <Card>
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: TEXT,
-                display: "block",
-                marginBottom: 12,
-              }}
-            >
+            <Text style={{ fontSize: 12, fontWeight: 700, color: TEXT, display: "block", marginBottom: 12 }}>
               Phương thức thanh toán
             </Text>
             <Box
@@ -720,20 +597,7 @@ export default function CartTab({
                 border: `1.5px solid ${PRIMARY}`,
               }}
             >
-              <Box
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  background: "#FFF",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Text style={{ fontSize: 18, display: "block" }}>💵</Text>
-              </Box>
+              <Text style={{ fontSize: 18, display: "block" }}>💵</Text>
               <Box style={{ flex: 1 }}>
                 <Text style={{ fontSize: 13, fontWeight: 700, color: TEXT, display: "block" }}>
                   COD — Thanh toán khi nhận hàng
@@ -742,63 +606,42 @@ export default function CartTab({
                   Trả tiền mặt cho shipper khi giao tận nơi
                 </Text>
               </Box>
-              <Box
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: "50%",
-                  background: PRIMARY,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text style={{ fontSize: 10, color: "#FFF", display: "block" }}>✓</Text>
-              </Box>
             </Box>
           </Card>
 
-          {/* Tóm tắt tiền */}
           <Card>
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: TEXT,
-                display: "block",
-                marginBottom: 12,
-              }}
-            >
+            <Text style={{ fontSize: 12, fontWeight: 700, color: TEXT, display: "block", marginBottom: 12 }}>
               Chi tiết thanh toán
             </Text>
-            {[
-              ["Tạm tính", `${subTotal.toLocaleString("vi-VN")}đ`],
-              [
-                "Phí vận chuyển",
-                shippingFee === 0 ? "Miễn phí" : `${shippingFee.toLocaleString("vi-VN")}đ`,
-              ],
-            ].map(([label, value]) => (
-              <Box
-                key={label}
+            <Box style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <Text style={{ fontSize: 13, color: MUTED, display: "block" }}>Tạm tính</Text>
+              <Text style={{ fontSize: 13, color: TEXT, display: "block" }}>
+                {subTotal.toLocaleString("vi-VN")}đ
+              </Text>
+            </Box>
+            <Box style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <Text style={{ fontSize: 13, color: MUTED, display: "block" }}>Phí vận chuyển</Text>
+              <Text
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: 8,
+                  fontSize: 13,
+                  color: shippingFee === 0 ? "#16A34A" : TEXT,
+                  fontWeight: shippingFee === 0 ? 700 : 500,
+                  display: "block",
                 }}
               >
-                <Text style={{ fontSize: 13, color: MUTED, display: "block" }}>{label}</Text>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    color: value === "Miễn phí" ? "#16A34A" : TEXT,
-                    fontWeight: value === "Miễn phí" ? 700 : 500,
-                    display: "block",
-                  }}
-                >
-                  {value}
+                {shippingFee === 0 ? "Miễn phí" : `${shippingFee.toLocaleString("vi-VN")}đ`}
+              </Text>
+            </Box>
+            {discount > 0 && (
+              <Box style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <Text style={{ fontSize: 13, color: MUTED, display: "block" }}>
+                  Giảm giá (đơn đầu / OA)
+                </Text>
+                <Text style={{ fontSize: 13, color: "#16A34A", fontWeight: 700, display: "block" }}>
+                  −{discount.toLocaleString("vi-VN")}đ
                 </Text>
               </Box>
-            ))}
+            )}
             <Box
               style={{
                 display: "flex",
@@ -811,14 +654,7 @@ export default function CartTab({
               <Text style={{ fontSize: 14, fontWeight: 700, color: TEXT, display: "block" }}>
                 Tổng cộng
               </Text>
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: 900,
-                  color: PRIMARY,
-                  display: "block",
-                }}
-              >
+              <Text style={{ fontSize: 16, fontWeight: 900, color: PRIMARY, display: "block" }}>
                 {finalTotal.toLocaleString("vi-VN")}đ
               </Text>
             </Box>
@@ -826,33 +662,19 @@ export default function CartTab({
         </>
       )}
 
-      {/* Blog OA */}
+      {/* 3 bài viết OA — mở bằng openWebview */}
       <Card style={{ borderColor: "#FDE68A", background: "#FFFBEB" }}>
-        <Box
+        <Text
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            fontSize: 13,
+            fontWeight: 800,
+            color: "#B45309",
+            display: "block",
             marginBottom: 12,
           }}
         >
-          <Text style={{ fontSize: 13, fontWeight: 800, color: "#B45309", display: "block" }}>
-            🥗 Món ngon mỗi ngày
-          </Text>
-          <Box
-            style={{
-              background: "#FEF3C7",
-              color: "#D97706",
-              fontSize: 10,
-              fontWeight: 700,
-              padding: "3px 8px",
-              borderRadius: 999,
-            }}
-          >
-            Zalo OA
-          </Box>
-        </Box>
-
+          🥗 Món ngon mỗi ngày
+        </Text>
         {ZALO_ARTICLES.map((article, index) => (
           <Box
             key={article.id}
@@ -880,25 +702,9 @@ export default function CartTab({
                 justifyContent: "center",
                 fontSize: 22,
                 flexShrink: 0,
-                position: "relative",
               }}
             >
               {article.icon}
-              <Box
-                style={{
-                  position: "absolute",
-                  bottom: -4,
-                  right: -4,
-                  background: article.badgeColor,
-                  color: "#FFF",
-                  fontSize: 7,
-                  padding: "1px 4px",
-                  borderRadius: 4,
-                  fontWeight: 700,
-                }}
-              >
-                {article.badge}
-              </Box>
             </Box>
             <Box style={{ flex: 1, minWidth: 0 }}>
               <Text
@@ -907,7 +713,6 @@ export default function CartTab({
                   fontWeight: 700,
                   color: TEXT,
                   display: "block",
-                  lineHeight: 1.3,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -921,7 +726,6 @@ export default function CartTab({
                   color: MUTED,
                   display: "block",
                   marginTop: 2,
-                  lineHeight: 1.35,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -945,7 +749,6 @@ export default function CartTab({
         ))}
       </Card>
 
-      {/* Nút Đặt hàng — cố định phía trên BottomNav */}
       {cartItems.length > 0 && (
         <Box
           style={{
@@ -964,20 +767,15 @@ export default function CartTab({
           }}
         >
           <Box style={{ flex: 1, minWidth: 0 }}>
-            <Text style={{ fontSize: 11, color: MUTED, display: "block" }}>
-              Tổng thanh toán
-            </Text>
-            <Text
-              style={{
-                fontSize: 17,
-                fontWeight: 900,
-                color: PRIMARY,
-                display: "block",
-                marginTop: 2,
-              }}
-            >
+            <Text style={{ fontSize: 11, color: MUTED, display: "block" }}>Tổng thanh toán</Text>
+            <Text style={{ fontSize: 17, fontWeight: 900, color: PRIMARY, display: "block", marginTop: 2 }}>
               {finalTotal.toLocaleString("vi-VN")}đ
             </Text>
+            {discount > 0 && (
+              <Text style={{ fontSize: 10, color: "#16A34A", display: "block", marginTop: 2 }}>
+                Đã giảm {discount.toLocaleString("vi-VN")}đ
+              </Text>
+            )}
           </Box>
           <Box
             onClick={!isProcessing ? handleConfirm : undefined}
@@ -989,7 +787,6 @@ export default function CartTab({
               fontSize: 14,
               fontWeight: 800,
               cursor: isProcessing ? "not-allowed" : "pointer",
-              boxShadow: isProcessing ? "none" : "0 4px 14px rgba(139,69,19,0.3)",
               whiteSpace: "nowrap",
             }}
           >

@@ -4,13 +4,12 @@ import { Box, Text } from "zmp-ui";
 const PRIMARY_COLOR = "#8B4513";
 const BAMBOO_BORDER = "#DEB887";
 
-// Tách phần "tặng ..." trong tên sản phẩm ra để hiển thị in nghiêng, trong ngoặc đơn
 function renderProductName(name) {
   if (!name) return name;
   const idx = name.toLowerCase().indexOf(" tặng ");
   if (idx === -1) return name;
   const main = name.slice(0, idx);
-  const gift = name.slice(idx + 1); // bỏ khoảng trắng đầu, giữ lại "tặng ..."
+  const gift = name.slice(idx + 1);
   return (
     <>
       {main}{" "}
@@ -28,17 +27,37 @@ const ProductCard = React.memo(({ product, onAdd, onBuy, onSelect }) => (
       overflow: "hidden",
       border: `1px solid ${BAMBOO_BORDER}`,
       display: "flex",
-      flexDirection: "column"
+      flexDirection: "column",
+      boxShadow: "0 1px 4px rgba(139,69,19,0.06)",
     }}
   >
-    <Box style={{ position: "relative" }}>
+    <Box
+      style={{
+        position: "relative",
+        width: "100%",
+        aspectRatio: "1 / 1",
+        background: "#F8F1E9",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+      }}
+    >
       {product.tag && (
-        <Box style={{
-          position: "absolute", top: 8, left: 8,
-          background: PRIMARY_COLOR, color: "#FFF",
-          fontSize: 10, fontWeight: "bold",
-          padding: "3px 8px", borderRadius: 6, zIndex: 2
-        }}>
+        <Box
+          style={{
+            position: "absolute",
+            top: 8,
+            left: 8,
+            background: PRIMARY_COLOR,
+            color: "#FFF",
+            fontSize: 10,
+            fontWeight: "bold",
+            padding: "3px 8px",
+            borderRadius: 6,
+            zIndex: 2,
+          }}
+        >
           {product.tag}
         </Box>
       )}
@@ -46,24 +65,45 @@ const ProductCard = React.memo(({ product, onAdd, onBuy, onSelect }) => (
         src={product.image}
         alt={product.name}
         loading="lazy"
-        style={{ width: "100%", height: 140, objectFit: "cover", display: "block" }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          objectPosition: "center",
+          display: "block",
+          padding: 6,
+          boxSizing: "border-box",
+        }}
       />
     </Box>
 
     <Box style={{ padding: "10px 12px 12px" }}>
-      <Text style={{
-        fontSize: 12.5, fontWeight: 600, color: "#222",
-        lineHeight: 1.4, marginBottom: 6,
-        display: "-webkit-box",
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: "vertical",
-        overflow: "hidden",
-        minHeight: 36
-      }}>
+      <Text
+        style={{
+          fontSize: 12.5,
+          fontWeight: 600,
+          color: "#222",
+          lineHeight: 1.4,
+          marginBottom: 6,
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+          minHeight: 36,
+        }}
+      >
         {renderProductName(product.name)}
       </Text>
 
-      <Text style={{ fontSize: 14, fontWeight: 900, color: PRIMARY_COLOR, display: "block", marginBottom: 4 }}>
+      <Text
+        style={{
+          fontSize: 14,
+          fontWeight: 900,
+          color: PRIMARY_COLOR,
+          display: "block",
+          marginBottom: 4,
+        }}
+      >
         {product.displayPrice}
       </Text>
 
@@ -73,21 +113,37 @@ const ProductCard = React.memo(({ product, onAdd, onBuy, onSelect }) => (
 
       <Box style={{ display: "flex", gap: 8, marginTop: 10 }}>
         <Box
-          onClick={(e) => { e.stopPropagation(); onAdd(product, 1); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAdd(product, 1);
+          }}
           style={{
-            flex: 1, border: `1.5px solid ${PRIMARY_COLOR}`, color: PRIMARY_COLOR,
-            textAlign: "center", padding: "10px 0", borderRadius: 10,
-            fontSize: 12, fontWeight: 700
+            flex: 1,
+            border: `1.5px solid ${PRIMARY_COLOR}`,
+            color: PRIMARY_COLOR,
+            textAlign: "center",
+            padding: "10px 0",
+            borderRadius: 10,
+            fontSize: 12,
+            fontWeight: 700,
           }}
         >
           + Giỏ
         </Box>
         <Box
-          onClick={(e) => { e.stopPropagation(); onBuy(product, 1); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onBuy(product, 1);
+          }}
           style={{
-            flex: 1, background: PRIMARY_COLOR, color: "#FFF",
-            textAlign: "center", padding: "11px 0", borderRadius: 10,
-            fontSize: 13, fontWeight: 700
+            flex: 1,
+            background: PRIMARY_COLOR,
+            color: "#FFF",
+            textAlign: "center",
+            padding: "11px 0",
+            borderRadius: 10,
+            fontSize: 13,
+            fontWeight: 700,
           }}
         >
           Mua

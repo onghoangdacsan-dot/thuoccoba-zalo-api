@@ -14,6 +14,7 @@ import ProfileTab from "../components/ProfileTab";
 import BottomNav from "../components/BottomNav";
 import ProductDetailModal from "../components/ProductDetailModal";
 import SuccessModal from "../components/SuccessModal";
+import ShippingNoticeModal from "../components/ShippingNoticeModal";
 
 const LIGHT_BG = "#FDF8F0";
 const BANNER_INTERVAL_MS = 3800;
@@ -45,10 +46,17 @@ export default function HomePage() {
   );
   const [orderStatusFilter, setOrderStatusFilter] = useState(null);
 
+  const [showShippingNotice, setShowShippingNotice] = useState(() => {
+    try {
+      return sessionStorage.getItem("shipping_notice_shown") !== "1";
+    } catch {
+      return true;
+    }
+  });
+
   const { openSnackbar } = useSnackbar();
   const processedTransRef = useRef(new Set());
 
-  // Key riêng cho từng tài khoản
   const userKey =
     userInfo?.id ||
     shippingInfo?.phone ||
@@ -66,7 +74,6 @@ export default function HomePage() {
     placeOrder,
   } = useCart(userKey);
 
-  // Lấy đơn từ server + lọc theo SĐT của user hiện tại
   const fetchOrdersFromServer = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/orders`);
@@ -153,11 +160,23 @@ export default function HomePage() {
   const calculatedShipping =
     cartItems.length === 0 ? 0 : subTotal >= 500000 ? 0 : 20000;
 
+  // Ưu đãi đơn đầu COBAWELCOME: −15.000đ · cần quan tâm OA · chỉ 1 lần
+  const welcomeUsed =
+    loadState("promo_welcome_used", false) || orderCount >= 1;
+
   let autoDiscount = 0;
-  if (isFollowingOA) autoDiscount += Math.floor(subTotal * 0.05);
-  if (orderCount >= 1) autoDiscount += 20000;
+  if (isFollowingOA && !welcomeUsed && orderCount < 1 && subTotal > 0) {
+    autoDiscount += 15000;
+  }
 
   const finalTotal = Math.max(0, subTotal + calculatedShipping - autoDiscount);
+
+  const handleCloseShippingNotice = useCallback(() => {
+    setShowShippingNotice(false);
+    try {
+      sessionStorage.setItem("shipping_notice_shown", "1");
+    } catch (e) {}
+  }, []);
 
   const handleAddToCart = useCallback(
     (product, quantity = 1) => {
@@ -184,20 +203,27 @@ export default function HomePage() {
           success: (data) => {
             const zaloUser = data?.userInfo;
             if (zaloUser) {
+              const zaloName = zaloUser.name || "";
+              const zaloPhone = zaloUser.phoneNumber || zaloUser.phone || "";
+              const zaloAvatar = zaloUser.avatar || "";
+              const zaloId = zaloUser.id || "";
+
               setUserInfo((prev) => ({
                 ...prev,
-                id: zaloUser.id || prev.id || "",
-                name: zaloUser.name || prev.name,
-                avatar: zaloUser.avatar || prev.avatar,
-                phone: zaloUser.phoneNumber || zaloUser.phone || prev.phone || "",
+                id: zaloId || prev.id,
+                name: zaloName || prev.name,
+                avatar: zaloAvatar || prev.avatar,
+                phone: zaloPhone || prev.phone,
               }));
+
               setShippingInfo((prev) => ({
                 ...prev,
-                fullName: zaloUser.name || prev.fullName,
-                phone: zaloUser.phoneNumber || zaloUser.phone || prev.phone || "",
+                fullName: zaloName || prev.fullName || "",
+                phone: zaloPhone || prev.phone || "",
               }));
+
               alert(
-                `Đã lấy thông tin từ Zalo: ${zaloUser.name || ""}. Vui lòng kiểm tra số điện thoại và địa chỉ nhận hàng.`
+                `Đã lấy thông tin từ Zalo: ${zaloName}. Vui lòng kiểm tra lại địa chỉ nhận hàng.`
               );
               resolve(true);
             } else {
@@ -223,16 +249,25 @@ export default function HomePage() {
         id: zaloOAId,
         success: () => {
           setIsFollowingOA(true);
-          alert("Cảm ơn bạn đã quan tâm Zalo OA Mắm Thuộc Cô Ba!");
+          openSnackbar({
+            type: "success",
+            text: "Cảm ơn bạn đã quan tâm Zalo OA Mắm Thuộc Cô Ba!",
+          });
         },
         fail: () => {
-          alert("Không thể cập nhật trạng thái quan tâm. Vui lòng thử lại sau.");
+          openSnackbar({
+            type: "error",
+            text: "Không thể cập nhật trạng thái quan tâm. Thử lại sau.",
+          });
         },
       });
     } catch (err) {
-      alert("Tính năng này chỉ hoạt động trong ứng dụng Zalo.");
+      openSnackbar({
+        type: "error",
+        text: "Tính năng này chỉ hoạt động trong ứng dụng Zalo.",
+      });
     }
-  }, []);
+  }, [openSnackbar]);
 
   const handlePlaceOrder = useCallback(
     (paymentResult) => {
@@ -247,13 +282,27 @@ export default function HomePage() {
         resultCode: paymentResult?.resultCode,
       });
 
+      // Đánh dấu đã dùng ưu đãi đơn đầu — không áp dụng lần 2
+      if (isFollowingOA && orderCount < 1) {
+        saveState("promo_welcome_used", true);
+      }
+
       clearCart();
       setShowSuccessModal(true);
       setTimeout(() => fetchOrdersFromServer(), 800);
 
       return order;
     },
-    [placeOrder, clearCart, cartItems, shippingInfo, finalTotal, fetchOrdersFromServer]
+    [
+      placeOrder,
+      clearCart,
+      cartItems,
+      shippingInfo,
+      finalTotal,
+      fetchOrdersFromServer,
+      isFollowingOA,
+      orderCount,
+    ]
   );
 
   const handlePaymentDone = useCallback(
@@ -308,17 +357,20 @@ export default function HomePage() {
     };
   }, [handlePaymentDone]);
 
-  const createOrderOnServer = useCallback(async (payload) => {
-    const res = await fetch(`${API}/api/orders`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error("Tạo đơn hàng thất bại");
-    const data = await res.json();
-    fetchOrdersFromServer();
-    return data;
-  }, [fetchOrdersFromServer]);
+  const createOrderOnServer = useCallback(
+    async (payload) => {
+      const res = await fetch(`${API}/api/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Tạo đơn hàng thất bại");
+      const data = await res.json();
+      fetchOrdersFromServer();
+      return data;
+    },
+    [fetchOrdersFromServer]
+  );
 
   const createMacOnServer = useCallback(async (orderData) => {
     const res = await fetch(`${API}/api/create-mac`, {
@@ -372,6 +424,13 @@ export default function HomePage() {
           }}
         />
       )}
+
+      <ShippingNoticeModal
+        visible={showShippingNotice}
+        onClose={handleCloseShippingNotice}
+        isFollowingOA={isFollowingOA}
+        onFollowOA={handleFollowOA}
+      />
 
       <SuccessModal
         visible={showSuccessModal}
@@ -437,6 +496,7 @@ export default function HomePage() {
           onGoToMenu={() => setCurrentTab("menu")}
           createOrderOnServer={createOrderOnServer}
           createMacOnServer={createMacOnServer}
+          autoDiscount={autoDiscount}
         />
       )}
 
@@ -451,10 +511,19 @@ export default function HomePage() {
       {currentTab === "profile" && (
         <ProfileTab
           userInfo={{
-            id: userInfo.id || "",
-            fullName: userInfo.name || shippingInfo.fullName || "Khách hàng Thuộc Cô Ba",
-            phone: shippingInfo.phone || userInfo.phone || "",
-            avatar: userInfo.avatar || "/logo.png.png",
+            id: userInfo?.id || "",
+            fullName:
+              shippingInfo?.fullName ||
+              userInfo?.name ||
+              userInfo?.fullName ||
+              "Khách hàng Thuộc Cô Ba",
+            name:
+              shippingInfo?.fullName ||
+              userInfo?.name ||
+              userInfo?.fullName ||
+              "Khách hàng Thuộc Cô Ba",
+            phone: shippingInfo?.phone || userInfo?.phone || "",
+            avatar: userInfo?.avatar || "/logo.png.png",
           }}
           shippingInfo={shippingInfo}
           onChangeShippingInfo={setShippingInfo}

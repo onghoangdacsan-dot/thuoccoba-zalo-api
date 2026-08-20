@@ -4,11 +4,17 @@ import { getUserInfo, getPhoneNumber, getAccessToken } from "zmp-sdk/apis";
 import { fetchProvinces, fetchWardsByProvince } from "../utils/vietnamAddress";
 
 const PRIMARY_COLOR = "#8B4513";
-const ACCENT_COLOR = "#E05638"; // màu vàng cam theo mẫu (điều chỉnh nếu cần)
+const ACCENT_COLOR = "#E05638";
 const BORDER_COLOR = "#E5E7EB";
 
-// URL backend — đổi lại đúng domain Railway của bạn nếu khác
 const API = "https://thuoccoba-zalo-api-production.up.railway.app";
+
+function buildFullAddress(detailAddress, wardName, provinceName) {
+  return [detailAddress, wardName, provinceName]
+    .map((s) => String(s || "").trim())
+    .filter(Boolean)
+    .join(", ");
+}
 
 export default function AddressForm({ initialAddress, onSave, onClose }) {
   const { openSnackbar } = useSnackbar();
@@ -18,27 +24,24 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
   const [provinces, setProvinces] = useState([]);
   const [wards, setWards] = useState([]);
   const [selectedProvince, setSelectedProvince] = useState(
-    initialAddress?.provinceCode || ""
+    initialAddress?.provinceCode ? String(initialAddress.provinceCode) : ""
   );
   const [selectedWard, setSelectedWard] = useState(
-    initialAddress?.wardCode || ""
+    initialAddress?.wardCode ? String(initialAddress.wardCode) : ""
   );
   const [detailAddress, setDetailAddress] = useState(
     initialAddress?.detailAddress || ""
   );
-  const [isDefault, setIsDefault] = useState(
-    initialAddress?.isDefault ?? true
-  );
+  const [isDefault, setIsDefault] = useState(initialAddress?.isDefault ?? true);
   const [loadingProvinces, setLoadingProvinces] = useState(true);
   const [loadingWards, setLoadingWards] = useState(false);
 
-  // Tải danh sách Tỉnh/Thành khi mở form
   useEffect(() => {
     let mounted = true;
     setLoadingProvinces(true);
     fetchProvinces().then((list) => {
       if (mounted) {
-        setProvinces(list);
+        setProvinces(Array.isArray(list) ? list : []);
         setLoadingProvinces(false);
       }
     });
@@ -47,7 +50,6 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
     };
   }, []);
 
-  // Tải Phường/Xã mỗi khi đổi Tỉnh/Thành
   useEffect(() => {
     if (!selectedProvince) {
       setWards([]);
@@ -57,7 +59,7 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
     setLoadingWards(true);
     fetchWardsByProvince(selectedProvince).then((list) => {
       if (mounted) {
-        setWards(list);
+        setWards(Array.isArray(list) ? list : []);
         setLoadingWards(false);
       }
     });
@@ -66,49 +68,31 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
     };
   }, [selectedProvince]);
 
-  // Xin quyền lấy tên + số điện thoại từ Zalo (hiện popup xác nhận của Zalo)
   const handleRequestZaloInfo = useCallback(() => {
-    openSnackbar({ type: "info", text: "Đang gọi Zalo..." });
+    openSnackbar({ type: "info", text: "Đang lấy thông tin từ Zalo..." });
 
     try {
       getUserInfo({
         success: (data) => {
           const zaloUser = data?.userInfo;
-          if (zaloUser?.name) {
-            setFullName(zaloUser.name);
-          }
+          if (zaloUser?.name) setFullName(zaloUser.name);
         },
         fail: (err) => {
           console.warn("getUserInfo fail:", err);
-          openSnackbar({
-            type: "error",
-            text: "Lỗi getUserInfo: " + JSON.stringify(err),
-          });
         },
       });
     } catch (err) {
-      openSnackbar({
-        type: "error",
-        text: "Exception getUserInfo: " + err.message,
-      });
+      console.warn(err);
     }
 
     try {
       getPhoneNumber({
         success: async (res) => {
-          openSnackbar({ type: "info", text: "Đã có token, đang giải mã..." });
-          // res.token là dữ liệu đã mã hoá, cần gửi kèm access_token lên server để giải mã
           try {
             const accessToken = await new Promise((resolve) => {
               getAccessToken({
                 success: (token) => resolve(token),
-                fail: (err) => {
-                  openSnackbar({
-                    type: "error",
-                    text: "Lỗi getAccessToken: " + JSON.stringify(err),
-                  });
-                  resolve(null);
-                },
+                fail: () => resolve(null),
               });
             });
 
@@ -118,39 +102,29 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
               body: JSON.stringify({ token: res.token, accessToken }),
             });
             const result = await response.json();
-            if (result?.phoneNumber) {
-              setPhone(result.phoneNumber);
-              openSnackbar({
-                type: "success",
-                text: "Đã lấy số điện thoại từ Zalo!",
-              });
+            if (result?.phoneNumber || result?.phone) {
+              setPhone(result.phoneNumber || result.phone);
+              openSnackbar({ type: "success", text: "Đã lấy số điện thoại từ Zalo!" });
             } else {
               openSnackbar({
                 type: "error",
-                text: "Server trả về: " + JSON.stringify(result),
+                text: result?.error || "Không giải mã được số điện thoại",
               });
             }
           } catch (err) {
-            console.error("get-phone-number error:", err);
-            openSnackbar({
-              type: "error",
-              text: "Lỗi khi gọi server: " + err.message,
-            });
+            openSnackbar({ type: "error", text: "Lỗi khi gọi server: " + err.message });
           }
         },
         fail: (err) => {
-          console.warn("getPhoneNumber fail:", err);
           openSnackbar({
             type: "error",
-            text: "Lỗi getPhoneNumber: " + JSON.stringify(err),
+            text: "Không lấy được SĐT. Vui lòng nhập thủ công.",
           });
+          console.warn("getPhoneNumber fail:", err);
         },
       });
     } catch (err) {
-      openSnackbar({
-        type: "error",
-        text: "Exception getPhoneNumber: " + err.message,
-      });
+      openSnackbar({ type: "error", text: err.message });
     }
   }, [openSnackbar]);
 
@@ -176,18 +150,34 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
       return;
     }
 
-    const provinceName =
-      provinces.find((p) => p.code === selectedProvince)?.name || "";
-    const wardName = wards.find((w) => w.code === selectedWard)?.name || "";
+    const provinceObj = provinces.find(
+      (p) => String(p.code) === String(selectedProvince)
+    );
+    const wardObj = wards.find((w) => String(w.code) === String(selectedWard));
 
-    const fullAddress = `${detailAddress}, ${wardName}, ${provinceName}`;
+    const provinceName = provinceObj?.name || provinceObj?.full_name || "";
+    const wardName = wardObj?.name || wardObj?.full_name || "";
+
+    if (!provinceName || !wardName) {
+      openSnackbar({
+        type: "error",
+        text: "Không lấy được tên tỉnh/phường. Chọn lại Tỉnh và Phường/Xã.",
+      });
+      return;
+    }
+
+    const fullAddress = buildFullAddress(
+      detailAddress.trim(),
+      wardName,
+      provinceName
+    );
 
     const addressData = {
       fullName: fullName.trim(),
       phone: phone.trim(),
-      provinceCode: selectedProvince,
+      provinceCode: String(selectedProvince),
       provinceName,
-      wardCode: selectedWard,
+      wardCode: String(selectedWard),
       wardName,
       detailAddress: detailAddress.trim(),
       address: fullAddress,
@@ -199,7 +189,6 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
 
   return (
     <Page style={{ background: "#FFF", minHeight: "100vh" }}>
-      {/* Header */}
       <Box
         style={{
           background: ACCENT_COLOR,
@@ -221,8 +210,7 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
         <Box style={{ width: 28 }} />
       </Box>
 
-      <Box style={{ padding: 16 }}>
-        {/* Nút lấy nhanh từ Zalo */}
+      <Box style={{ padding: 16, paddingBottom: 40 }}>
         <Box
           onClick={handleRequestZaloInfo}
           style={{
@@ -243,15 +231,7 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
           <Text style={{ fontSize: 13, color: "#1D4ED8" }}>›</Text>
         </Box>
 
-        {/* Liên hệ */}
-        <Text
-          style={{
-            fontSize: 15,
-            fontWeight: 700,
-            color: "#111",
-            marginBottom: 10,
-          }}
-        >
+        <Text style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 10, display: "block" }}>
           Liên hệ
         </Text>
 
@@ -263,7 +243,7 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
             marginBottom: 10,
           }}
         >
-          <Text style={{ fontSize: 11, color: "#999", marginBottom: 4 }}>
+          <Text style={{ fontSize: 11, color: "#999", marginBottom: 4, display: "block" }}>
             Họ và tên
           </Text>
           <input
@@ -289,7 +269,7 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
             marginBottom: 20,
           }}
         >
-          <Text style={{ fontSize: 11, color: "#999", marginBottom: 4 }}>
+          <Text style={{ fontSize: 11, color: "#999", marginBottom: 4, display: "block" }}>
             Số điện thoại
           </Text>
           <input
@@ -307,25 +287,11 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
           />
         </Box>
 
-        {/* Địa chỉ */}
-        <Text
-          style={{
-            fontSize: 15,
-            fontWeight: 700,
-            color: "#111",
-            marginBottom: 10,
-          }}
-        >
+        <Text style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 10, display: "block" }}>
           Địa chỉ
         </Text>
 
-        <Box
-          style={{
-            display: "flex",
-            gap: 10,
-            marginBottom: 10,
-          }}
-        >
+        <Box style={{ display: "flex", gap: 10, marginBottom: 10 }}>
           <Box
             style={{
               flex: 1,
@@ -334,7 +300,7 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
               padding: 14,
             }}
           >
-            <Text style={{ fontSize: 11, color: "#999", marginBottom: 4 }}>
+            <Text style={{ fontSize: 11, color: "#999", marginBottom: 4, display: "block" }}>
               Tỉnh / Thành
             </Text>
             <select
@@ -353,12 +319,10 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
                 padding: "4px 0",
               }}
             >
-              <option value="">
-                {loadingProvinces ? "Đang tải..." : "Chọn tỉnh"}
-              </option>
+              <option value="">{loadingProvinces ? "Đang tải..." : "Chọn tỉnh"}</option>
               {provinces.map((p) => (
-                <option key={p.code} value={p.code}>
-                  {p.name}
+                <option key={String(p.code)} value={String(p.code)}>
+                  {p.name || p.full_name}
                 </option>
               ))}
             </select>
@@ -372,7 +336,7 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
               padding: 14,
             }}
           >
-            <Text style={{ fontSize: 11, color: "#999", marginBottom: 4 }}>
+            <Text style={{ fontSize: 11, color: "#999", marginBottom: 4, display: "block" }}>
               Phường / Xã
             </Text>
             <select
@@ -388,12 +352,10 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
                 padding: "4px 0",
               }}
             >
-              <option value="">
-                {loadingWards ? "Đang tải..." : "Chọn phường/xã"}
-              </option>
+              <option value="">{loadingWards ? "Đang tải..." : "Chọn phường/xã"}</option>
               {wards.map((w) => (
-                <option key={w.code} value={w.code}>
-                  {w.name}
+                <option key={String(w.code)} value={String(w.code)}>
+                  {w.name || w.full_name}
                 </option>
               ))}
             </select>
@@ -408,7 +370,7 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
             marginBottom: 16,
           }}
         >
-          <Text style={{ fontSize: 11, color: "#999", marginBottom: 4 }}>
+          <Text style={{ fontSize: 11, color: "#999", marginBottom: 4, display: "block" }}>
             Số nhà / Tên đường
           </Text>
           <input
@@ -426,7 +388,6 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
           />
         </Box>
 
-        {/* Địa chỉ mặc định */}
         <Box
           style={{
             display: "flex",
@@ -437,9 +398,7 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
             marginBottom: 24,
           }}
         >
-          <Text style={{ fontSize: 14, color: "#111" }}>
-            Địa chỉ mặc định
-          </Text>
+          <Text style={{ fontSize: 14, color: "#111" }}>Địa chỉ mặc định</Text>
           <Box
             onClick={() => setIsDefault((prev) => !prev)}
             style={{
@@ -449,7 +408,6 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
               background: isDefault ? ACCENT_COLOR : "#D1D5DB",
               position: "relative",
               cursor: "pointer",
-              transition: "background 0.2s",
             }}
           >
             <Box
@@ -461,14 +419,12 @@ export default function AddressForm({ initialAddress, onSave, onClose }) {
                 position: "absolute",
                 top: 3,
                 left: isDefault ? 21 : 3,
-                transition: "left 0.2s",
                 boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
               }}
             />
           </Box>
         </Box>
 
-        {/* Nút tạo địa chỉ */}
         <Box
           onClick={handleSubmit}
           style={{

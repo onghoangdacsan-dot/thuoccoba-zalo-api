@@ -7,6 +7,22 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// --- Tích hợp route J&T Express ---
+const { createOrder: createJnTOrder } = require("./src/server/jntService");
+
+app.post("/api/jnt/create-order", async (req, res) => {
+  try {
+    const result = await createJnTOrder(req.body);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    console.error("JNT create order error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: error.response?.data || error.message,
+    });
+  }
+});
+
 const PRIVATE_KEY = "fe49f1b0e06649e498929a7379cfdfbf";
 const ADMIN_PASSWORD = "thuoccoba2026";
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
@@ -255,7 +271,6 @@ app.post("/api/zalo-callback", (req, res) => {
 
 app.get(["/admin", "/admin.html"], (req, res) => {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  // Dùng string thường + concat để tránh lỗi escape template literal
   res.send(getAdminHTML());
 });
 
@@ -615,11 +630,11 @@ function applyFilters(){
       '<td><b>' + money(o.total) + 'đ</b><div class="muted">' + escapeHtml(o.paymentMethod || 'COD') + '</div></td>' +
       '<td><span class="badge ' + st + '">' + (STATUS_LABEL[st] || st) + '</span></td>' +
       '<td><div class="row-btns">' +
-        '<button type="button" class="b-prep" onclick="setStatus(\\'' + o.id + '\\',\\'preparing\\')">Chuẩn bị</button>' +
-        '<button type="button" class="b-ship" onclick="setStatus(\\'' + o.id + '\\',\\'shipping\\')">Giao</button>' +
-        '<button type="button" class="b-ok" onclick="setStatus(\\'' + o.id + '\\',\\'completed\\')">Xong</button>' +
-        '<button type="button" class="b-bad" onclick="setStatus(\\'' + o.id + '\\',\\'cancelled\\')">Hủy</button>' +
-        '<button type="button" class="b-jnt" onclick="printJnT(\\'' + o.id + '\\')">J&amp;T</button>' +
+        '<button type="button" class="b-prep" onclick="setStatus(\\\'' + o.id + '\\\',\\\'preparing\\\')">Chuẩn bị</button>' +
+        '<button type="button" class="b-ship" onclick="setStatus(\\\'' + o.id + '\\\',\\\'shipping\\\')">Giao</button>' +
+        '<button type="button" class="b-ok" onclick="setStatus(\\\'' + o.id + '\\\',\\\'completed\\\')">Xong</button>' +
+        '<button type="button" class="b-bad" onclick="setStatus(\\\'' + o.id + '\\\',\\\'cancelled\\\')">Hủy</button>' +
+        '<button type="button" class="b-jnt" onclick="printJnT(\\\'' + o.id + '\\\')">J&amp;T</button>' +
       '</div></td></tr>';
   }).join('');
   if (!document.getElementById('viewDash').classList.contains('hidden')) renderDash();
