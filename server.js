@@ -24,19 +24,21 @@ app.post("/api/jnt/create-order", async (req, res) => {
 });
 
 const PRIVATE_KEY = "fe49f1b0e06649e498929a7379cfdfbf";
-const ADMIN_PASSWORD = "thuoccoba2026";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 
 // ===== ZALO OA NOTIFY =====
-const ZALO_OA_ACCESS_TOKEN = process.env.ZALO_OA_ACCESS_TOKEN || "";
-const ZALO_ADMIN_USER_ID = process.env.ZALO_ADMIN_USER_ID || "16ypsx250d4i6";
-
 async function sendZaloOrderNotify(order) {
-  if (!ZALO_OA_ACCESS_TOKEN) {
+  const accessToken = process.env.ZALO_OA_ACCESS_TOKEN || "";
+  const adminUserId = process.env.ZALO_ADMIN_USER_ID || "16ypsx250d4i6";
+  const appSecret =
+    process.env.ZALO_APP_SECRET_KEY || process.env.ZALO_SECRET_KEY || "";
+
+  if (!accessToken) {
     console.warn("Chưa cấu hình ZALO_OA_ACCESS_TOKEN — bỏ qua thông báo Zalo");
     return;
   }
-  if (!ZALO_ADMIN_USER_ID) {
+  if (!adminUserId) {
     console.warn("Chưa cấu hình ZALO_ADMIN_USER_ID — bỏ qua thông báo Zalo");
     return;
   }
@@ -79,20 +81,31 @@ async function sendZaloOrderNotify(order) {
       (order.note ? `Ghi chu: ${order.note}\n` : "") +
       `Trang thai: Cho xac nhan`;
 
-    const res = await fetch("https://openapi.zalo.me/v2.0/oa/message", {
+    // appsecret_proof = HMAC_SHA256(access_token, app_secret)
+    const appsecret_proof = appSecret
+      ? CryptoJS.HmacSHA256(accessToken, appSecret).toString()
+      : "";
+
+    const body = {
+      recipient: {
+        user_id: String(adminUserId),
+      },
+      message: {
+        text,
+      },
+    };
+
+    const url = appsecret_proof
+      ? `https://openapi.zalo.me/v2.0/oa/message?appsecret_proof=${appsecret_proof}`
+      : `https://openapi.zalo.me/v2.0/oa/message`;
+
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        access_token: ZALO_OA_ACCESS_TOKEN,
+        access_token: accessToken,
       },
-      body: JSON.stringify({
-        recipient: {
-          user_id: String(ZALO_ADMIN_USER_ID),
-        },
-        message: {
-          text,
-        },
-      }),
+      body: JSON.stringify(body),
     });
 
     const data = await res.json();
@@ -197,7 +210,7 @@ app.post("/api/orders", async (req, res) => {
 
     console.log("Tạo đơn:", orderId);
 
-    // Gửi thông báo Zalo OA về admin (không chặn response nếu lỗi)
+    // Gửi thông báo Zalo OA về admin
     sendZaloOrderNotify(order).catch(() => {});
 
     res.json({ orderId, status: "pending" });
@@ -263,7 +276,7 @@ app.post("/api/orders/:orderId/cancel", async (req, res) => {
 app.patch("/api/orders/:orderId/status", async (req, res) => {
   if (!pool) return res.status(500).json({ error: "Chưa cấu hình DATABASE_URL" });
   const password = req.headers["x-admin-password"] || req.body.password;
-  if (password !== ADMIN_PASSWORD) {
+  if (!ADMIN_PASSWORD || password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: "Sai mật khẩu admin" });
   }
   const { orderId } = req.params;
@@ -361,6 +374,7 @@ app.get(["/admin", "/admin.html"], (req, res) => {
 });
 
 function getAdminHTML() {
+  const adminPassJson = JSON.stringify(ADMIN_PASSWORD || "");
   return `<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -554,13 +568,14 @@ var allOrders = [];
 var rangeMode = '30d';
 var fromTs = null;
 var toTs = null;
-var ADMIN_PASS = 'thuoccoba2026';
+var ADMIN_PASS = ${adminPassJson};
 
 function getPwd(){ return sessionStorage.getItem('admin_pwd') || ''; }
 
 function login(){
   var p = (document.getElementById('pwd').value || '').trim();
   var err = document.getElementById('loginErr');
+  if (!ADMIN_PASS) { err.textContent = 'Chưa cấu hình ADMIN_PASSWORD trên server'; return; }
   if (!p) { err.textContent = 'Vui lòng nhập mật khẩu'; return; }
   if (p !== ADMIN_PASS) { err.textContent = 'Sai mật khẩu'; return; }
   sessionStorage.setItem('admin_pwd', p);
@@ -820,7 +835,7 @@ function printJnT(orderId){
   w.document.close();
 }
 
-if (getPwd() === ADMIN_PASS) {
+if (ADMIN_PASS && getPwd() === ADMIN_PASS) {
   document.getElementById('loginBox').style.display = 'none';
   document.getElementById('app').style.display = 'grid';
   setRange('30d');
