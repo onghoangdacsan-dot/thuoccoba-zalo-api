@@ -27,6 +27,85 @@ const PRIVATE_KEY = "fe49f1b0e06649e498929a7379cfdfbf";
 const ADMIN_PASSWORD = "thuoccoba2026";
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 
+// ===== ZALO OA NOTIFY =====
+const ZALO_OA_ACCESS_TOKEN = process.env.ZALO_OA_ACCESS_TOKEN || "";
+const ZALO_ADMIN_USER_ID = process.env.ZALO_ADMIN_USER_ID || "16ypsx250d4i6";
+
+async function sendZaloOrderNotify(order) {
+  if (!ZALO_OA_ACCESS_TOKEN) {
+    console.warn("Chưa cấu hình ZALO_OA_ACCESS_TOKEN — bỏ qua thông báo Zalo");
+    return;
+  }
+  if (!ZALO_ADMIN_USER_ID) {
+    console.warn("Chưa cấu hình ZALO_ADMIN_USER_ID — bỏ qua thông báo Zalo");
+    return;
+  }
+
+  try {
+    const s = order.shippingInfo || {};
+    const items = order.items || [];
+    const itemsText = items.length
+      ? items
+          .map(
+            (i, idx) =>
+              `${idx + 1}. ${i.name || "SP"} x${i.quantity || 1} - ${Number(
+                i.price || 0
+              ).toLocaleString("vi-VN")}d`
+          )
+          .join("\n")
+      : "—";
+
+    const time = order.createdAt
+      ? new Date(order.createdAt).toLocaleString("vi-VN", {
+          timeZone: "Asia/Ho_Chi_Minh",
+        })
+      : "—";
+
+    const text =
+      `DON HANG MOI - Thuoc Co Ba\n` +
+      `--------------------\n` +
+      `Ma: ${order.id}\n` +
+      `Thoi gian: ${time}\n` +
+      `Khach: ${s.fullName || "—"}\n` +
+      `SDT: ${s.phone || "—"}\n` +
+      `Dia chi: ${s.address || "—"}\n` +
+      `--------------------\n` +
+      `San pham:\n${itemsText}\n` +
+      `--------------------\n` +
+      `Tam tinh: ${Number(order.subTotal || 0).toLocaleString("vi-VN")}d\n` +
+      `Ship: ${Number(order.shippingFee || 0).toLocaleString("vi-VN")}d\n` +
+      `Tong: ${Number(order.total || 0).toLocaleString("vi-VN")}d\n` +
+      `Thanh toan: ${order.paymentMethod || "COD"}\n` +
+      (order.note ? `Ghi chu: ${order.note}\n` : "") +
+      `Trang thai: Cho xac nhan`;
+
+    const res = await fetch("https://openapi.zalo.me/v2.0/oa/message", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        access_token: ZALO_OA_ACCESS_TOKEN,
+      },
+      body: JSON.stringify({
+        recipient: {
+          user_id: String(ZALO_ADMIN_USER_ID),
+        },
+        message: {
+          text,
+        },
+      }),
+    });
+
+    const data = await res.json();
+    if (data.error !== 0 && data.error != null) {
+      console.error("Zalo OA gui loi:", data);
+    } else {
+      console.log("Da gui thong bao Zalo OA cho don", order.id);
+    }
+  } catch (err) {
+    console.error("Loi sendZaloOrderNotify:", err.message);
+  }
+}
+
 const pool = process.env.DATABASE_URL
   ? new Pool({
       connectionString: process.env.DATABASE_URL,
@@ -102,6 +181,7 @@ app.post("/api/orders", async (req, res) => {
       shippingInfo: req.body.shippingInfo || {},
       subTotal: req.body.subTotal || 0,
       shippingFee: req.body.shippingFee || 0,
+      discount: req.body.discount || 0,
       total: req.body.total || req.body.finalTotal || 0,
       paymentMethod: req.body.paymentMethod || "COD",
       note: req.body.note || "",
@@ -109,11 +189,17 @@ app.post("/api/orders", async (req, res) => {
       createdAt,
       updatedAt: createdAt,
     };
+
     await pool.query(
       "INSERT INTO orders (id, data, created_at, status) VALUES ($1, $2, $3, $4)",
       [orderId, order, createdAt, "pending"]
     );
+
     console.log("Tạo đơn:", orderId);
+
+    // Gửi thông báo Zalo OA về admin (không chặn response nếu lỗi)
+    sendZaloOrderNotify(order).catch(() => {});
+
     res.json({ orderId, status: "pending" });
   } catch (err) {
     console.error(err);
@@ -630,11 +716,11 @@ function applyFilters(){
       '<td><b>' + money(o.total) + 'đ</b><div class="muted">' + escapeHtml(o.paymentMethod || 'COD') + '</div></td>' +
       '<td><span class="badge ' + st + '">' + (STATUS_LABEL[st] || st) + '</span></td>' +
       '<td><div class="row-btns">' +
-        '<button type="button" class="b-prep" onclick="setStatus(\\\'' + o.id + '\\\',\\\'preparing\\\')">Chuẩn bị</button>' +
-        '<button type="button" class="b-ship" onclick="setStatus(\\\'' + o.id + '\\\',\\\'shipping\\\')">Giao</button>' +
-        '<button type="button" class="b-ok" onclick="setStatus(\\\'' + o.id + '\\\',\\\'completed\\\')">Xong</button>' +
-        '<button type="button" class="b-bad" onclick="setStatus(\\\'' + o.id + '\\\',\\\'cancelled\\\')">Hủy</button>' +
-        '<button type="button" class="b-jnt" onclick="printJnT(\\\'' + o.id + '\\\')">J&amp;T</button>' +
+        '<button type="button" class="b-prep" onclick="setStatus(\\'' + o.id + '\\',\\'preparing\\')">Chuẩn bị</button>' +
+        '<button type="button" class="b-ship" onclick="setStatus(\\'' + o.id + '\\',\\'shipping\\')">Giao</button>' +
+        '<button type="button" class="b-ok" onclick="setStatus(\\'' + o.id + '\\',\\'completed\\')">Xong</button>' +
+        '<button type="button" class="b-bad" onclick="setStatus(\\'' + o.id + '\\',\\'cancelled\\')">Hủy</button>' +
+        '<button type="button" class="b-jnt" onclick="printJnT(\\'' + o.id + '\\')">J&amp;T</button>' +
       '</div></td></tr>';
   }).join('');
   if (!document.getElementById('viewDash').classList.contains('hidden')) renderDash();
