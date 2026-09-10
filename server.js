@@ -24,100 +24,8 @@ app.post("/api/jnt/create-order", async (req, res) => {
 });
 
 const PRIVATE_KEY = "fe49f1b0e06649e498929a7379cfdfbf";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+const ADMIN_PASSWORD = "thuoccoba2026";
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
-
-// ===== ZALO OA NOTIFY =====
-async function sendZaloOrderNotify(order) {
-  const accessToken = process.env.ZALO_OA_ACCESS_TOKEN || "";
-  const adminUserId = process.env.ZALO_ADMIN_USER_ID || "16ypsx250d4i6";
-  const appSecret =
-    process.env.ZALO_APP_SECRET_KEY || process.env.ZALO_SECRET_KEY || "";
-
-  if (!accessToken) {
-    console.warn("Chưa cấu hình ZALO_OA_ACCESS_TOKEN — bỏ qua thông báo Zalo");
-    return;
-  }
-  if (!adminUserId) {
-    console.warn("Chưa cấu hình ZALO_ADMIN_USER_ID — bỏ qua thông báo Zalo");
-    return;
-  }
-
-  try {
-    const s = order.shippingInfo || {};
-    const items = order.items || [];
-    const itemsText = items.length
-      ? items
-          .map(
-            (i, idx) =>
-              `${idx + 1}. ${i.name || "SP"} x${i.quantity || 1} - ${Number(
-                i.price || 0
-              ).toLocaleString("vi-VN")}d`
-          )
-          .join("\n")
-      : "—";
-
-    const time = order.createdAt
-      ? new Date(order.createdAt).toLocaleString("vi-VN", {
-          timeZone: "Asia/Ho_Chi_Minh",
-        })
-      : "—";
-
-    const text =
-      `DON HANG MOI - Thuoc Co Ba\n` +
-      `--------------------\n` +
-      `Ma: ${order.id}\n` +
-      `Thoi gian: ${time}\n` +
-      `Khach: ${s.fullName || "—"}\n` +
-      `SDT: ${s.phone || "—"}\n` +
-      `Dia chi: ${s.address || "—"}\n` +
-      `--------------------\n` +
-      `San pham:\n${itemsText}\n` +
-      `--------------------\n` +
-      `Tam tinh: ${Number(order.subTotal || 0).toLocaleString("vi-VN")}d\n` +
-      `Ship: ${Number(order.shippingFee || 0).toLocaleString("vi-VN")}d\n` +
-      `Tong: ${Number(order.total || 0).toLocaleString("vi-VN")}d\n` +
-      `Thanh toan: ${order.paymentMethod || "COD"}\n` +
-      (order.note ? `Ghi chu: ${order.note}\n` : "") +
-      `Trang thai: Cho xac nhan`;
-
-    // appsecret_proof = HMAC_SHA256(access_token, app_secret)
-    const appsecret_proof = appSecret
-      ? CryptoJS.HmacSHA256(accessToken, appSecret).toString()
-      : "";
-
-    const body = {
-      recipient: {
-        user_id: String(adminUserId),
-      },
-      message: {
-        text,
-      },
-    };
-
-    const url = appsecret_proof
-      ? `https://openapi.zalo.me/v2.0/oa/message?appsecret_proof=${appsecret_proof}`
-      : `https://openapi.zalo.me/v2.0/oa/message`;
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        access_token: accessToken,
-      },
-      body: JSON.stringify(body),
-    });
-
-    const data = await res.json();
-    if (data.error !== 0 && data.error != null) {
-      console.error("Zalo OA gui loi:", data);
-    } else {
-      console.log("Da gui thong bao Zalo OA cho don", order.id);
-    }
-  } catch (err) {
-    console.error("Loi sendZaloOrderNotify:", err.message);
-  }
-}
 
 const pool = process.env.DATABASE_URL
   ? new Pool({
@@ -125,6 +33,27 @@ const pool = process.env.DATABASE_URL
       ssl: { rejectUnauthorized: false },
     })
   : null;
+
+// ====== CẤU HÌNH TÍCH ĐIỂM / HẠNG THÀNH VIÊN ======
+// Đổi các con số này khi bạn chốt chính sách chính thức.
+const TIERS = [
+  { key: "dong", label: "Đồng", minPoints: 0 },
+  { key: "bac", label: "Bạc", minPoints: 200 },
+  { key: "vang", label: "Vàng", minPoints: 500 },
+  { key: "kimcuong", label: "Kim Cương", minPoints: 1000 },
+];
+function getTier(points) {
+  let cur = TIERS[0];
+  for (const t of TIERS) if (points >= t.minPoints) cur = t;
+  return cur;
+}
+function getNextTier(points) {
+  return TIERS.find((t) => t.minPoints > points) || null;
+}
+// Quy tắc cộng điểm mỗi đơn "Đã giao": >=300.000đ +10 điểm, còn lại +5 điểm
+function pointsForOrder(total) {
+  return Number(total || 0) >= 300000 ? 10 : 5;
+}
 
 async function initDB() {
   if (!pool) {
@@ -140,7 +69,39 @@ async function initDB() {
         status VARCHAR(50) NOT NULL
       );
     `);
-    console.log("Database PostgreSQL sẵn sàng (bảng orders).");
+
+    // ====== BẢNG TÍCH ĐIỂM / HỘI VIÊN ======
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS customers (
+        phone VARCHAR(20) PRIMARY KEY,
+        full_name VARCHAR(255),
+        points INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS points_history (
+        id SERIAL PRIMARY KEY,
+        phone VARCHAR(20) NOT NULL,
+        order_id VARCHAR(50),
+        points_change INT NOT NULL,
+        reason VARCHAR(255),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS redemptions (
+        id SERIAL PRIMARY KEY,
+        phone VARCHAR(20) NOT NULL,
+        gift_label VARCHAR(255) NOT NULL,
+        points_cost INT NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+
+    console.log("Database PostgreSQL sẵn sàng (orders, customers, points_history, redemptions).");
   } catch (err) {
     console.error("Lỗi initDB:", err);
   }
@@ -152,6 +113,56 @@ function normalizePhone(p) {
   if (s.startsWith("84") && s.length >= 11) s = "0" + s.slice(2);
   if (s.startsWith("840")) s = "0" + s.slice(3);
   return s;
+}
+
+// ====== HÀM TÍCH ĐIỂM ======
+async function ensureCustomer(phone, fullName) {
+  if (!pool) return null;
+  const p = normalizePhone(phone);
+  if (!p) return null;
+  const existing = await pool.query("SELECT * FROM customers WHERE phone=$1", [p]);
+  if (existing.rows.length) {
+    if (fullName) {
+      await pool.query(
+        "UPDATE customers SET full_name=$1, updated_at=now() WHERE phone=$2",
+        [fullName, p]
+      );
+    }
+    return existing.rows[0];
+  }
+  const inserted = await pool.query(
+    "INSERT INTO customers (phone, full_name) VALUES ($1,$2) RETURNING *",
+    [p, fullName || null]
+  );
+  return inserted.rows[0];
+}
+
+async function awardPointsForOrder(order) {
+  if (!pool || !order) return;
+  const phone = normalizePhone(order.shippingInfo?.phone);
+  if (!phone) return;
+
+  // Chống cộng điểm trùng cho cùng 1 đơn (ví dụ admin bấm "Xong" 2 lần)
+  const already = await pool.query(
+    "SELECT id FROM points_history WHERE order_id=$1",
+    [order.id]
+  );
+  if (already.rows.length) return;
+
+  await ensureCustomer(phone, order.shippingInfo?.fullName);
+  const pts = pointsForOrder(order.total);
+
+  await pool.query(
+    "INSERT INTO points_history (phone, order_id, points_change, reason) VALUES ($1,$2,$3,$4)",
+    [phone, order.id, pts, "Đơn hàng hoàn tất " + order.id]
+  );
+  await pool.query(
+    "UPDATE customers SET points = points + $1, updated_at = now() WHERE phone=$2",
+    [pts, phone]
+  );
+
+  // TODO (ZNS): gửi thông báo Zalo báo khách vừa được cộng điểm tại đây,
+  // cần Zalo OA đã đăng ký ZNS + template ID được duyệt.
 }
 
 app.post("/api/get-phone-number", async (req, res) => {
@@ -194,7 +205,6 @@ app.post("/api/orders", async (req, res) => {
       shippingInfo: req.body.shippingInfo || {},
       subTotal: req.body.subTotal || 0,
       shippingFee: req.body.shippingFee || 0,
-      discount: req.body.discount || 0,
       total: req.body.total || req.body.finalTotal || 0,
       paymentMethod: req.body.paymentMethod || "COD",
       note: req.body.note || "",
@@ -202,17 +212,19 @@ app.post("/api/orders", async (req, res) => {
       createdAt,
       updatedAt: createdAt,
     };
-
     await pool.query(
       "INSERT INTO orders (id, data, created_at, status) VALUES ($1, $2, $3, $4)",
       [orderId, order, createdAt, "pending"]
     );
 
+    // Tạo/ cập nhật hồ sơ khách hàng ngay khi đặt đơn (chưa cộng điểm, chỉ cộng khi "Đã giao")
+    if (order.shippingInfo?.phone) {
+      ensureCustomer(order.shippingInfo.phone, order.shippingInfo.fullName).catch((e) =>
+        console.error("ensureCustomer lỗi:", e)
+      );
+    }
+
     console.log("Tạo đơn:", orderId);
-
-    // Gửi thông báo Zalo OA về admin
-    sendZaloOrderNotify(order).catch(() => {});
-
     res.json({ orderId, status: "pending" });
   } catch (err) {
     console.error(err);
@@ -276,7 +288,7 @@ app.post("/api/orders/:orderId/cancel", async (req, res) => {
 app.patch("/api/orders/:orderId/status", async (req, res) => {
   if (!pool) return res.status(500).json({ error: "Chưa cấu hình DATABASE_URL" });
   const password = req.headers["x-admin-password"] || req.body.password;
-  if (!ADMIN_PASSWORD || password !== ADMIN_PASSWORD) {
+  if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: "Sai mật khẩu admin" });
   }
   const { orderId } = req.params;
@@ -305,10 +317,149 @@ app.patch("/api/orders/:orderId/status", async (req, res) => {
       status,
       orderId,
     ]);
+
+    // ====== TỰ ĐỘNG CỘNG ĐIỂM KHI ĐƠN CHUYỂN SANG "ĐÃ GIAO" ======
+    if (status === "completed") {
+      try {
+        await awardPointsForOrder(order);
+      } catch (e) {
+        console.error("awardPointsForOrder lỗi:", e);
+      }
+    }
+
     res.json(order);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Lỗi cập nhật trạng thái" });
+  }
+});
+
+// ====== API TÍCH ĐIỂM CHO MINI APP ======
+
+// Lấy điểm + hạng hiện tại của khách
+app.get("/api/loyalty/summary", async (req, res) => {
+  if (!pool) return res.status(500).json({ error: "Chưa cấu hình DATABASE_URL" });
+  try {
+    const phone = normalizePhone(req.query.phone);
+    if (!phone) return res.status(400).json({ error: "Thiếu số điện thoại" });
+
+    const result = await pool.query("SELECT * FROM customers WHERE phone=$1", [phone]);
+    const points = result.rows.length ? result.rows[0].points : 0;
+    const tier = getTier(points);
+    const nextTier = getNextTier(points);
+
+    res.json({ phone, points, tier, nextTier });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Lỗi lấy thông tin tích điểm" });
+  }
+});
+
+// Lịch sử tích điểm (cộng/trừ) của khách
+app.get("/api/loyalty/history", async (req, res) => {
+  if (!pool) return res.json([]);
+  try {
+    const phone = normalizePhone(req.query.phone);
+    if (!phone) return res.status(400).json({ error: "Thiếu số điện thoại" });
+
+    const result = await pool.query(
+      "SELECT * FROM points_history WHERE phone=$1 ORDER BY created_at DESC LIMIT 100",
+      [phone]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Lỗi lấy lịch sử điểm" });
+  }
+});
+
+// Đổi điểm lấy quà / voucher
+app.post("/api/loyalty/redeem", async (req, res) => {
+  if (!pool) return res.status(500).json({ error: "Chưa cấu hình DATABASE_URL" });
+  try {
+    const phone = normalizePhone(req.body.phone);
+    const { giftLabel, pointsCost } = req.body || {};
+    if (!phone || !giftLabel || !pointsCost) {
+      return res.status(400).json({ error: "Thiếu thông tin đổi quà" });
+    }
+
+    const result = await pool.query("SELECT * FROM customers WHERE phone=$1", [phone]);
+    const current = result.rows.length ? result.rows[0].points : 0;
+    if (current < Number(pointsCost)) {
+      return res.status(400).json({ error: "Không đủ điểm để đổi quà này" });
+    }
+
+    await pool.query(
+      "UPDATE customers SET points = points - $1, updated_at = now() WHERE phone=$2",
+      [pointsCost, phone]
+    );
+    await pool.query(
+      "INSERT INTO points_history (phone, order_id, points_change, reason) VALUES ($1,NULL,$2,$3)",
+      [phone, -Math.abs(pointsCost), "Đổi quà: " + giftLabel]
+    );
+    const redemption = await pool.query(
+      "INSERT INTO redemptions (phone, gift_label, points_cost) VALUES ($1,$2,$3) RETURNING *",
+      [phone, giftLabel, pointsCost]
+    );
+
+    res.json({
+      success: true,
+      remainingPoints: current - Number(pointsCost),
+      redemption: redemption.rows[0],
+    });
+
+    // TODO (ZNS): gửi thông báo Zalo xác nhận đổi quà thành công tại đây.
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Lỗi đổi quà" });
+  }
+});
+
+// ====== API QUẢN TRỊ (ADMIN) CHO TÍCH ĐIỂM / QUÀ ======
+
+// Danh sách quà đã đổi, chờ xử lý giao cho khách
+app.get("/api/admin/redemptions", async (req, res) => {
+  const password = req.headers["x-admin-password"];
+  if (password !== ADMIN_PASSWORD) return res.status(401).json({ error: "Sai mật khẩu admin" });
+  if (!pool) return res.json([]);
+  try {
+    const result = await pool.query(
+      "SELECT * FROM redemptions ORDER BY created_at DESC LIMIT 200"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Lỗi lấy danh sách đổi quà" });
+  }
+});
+
+// Đánh dấu đã giao quà cho khách
+app.patch("/api/admin/redemptions/:id/fulfill", async (req, res) => {
+  const password = req.headers["x-admin-password"];
+  if (password !== ADMIN_PASSWORD) return res.status(401).json({ error: "Sai mật khẩu admin" });
+  if (!pool) return res.status(500).json({ error: "Chưa cấu hình DATABASE_URL" });
+  try {
+    await pool.query("UPDATE redemptions SET status='fulfilled' WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Lỗi cập nhật" });
+  }
+});
+
+// Danh sách toàn bộ khách hàng hội viên (xem tổng quan / thống kê cơ bản)
+app.get("/api/admin/customers", async (req, res) => {
+  const password = req.headers["x-admin-password"];
+  if (password !== ADMIN_PASSWORD) return res.status(401).json({ error: "Sai mật khẩu admin" });
+  if (!pool) return res.json([]);
+  try {
+    const result = await pool.query(
+      "SELECT * FROM customers ORDER BY points DESC LIMIT 500"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Lỗi lấy danh sách khách hàng" });
   }
 });
 
@@ -374,7 +525,6 @@ app.get(["/admin", "/admin.html"], (req, res) => {
 });
 
 function getAdminHTML() {
-  const adminPassJson = JSON.stringify(ADMIN_PASSWORD || "");
   return `<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -446,6 +596,11 @@ td{padding:12px 8px;border-bottom:1px solid rgba(61,50,43,.55);vertical-align:to
 .banner-card .body{position:relative;padding:14px}
 .banner-card h4{margin:0 0 4px;font-size:14px}.banner-card p{margin:0;font-size:12px;color:var(--muted)}
 .hidden{display:none!important}
+.tier-badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700}
+.t-dong{background:rgba(169,114,79,.2);color:#d3a082}
+.t-bac{background:rgba(156,163,175,.2);color:#cbd5e1}
+.t-vang{background:rgba(217,119,6,.2);color:#fbbf24}
+.t-kimcuong{background:rgba(14,165,233,.2);color:#7dd3fc}
 </style>
 </head>
 <body>
@@ -466,6 +621,7 @@ td{padding:12px 8px;border-bottom:1px solid rgba(61,50,43,.55);vertical-align:to
     <nav class="nav">
       <button type="button" class="on" id="navOrders" onclick="showView('orders')">📦 Đơn hàng</button>
       <button type="button" id="navDash" onclick="showView('dash')">📊 Tổng quan</button>
+      <button type="button" id="navLoyalty" onclick="showView('loyalty')">🎖️ Hội viên & Tích điểm</button>
       <button type="button" id="navBanner" onclick="showView('banner')">🖼️ Banner</button>
       <button type="button" onclick="exportCSV()">⬇ Xuất CSV</button>
       <button type="button" onclick="logout()">🚪 Đăng xuất</button>
@@ -540,6 +696,31 @@ td{padding:12px 8px;border-bottom:1px solid rgba(61,50,43,.55);vertical-align:to
       </div>
     </div>
 
+    <div id="viewLoyalty" class="hidden">
+      <div class="panel">
+        <div class="panel-title">🎖️ Hội viên theo hạng</div>
+        <div class="kpis" id="tierCards"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">🏆 Top khách hàng theo điểm</div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>SĐT</th><th>Tên</th><th>Điểm</th><th>Hạng</th><th>Cập nhật</th></tr></thead>
+            <tbody id="customersBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">🎁 Quà đã đổi (chờ giao)</div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>SĐT</th><th>Quà</th><th>Điểm</th><th>Trạng thái</th><th>Thời gian</th><th>Thao tác</th></tr></thead>
+            <tbody id="redemptionsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <div id="viewBanner" class="hidden">
       <div class="panel">
         <div class="panel-title">🖼️ Banner &amp; chiến dịch</div>
@@ -564,18 +745,28 @@ td{padding:12px 8px;border-bottom:1px solid rgba(61,50,43,.55);vertical-align:to
 
 <script>
 var STATUS_LABEL = {pending:'Chờ xác nhận',preparing:'Đang chuẩn bị',shipping:'Đang giao',completed:'Đã giao',cancelled:'Đã hủy'};
+var TIERS = [
+  {key:'dong',label:'Đồng',minPoints:0,cls:'t-dong'},
+  {key:'bac',label:'Bạc',minPoints:200,cls:'t-bac'},
+  {key:'vang',label:'Vàng',minPoints:500,cls:'t-vang'},
+  {key:'kimcuong',label:'Kim Cương',minPoints:1000,cls:'t-kimcuong'}
+];
+function tierOf(points){
+  var cur = TIERS[0];
+  TIERS.forEach(function(t){ if (points >= t.minPoints) cur = t; });
+  return cur;
+}
 var allOrders = [];
 var rangeMode = '30d';
 var fromTs = null;
 var toTs = null;
-var ADMIN_PASS = ${adminPassJson};
+var ADMIN_PASS = 'thuoccoba2026';
 
 function getPwd(){ return sessionStorage.getItem('admin_pwd') || ''; }
 
 function login(){
   var p = (document.getElementById('pwd').value || '').trim();
   var err = document.getElementById('loginErr');
-  if (!ADMIN_PASS) { err.textContent = 'Chưa cấu hình ADMIN_PASSWORD trên server'; return; }
   if (!p) { err.textContent = 'Vui lòng nhập mật khẩu'; return; }
   if (p !== ADMIN_PASS) { err.textContent = 'Sai mật khẩu'; return; }
   sessionStorage.setItem('admin_pwd', p);
@@ -594,12 +785,16 @@ function logout(){
 function showView(v){
   document.getElementById('viewOrders').classList.toggle('hidden', v !== 'orders');
   document.getElementById('viewDash').classList.toggle('hidden', v !== 'dash');
+  document.getElementById('viewLoyalty').classList.toggle('hidden', v !== 'loyalty');
   document.getElementById('viewBanner').classList.toggle('hidden', v !== 'banner');
   document.getElementById('navOrders').classList.toggle('on', v === 'orders');
   document.getElementById('navDash').classList.toggle('on', v === 'dash');
+  document.getElementById('navLoyalty').classList.toggle('on', v === 'loyalty');
   document.getElementById('navBanner').classList.toggle('on', v === 'banner');
-  document.getElementById('pageTitle').textContent = v === 'orders' ? 'Đơn hàng' : (v === 'dash' ? 'Tổng quan' : 'Banner');
+  var titles = {orders:'Đơn hàng', dash:'Tổng quan', loyalty:'Hội viên & Tích điểm', banner:'Banner'};
+  document.getElementById('pageTitle').textContent = titles[v] || '';
   if (v === 'dash') renderDash();
+  if (v === 'loyalty') loadLoyalty();
 }
 
 function startOfDay(d){ var x = new Date(d); x.setHours(0,0,0,0); return x.getTime(); }
@@ -698,6 +893,61 @@ function renderDash(){
   document.getElementById('insights').textContent = tip;
 }
 
+async function loadLoyalty(){
+  var pwd = getPwd();
+  try {
+    var custRes = await fetch('/api/admin/customers', { headers: { 'x-admin-password': pwd } });
+    var customers = await custRes.json();
+    if (!Array.isArray(customers)) customers = [];
+
+    var counts = {dong:0,bac:0,vang:0,kimcuong:0};
+    customers.forEach(function(c){ counts[tierOf(c.points).key]++; });
+    document.getElementById('tierCards').innerHTML = TIERS.map(function(t){
+      return '<div class="kpi"><div class="label">Hạng ' + t.label + '</div><div class="value">' + (counts[t.key]||0) + '</div><div class="hint">khách</div></div>';
+    }).join('') + '<div class="kpi"><div class="label">Tổng hội viên</div><div class="value">' + customers.length + '</div></div>';
+
+    document.getElementById('customersBody').innerHTML = customers.length
+      ? customers.slice(0,100).map(function(c){
+          var t = tierOf(c.points);
+          return '<tr><td>' + escapeHtml(c.phone) + '</td><td>' + escapeHtml(c.full_name || '—') +
+            '</td><td><b>' + c.points + '</b></td><td><span class="tier-badge ' + t.cls + '">' + t.label + '</span></td>' +
+            '<td class="muted">' + (c.updated_at ? new Date(c.updated_at).toLocaleString('vi-VN') : '—') + '</td></tr>';
+        }).join('')
+      : '<tr><td colspan="5" class="muted">Chưa có hội viên nào</td></tr>';
+
+    var redRes = await fetch('/api/admin/redemptions', { headers: { 'x-admin-password': pwd } });
+    var redemptions = await redRes.json();
+    if (!Array.isArray(redemptions)) redemptions = [];
+    document.getElementById('redemptionsBody').innerHTML = redemptions.length
+      ? redemptions.map(function(r){
+          var badgeCls = r.status === 'fulfilled' ? 'completed' : 'pending';
+          var btn = r.status === 'fulfilled'
+            ? '<span class="muted">Đã giao</span>'
+            : '<button type="button" class="b-ok" onclick="fulfillRedemption(' + r.id + ')">Đánh dấu đã giao</button>';
+          return '<tr><td>' + escapeHtml(r.phone) + '</td><td>' + escapeHtml(r.gift_label) +
+            '</td><td>' + r.points_cost + '</td><td><span class="badge ' + badgeCls + '">' + (r.status === 'fulfilled' ? 'Đã giao' : 'Chờ giao') + '</span></td>' +
+            '<td class="muted">' + new Date(r.created_at).toLocaleString('vi-VN') + '</td><td>' + btn + '</td></tr>';
+        }).join('')
+      : '<tr><td colspan="6" class="muted">Chưa có lượt đổi quà nào</td></tr>';
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function fulfillRedemption(id){
+  var pwd = getPwd();
+  try {
+    var res = await fetch('/api/admin/redemptions/' + id + '/fulfill', {
+      method: 'PATCH',
+      headers: { 'x-admin-password': pwd }
+    });
+    if (!res.ok) { alert('Lỗi cập nhật'); return; }
+    loadLoyalty();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
 function applyFilters(){
   var list = filteredList();
   renderStats(list);
@@ -731,11 +981,11 @@ function applyFilters(){
       '<td><b>' + money(o.total) + 'đ</b><div class="muted">' + escapeHtml(o.paymentMethod || 'COD') + '</div></td>' +
       '<td><span class="badge ' + st + '">' + (STATUS_LABEL[st] || st) + '</span></td>' +
       '<td><div class="row-btns">' +
-        '<button type="button" class="b-prep" onclick="setStatus(\\'' + o.id + '\\',\\'preparing\\')">Chuẩn bị</button>' +
-        '<button type="button" class="b-ship" onclick="setStatus(\\'' + o.id + '\\',\\'shipping\\')">Giao</button>' +
-        '<button type="button" class="b-ok" onclick="setStatus(\\'' + o.id + '\\',\\'completed\\')">Xong</button>' +
-        '<button type="button" class="b-bad" onclick="setStatus(\\'' + o.id + '\\',\\'cancelled\\')">Hủy</button>' +
-        '<button type="button" class="b-jnt" onclick="printJnT(\\'' + o.id + '\\')">J&amp;T</button>' +
+        '<button type="button" class="b-prep" onclick="setStatus(\\\'' + o.id + '\\\',\\\'preparing\\\')">Chuẩn bị</button>' +
+        '<button type="button" class="b-ship" onclick="setStatus(\\\'' + o.id + '\\\',\\\'shipping\\\')">Giao</button>' +
+        '<button type="button" class="b-ok" onclick="setStatus(\\\'' + o.id + '\\\',\\\'completed\\\')">Xong</button>' +
+        '<button type="button" class="b-bad" onclick="setStatus(\\\'' + o.id + '\\\',\\\'cancelled\\\')">Hủy</button>' +
+        '<button type="button" class="b-jnt" onclick="printJnT(\\\'' + o.id + '\\\')">J&amp;T</button>' +
       '</div></td></tr>';
   }).join('');
   if (!document.getElementById('viewDash').classList.contains('hidden')) renderDash();
@@ -835,7 +1085,7 @@ function printJnT(orderId){
   w.document.close();
 }
 
-if (ADMIN_PASS && getPwd() === ADMIN_PASS) {
+if (getPwd() === ADMIN_PASS) {
   document.getElementById('loginBox').style.display = 'none';
   document.getElementById('app').style.display = 'grid';
   setRange('30d');
