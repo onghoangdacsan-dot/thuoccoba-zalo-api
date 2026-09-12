@@ -778,7 +778,7 @@ function openOrderDetail(orderId){
   }).join(''):'<tr><td colspan="4" class="muted">Không có sản phẩm</td></tr>';
 
   document.getElementById('invoiceBody').innerHTML=
-    '<div class="inv-head"><div class="inv-shop"><div class="logo">CB</div><div><div class="name">Hộ kinh doanh Thuộc Cô Ba ✓</div><div class="sub">Đặc sản Tam Quan</div></div></div><div style="font-size:11px;color:#a08060;text-align:right">Mắm ruốc · Mắm mực<br/>OCOP 4 sao</div></div>'+
+    '<div class="inv-head"><div class="inv-shop"><div class="logo">CB</div><div><div class="name">Hộ kinh doanh Thuộc Cô Ba ✓</div><div class="sub">Đặc sản Tam Quan</div></div></div><div style="font-size:11px;color:#a08060;text-align:right">Gian hàng chính hãng<br/>OCOP 4 sao</div></div>'+
     '<div class="inv-barcode"><svg id="invBarcode"></svg><div class="code">'+escapeHtml(o.id)+'</div></div>'+
     '<div class="inv-title">Hoá đơn bán hàng</div>'+
     '<div class="inv-grid"><div class="inv-box"><h4>Thông tin khách hàng</h4><p><span class="label">Họ &amp; tên:</span> <b>'+escapeHtml(s.fullName||'—')+'</b></p><p><span class="label">Số điện thoại:</span> '+escapeHtml(s.phone||'—')+'</p><p><span class="label">Địa chỉ:</span> '+escapeHtml(s.address||'—')+'</p></div>'+
