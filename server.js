@@ -598,46 +598,63 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .tier-badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700}
 .t-dong{background:#f5e6d3;color:#8B5A2B}.t-bac{background:#e8eef5;color:#64748b}
 .t-vang{background:#fff3cd;color:#b8860b}.t-kimcuong{background:#e0f2fe;color:#0284c7}
-#orderDetailBox{display:none;position:fixed;inset:0;background:rgba(30,20,10,.5);z-index:9999;align-items:center;justify-content:center;padding:10px}
+#orderDetailBox{display:none;position:fixed;inset:0;background:rgba(40,28,18,.55);z-index:9999;align-items:center;justify-content:center;padding:8px}
 #orderDetailBox.show{display:flex}
-.invoice-wrap{background:#faf6ef;border-radius:8px;max-width:800px;width:100%;max-height:94vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-.invoice{position:relative;padding:24px 28px 0;background:#faf6ef;background-image:url('/admin-assets/pattern.png');background-repeat:no-repeat;background-position:left center;background-size:52% auto}
-.inv-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:6px}
+.invoice-wrap{background:transparent;border-radius:10px;max-width:794px;width:100%;max-height:96vh;overflow:auto;box-shadow:0 16px 48px rgba(0,0,0,.28)}
+.invoice{
+  position:relative;padding:22px 26px 0;overflow:hidden;
+  background-color:#FBF7F0;
+  background-image:url('/admin-assets/pattern.png');
+  background-repeat:no-repeat;background-position:left 8% center;background-size:58% auto;
+}
+.inv-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:2px}
 .inv-brand{display:flex;align-items:center;gap:10px}
-.inv-brand img.logo{width:48px;height:48px;border-radius:50%;object-fit:cover;background:#fff}
-.inv-brand .name{font-size:15px;font-weight:800;color:#1e4d8c;display:flex;align-items:center;gap:6px}
-.inv-brand .name img.verified{width:18px;height:18px}
-.inv-brand .sub{font-size:12px;color:#5a7a9a;margin-top:2px}
-.inv-jars{height:90px;object-fit:contain;max-width:180px}
-.inv-barcode{text-align:center;margin:8px 0 4px}
-.inv-barcode .code{font-size:11px;color:#555;margin-top:2px;letter-spacing:.4px}
-.inv-title{text-align:center;font-size:28px;font-weight:900;color:#2c3e50;letter-spacing:1px;margin:12px 0 20px;text-transform:uppercase}
-.inv-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:16px}
+.inv-brand img.logo{width:52px;height:52px;border-radius:50%;object-fit:cover;background:transparent}
+.inv-brand .name{font-size:15px;font-weight:800;color:#1e4d8c;display:flex;align-items:center;gap:5px}
+.inv-brand .name img.verified{width:18px;height:18px;display:inline-block}
+.inv-brand .sub{font-size:12px;color:#5a7a9a;margin-top:1px}
+.inv-jars{height:100px;width:auto;max-width:200px;object-fit:contain;background:transparent;mix-blend-mode:multiply}
+.inv-barcode{text-align:center;margin:6px 0 2px}
+.inv-barcode .code{font-size:11px;color:#555;margin-top:2px;letter-spacing:.3px}
+.inv-title{text-align:center;font-size:32px;font-weight:900;color:#2c3e50;letter-spacing:1.5px;margin:10px 0 18px;text-transform:uppercase}
+.inv-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:28px;margin-bottom:14px}
 .inv-box h4{margin:0 0 10px;font-size:14px;color:#1e4d8c;font-weight:800}
-.inv-box p{margin:5px 0;font-size:13px;color:#333;line-height:1.45}
-.inv-box .label{color:#666;min-width:118px;display:inline-block}
-.inv-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:6px}
+.inv-box p{margin:6px 0;font-size:13px;color:#333;line-height:1.45}
+.inv-box .label{color:#666;min-width:130px;display:inline-block}
+.inv-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:4px}
 .inv-table th{text-align:left;color:#1e4d8c;font-weight:700;padding:8px 6px;border-bottom:2px solid #1e4d8c;font-size:12px}
-.inv-table th.num,.inv-table td.num{text-align:center}
-.inv-table th.money,.inv-table td.money{text-align:right}
-.inv-table td{padding:8px 6px;border-bottom:1px solid #e0d8c8;color:#333}
-.inv-sums{margin-left:auto;width:260px;font-size:13px;margin-top:8px}
-.inv-sums .row{display:flex;justify-content:space-between;padding:6px 0;color:#444}
-.inv-total{background:#1e4d8c;color:#fff;border-radius:4px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:16px;margin:14px 0 18px}
-.inv-bottom{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:end;margin-bottom:10px}
+.inv-table th.num,.inv-table td.num{text-align:center;width:70px}
+.inv-table th.money,.inv-table td.money{text-align:right;width:90px}
+.inv-table th.w,.inv-table td.w{text-align:center;width:80px}
+.inv-table td{padding:9px 6px;border-bottom:1px solid #ddd5c5;color:#333}
+.inv-sums{margin-left:auto;width:240px;font-size:13px;margin-top:10px}
+.inv-sums .row{display:flex;justify-content:space-between;padding:5px 0;color:#444}
+.inv-total{background:#1e4d8c;color:#fff;border-radius:3px;padding:13px 18px;display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:16px;margin:12px 0 16px}
+.inv-bottom{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;margin-bottom:8px;min-height:120px}
 .inv-pay h4{margin:0 0 8px;font-size:13px;color:#1e4d8c}
 .inv-pay p{margin:4px 0;font-size:12px;color:#555}
-.inv-stamp-img{width:148px;height:auto;display:block;margin-left:auto;opacity:.95}
-.inv-certs{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0 4px}
-.inv-certs img{height:30px;width:auto;object-fit:contain}
-.inv-foot{background:#8B5A2B;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:14px 22px;margin:0 -28px 0;flex-wrap:wrap;gap:12px}
-.inv-foot .brand-row{display:flex;align-items:center;gap:10px}
-.inv-foot .brand-row img{width:40px;height:40px;border-radius:50%;object-fit:cover;background:#fff}
-.inv-foot .brand{font-size:16px;font-weight:800}
-.inv-foot .contact{font-size:11px;line-height:1.65;opacity:.95}
-.inv-actions{padding:12px 16px;display:flex;gap:8px;justify-content:flex-end;background:#fff;border-top:1px solid #e8d9c4;position:sticky;bottom:0}
-@media(max-width:640px){.inv-grid,.inv-bottom{grid-template-columns:1fr}.inv-title{font-size:22px}.inv-jars{height:64px}.inv-sums{width:100%}.inv-stamp-img{margin:12px auto 0}}
-@media print{#orderDetailBox{position:static!important;background:none!important;display:block!important;padding:0!important}.invoice-wrap{box-shadow:none;max-height:none;border-radius:0}.inv-actions{display:none!important}}.invoice-wrap{box-shadow:none;max-height:none}.sidebar,.layout>aside,.topbar,.kpis,.panel:not(.print-hide){}}
+.inv-stamp-img{width:140px;height:auto;display:block;opacity:.95;background:transparent}
+.inv-certs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0 8px}
+.inv-certs img{height:26px;width:auto;object-fit:contain;background:transparent}
+.inv-foot{display:grid;grid-template-columns:1.1fr 1fr;margin:0 -26px 0;min-height:88px}
+.inv-foot-left{background:#FBF7F0;padding:12px 22px;display:flex;flex-direction:column;justify-content:center;gap:8px}
+.inv-foot-left .brand-row{display:flex;align-items:center;gap:10px}
+.inv-foot-left .brand-row img{width:42px;height:42px;border-radius:50%;object-fit:cover;background:transparent}
+.inv-foot-left .brand{font-size:17px;font-weight:800;color:#2c1810}
+.inv-foot-right{background:#8B5A2B;color:#fff;padding:14px 18px;display:flex;align-items:center;clip-path:polygon(12% 0,100% 0,100% 100%,0 100%)}
+.inv-foot-right .contact{font-size:11px;line-height:1.7;padding-left:16px}
+.inv-actions{padding:10px 14px;display:flex;gap:8px;justify-content:flex-end;background:#fff;border-top:1px solid #e8d9c4;position:sticky;bottom:0}
+@media(max-width:640px){
+  .inv-grid,.inv-bottom,.inv-foot{grid-template-columns:1fr}
+  .inv-title{font-size:24px}
+  .inv-jars{height:72px}
+  .inv-sums{width:100%}
+  .inv-foot-right{clip-path:none}
+  .inv-stamp-img{margin:8px auto 0}
+}
+@media print{#orderDetailBox{position:static!important;background:none!important;display:block!important;padding:0!important}
+.invoice-wrap{box-shadow:none;max-height:none;border-radius:0}
+.inv-actions{display:none!important}.invoice-wrap{box-shadow:none;max-height:none;border-radius:0}.inv-actions{display:none!important}}.invoice-wrap{box-shadow:none;max-height:none}.sidebar,.layout>aside,.topbar,.kpis,.panel:not(.print-hide){}}
 </style>
 </head>
 <body>
@@ -782,19 +799,19 @@ function openOrderDetail(orderId){
   var rows=items.length?items.map(function(i){
     var line=Number(i.price||0)*Number(i.quantity||1);
     var weight=i.weight||i.unit||'—';
-    return '<tr><td>'+escapeHtml(i.name||'Sản phẩm')+'</td><td class="num">'+(i.quantity||1)+'</td><td class="money">'+money(line)+'đ</td><td class="num">'+escapeHtml(String(weight))+'</td></tr>';
-  }).join(''):'<tr><td colspan="4" class="muted">Không có sản phẩm</td></tr>';
+    return '<tr><td>'+escapeHtml(i.name||'Sản phẩm')+'</td><td class="num">'+(i.quantity||1)+'</td><td class="money">'+money(line)+'đ</td><td class="w">'+escapeHtml(String(weight))+'</td></tr>';
+  }).join(''):'<tr><td colspan="4" style="color:#888">Không có sản phẩm</td></tr>';
 
   document.getElementById('invoiceBody').innerHTML=
     '<div class="inv-top">'+
       '<div class="inv-brand">'+
         '<img class="logo" src="/admin-assets/logo.png" alt="Logo"/>'+
         '<div>'+
-          '<div class="name">Hộ kinh doanh Thuộc Cô Ba <img class="verified" src="/admin-assets/verified.png" alt="✓"/></div>'+
+          '<div class="name">Hộ kinh doanh Thuộc Cô Ba <img class="verified" src="/admin-assets/verified.png" alt=""/></div>'+
           '<div class="sub">Đặc sản Tam Quan</div>'+
         '</div>'+
       '</div>'+
-      '<img class="inv-jars" src="/admin-assets/jars.png" alt="Sản phẩm"/>'+
+      '<img class="inv-jars" src="/admin-assets/jars.png" alt=""/>'+
     '</div>'+
     '<div class="inv-barcode"><svg id="invBarcode"></svg><div class="code">'+escapeHtml(o.id)+'</div></div>'+
     '<div class="inv-title">Hoá đơn bán hàng</div>'+
@@ -810,7 +827,7 @@ function openOrderDetail(orderId){
         '<p><span class="label">Ghi chú từ khách:</span> '+escapeHtml(o.note||'—')+'</p>'+
       '</div>'+
     '</div>'+
-    '<table class="inv-table"><thead><tr><th>Danh sách sản phẩm</th><th class="num">Số lượng</th><th class="money">Giá</th><th class="num">Trọng lượng</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<table class="inv-table"><thead><tr><th>Danh sách sản phẩm</th><th class="num">Số lượng</th><th class="money">Giá</th><th class="w">Trọng lượng</th></tr></thead><tbody>'+rows+'</tbody></table>'+
     '<div class="inv-sums"><div class="row"><span>Tổng giá trị đơn</span><b>'+money(sub)+'đ</b></div><div class="row"><span>Phí vận chuyển</span><b>'+money(ship)+'đ</b></div></div>'+
     '<div class="inv-total"><span>Tổng thanh toán</span><span>'+money(total)+'đ</span></div>'+
     '<div class="inv-bottom">'+
@@ -822,25 +839,32 @@ function openOrderDetail(orderId){
       '<img class="inv-stamp-img" src="/admin-assets/stamp.png" alt="Gian hàng chính hãng"/>'+
     '</div>'+
     '<div class="inv-certs">'+
-      '<img src="/admin-assets/boct.png" alt="Bộ Công Thương"/>'+
-      '<img src="/admin-assets/ocop.jpg" alt="OCOP"/>'+
-      '<img src="/admin-assets/hangvn.png" alt="Hàng Việt Nam"/>'+
-      '<img src="/admin-assets/haccp.png" alt="HACCP"/>'+
-      '<img src="/admin-assets/vfa.png" alt="VFA"/>'+
+      '<img src="/admin-assets/boct.png" alt=""/>'+
+      '<img src="/admin-assets/ocop.jpg" alt=""/>'+
+      '<img src="/admin-assets/hangvn.png" alt=""/>'+
+      '<img src="/admin-assets/haccp.png" alt=""/>'+
+      '<img src="/admin-assets/vfa.png" alt=""/>'+
     '</div>'+
     '<div class="inv-foot">'+
-      '<div class="brand-row">'+
-        '<img src="/admin-assets/logo-footer.png" alt=""/>'+
-        '<div class="brand">Thuộc Cô Ba Store</div>'+
+      '<div class="inv-foot-left">'+
+        '<div class="brand-row">'+
+          '<img src="/admin-assets/logo-footer.png" alt=""/>'+
+          '<div class="brand">Thuộc Cô Ba Store</div>'+
+        '</div>'+
       '</div>'+
-      '<div class="contact">☎ 0977 322 861<br/>🌐 https://zalo.me/s/1175503438081610646/<br/>✉ thetam7716@gmail.com<br/>⌂ 1117/5 Võ Nguyên Giáp - Hoài Nhơn - Gia Lai</div>'+
+      '<div class="inv-foot-right"><div class="contact">'+
+        '☎ 0977 322 861<br/>'+
+        '🌐 https://zalo.me/s/1175503438081610646/<br/>'+
+        '✉ thetam7716@gmail.com<br/>'+
+        '⌂ 1117/5 Võ Nguyên Giáp - Hoài Nhơn - Gia Lai'+
+      '</div></div>'+
     '</div>';
 
   document.getElementById('orderDetailBox').classList.add('show');
   setTimeout(function(){
     try{
-      JsBarcode('#invBarcode', barcodeVal, {format:'CODE128',width:1.5,height:46,displayValue:false,margin:0,background:'transparent'});
-    }catch(e){console.warn('Barcode:',e)}
+      JsBarcode('#invBarcode', barcodeVal, {format:'CODE128',width:1.5,height:44,displayValue:false,margin:0,background:'transparent'});
+    }catch(e){}
   },60);
 }
 function closeOrderDetail(){document.getElementById('orderDetailBox').classList.remove('show')}
