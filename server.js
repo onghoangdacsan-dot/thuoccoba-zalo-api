@@ -788,13 +788,13 @@ function openOrderDetail(orderId){
   document.getElementById('invoiceBody').innerHTML=
     '<div class="inv-top">'+
       '<div class="inv-brand">'+
-        '<img class="logo" src="/admin-assets/logo.png" alt="Logo" onerror="this.style.display=\'none\'"/>'+
+        '<img class="logo" src="/admin-assets/logo.png" alt="Logo"/>'+
         '<div>'+
-          '<div class="name">Hộ kinh doanh Thuộc Cô Ba <img class="verified" src="/admin-assets/verified.png" alt="✓" onerror="this.style.display=\'none\'"/></div>'+
+          '<div class="name">Hộ kinh doanh Thuộc Cô Ba <img class="verified" src="/admin-assets/verified.png" alt="✓"/></div>'+
           '<div class="sub">Đặc sản Tam Quan</div>'+
         '</div>'+
       '</div>'+
-      '<img class="inv-jars" src="/admin-assets/jars.png" alt="Sản phẩm" onerror="this.style.display=\'none\'"/>'+
+      '<img class="inv-jars" src="/admin-assets/jars.png" alt="Sản phẩm"/>'+
     '</div>'+
     '<div class="inv-barcode"><svg id="invBarcode"></svg><div class="code">'+escapeHtml(o.id)+'</div></div>'+
     '<div class="inv-title">Hoá đơn bán hàng</div>'+
@@ -819,18 +819,18 @@ function openOrderDetail(orderId){
         '<p>Đơn vị vận chuyển: J&amp;T Express</p>'+
         '<p>Tình trạng đơn hàng: <b>'+escapeHtml(statusLabel)+'</b></p>'+
       '</div>'+
-      '<img class="inv-stamp-img" src="/admin-assets/stamp.png" alt="Gian hàng chính hãng" onerror="this.style.display=\'none\'"/>'+
+      '<img class="inv-stamp-img" src="/admin-assets/stamp.png" alt="Gian hàng chính hãng"/>'+
     '</div>'+
     '<div class="inv-certs">'+
-      '<img src="/admin-assets/boct.png" alt="Bộ Công Thương" onerror="this.style.display=\'none\'"/>'+
-      '<img src="/admin-assets/ocop.png" alt="OCOP" onerror="this.style.display=\'none\'"/>'+
-      '<img src="/admin-assets/hangvn.png" alt="Hàng Việt Nam" onerror="this.style.display=\'none\'"/>'+
-      '<img src="/admin-assets/haccp.png" alt="HACCP" onerror="this.style.display=\'none\'"/>'+
-      '<img src="/admin-assets/vfa.png" alt="VFA" onerror="this.style.display=\'none\'"/>'+
+      '<img src="/admin-assets/boct.png" alt="Bộ Công Thương"/>'+
+      '<img src="/admin-assets/ocop.jpg" alt="OCOP"/>'+
+      '<img src="/admin-assets/hangvn.png" alt="Hàng Việt Nam"/>'+
+      '<img src="/admin-assets/haccp.png" alt="HACCP"/>'+
+      '<img src="/admin-assets/vfa.png" alt="VFA"/>'+
     '</div>'+
     '<div class="inv-foot">'+
       '<div class="brand-row">'+
-        '<img src="/admin-assets/logo-footer.png" alt="" onerror="this.style.display=\'none\'"/>'+
+        '<img src="/admin-assets/logo-footer.png" alt=""/>'+
         '<div class="brand">Thuộc Cô Ba Store</div>'+
       '</div>'+
       '<div class="contact">☎ 0977 322 861<br/>🌐 https://zalo.me/s/1175503438081610646/<br/>✉ thetam7716@gmail.com<br/>⌂ 1117/5 Võ Nguyên Giáp - Hoài Nhơn - Gia Lai</div>'+
