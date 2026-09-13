@@ -621,6 +621,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .inv-brand .sub{font-size:13px;color:#d7e4f7;margin-top:2px}
 .inv-jars{height:104px;width:auto;max-width:230px;object-fit:contain;mix-blend-mode:multiply}
 
+.inv-barcode{text-align:center;margin:8px 0 4px}.inv-barcode .code{font-size:11px;color:#555;margin-top:2px;letter-spacing:.3px}
 .inv-title{text-align:center;font-size:32px;font-weight:900;color:#2c3e50;letter-spacing:1.5px;margin:24px 0 26px;text-transform:uppercase}
 .inv-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:28px;margin-bottom:16px}
 .inv-box h4{margin:0 0 10px;font-size:14px;color:#1e4d8c;font-weight:800}
@@ -654,7 +655,8 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 
 @media(max-width:640px){
   .inv-grid,.inv-bottom,.inv-foot{grid-template-columns:1fr}
-  .inv-title{font-size:24px}
+  .inv-barcode{text-align:center;margin:8px 0 4px}.inv-barcode .code{font-size:11px;color:#555;margin-top:2px;letter-spacing:.3px}
+.inv-title{font-size:24px}
   .inv-jars{height:70px}
   .inv-sums{width:100%}
   .inv-foot-right{clip-path:none}
@@ -792,7 +794,21 @@ function buildOrderMessage(o){
   var time=o.createdAt?new Date(o.createdAt).toLocaleString('vi-VN'):'—';
   var ship=Number(o.shippingFee||0),total=Number(o.total||0);
   var sub=o.subTotal!=null?Number(o.subTotal):total-ship;
-  return '📋 THÔNG TIN ĐƠN HÀNG 📋\n👤 Tên khách hàng: '+(s.fullName||'—')+'\n📍 Địa chỉ: '+(s.address||'—')+'\n📞 Liên hệ (SĐT): '+(s.phone||'—')+'\n🛍️ Sản phẩm: '+products+'\n📦 Số lượng: '+qty+'\n💵 Tổng giá tiền: '+money(sub)+'đ\n🚚 Phí ship: '+money(ship)+'đ\n💰 TỔNG THANH TOÁN: '+money(total)+'đ\n📝 Ghi chú từ khách: '+(o.note||'Không có')+'\n⏰ Thời gian đặt: '+time+'\n💳 Hình thức thanh toán: '+(o.paymentMethod==='COD'||!o.paymentMethod?'Thanh toán khi nhận hàng (COD)':o.paymentMethod);
+  var lines=[
+    '📋 THÔNG TIN ĐƠN HÀNG 📋',
+    '👤 Tên khách hàng: '+(s.fullName||'—'),
+    '📍 Địa chỉ: '+(s.address||'—'),
+    '📞 Liên hệ (SĐT): '+(s.phone||'—'),
+    '🛍️ Sản phẩm: '+products,
+    '📦 Số lượng: '+qty,
+    '💵 Tổng giá tiền: '+money(sub)+'đ',
+    '🚚 Phí ship: '+money(ship)+'đ',
+    '💰 TỔNG THANH TOÁN: '+money(total)+'đ',
+    '📝 Ghi chú từ khách: '+(o.note||'Không có'),
+    '⏰ Thời gian đặt: '+time,
+    '💳 Hình thức thanh toán: '+(o.paymentMethod==='COD'||!o.paymentMethod?'Thanh toán khi nhận hàng (COD)':o.paymentMethod)
+  ];
+  return lines.join(String.fromCharCode(10));
 }
 
 function openOrderDetail(orderId){
@@ -824,6 +840,7 @@ function openOrderDetail(orderId){
       '</div>'+
       '<img class="inv-jars" src="/admin-assets/jars.png" alt=""/>'+
     '</div>'+
+    '<div class="inv-barcode"><svg id="invBarcode"></svg><div class="code">'+escapeHtml(o.id)+'</div></div>'+
     '<div class="inv-title">Hoá đơn bán hàng</div>'+
     '<div class="inv-grid">'+
       '<div class="inv-box"><h4>Thông tin khách hàng</h4>'+
@@ -869,6 +886,7 @@ function openOrderDetail(orderId){
     '</div>';
 
   document.getElementById('orderDetailBox').classList.add('show');
+  setTimeout(function(){try{var barcodeVal=String(o.id).replace(/[^0-9A-Za-z]/g,'').slice(-16)||String(o.id);JsBarcode('#invBarcode',barcodeVal,{format:'CODE128',width:1.5,height:44,displayValue:false,margin:0,background:'transparent'});}catch(e){}},60);
 }
 function closeOrderDetail(){document.getElementById('orderDetailBox').classList.remove('show')}
 function copyOrderDetail(){var t=window._lastOrderMsg||'';if(!t)return;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){alert('Đã copy mẫu tin nhắn!')})}else{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('Đã copy mẫu tin nhắn!')}}
@@ -886,7 +904,21 @@ return '<tr><td><span class="order-id" onclick="openOrderDetail(\\''+o.id+'\\')"
 if(!document.getElementById('viewDash').classList.contains('hidden'))renderDash()}
 async function loadOrders(){try{var res=await fetch('/api/orders');allOrders=await res.json();if(!Array.isArray(allOrders))allOrders=[];document.getElementById('lastUpdated').textContent='Cập nhật '+new Date().toLocaleString('vi-VN')+' · '+allOrders.length+' đơn toàn hệ thống';applyFilters()}catch(e){alert('Không tải được đơn: '+e.message)}}
 async function setStatus(orderId,status){var pwd=getPwd();if(!pwd){logout();return}try{var body={status:status};if(status==='cancelled')body.reason=prompt('Lý do hủy:','Hủy bởi admin')||'Hủy bởi admin';var res=await fetch('/api/orders/'+encodeURIComponent(orderId)+'/status',{method:'PATCH',headers:{'Content-Type':'application/json','x-admin-password':pwd},body:JSON.stringify(body)});var data=await res.json();if(!res.ok){alert(data.error||'Lỗi');if(res.status===401)logout();return}loadOrders()}catch(e){alert(e.message)}}
-function exportCSV(){var list=filteredList();if(!list.length){alert('Không có dữ liệu');return}var rows=[['Mã','Thời gian','Khách','SĐT','Địa chỉ','SP','Tổng','Trạng thái','Ghi chú','Lý do hủy']];list.forEach(function(o){var s=o.shippingInfo||{};rows.push([o.id,o.createdAt||'',s.fullName||'',s.phone||'',s.address||'',(o.items||[]).map(function(i){return (i.name||'')+' x'+(i.quantity||1)}).join('; '),o.total||0,o.status||'',o.note||'',o.cancelReason||''])});var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"'}).join(',')}).join('\n');var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='thuoc-co-ba-orders.csv';a.click()}
+function exportCSV(){
+  var list=filteredList();
+  if(!list.length){alert('Không có dữ liệu');return}
+  var rows=[['Mã','Thời gian','Khách','SĐT','Địa chỉ','SP','Tổng','Trạng thái','Ghi chú','Lý do hủy']];
+  list.forEach(function(o){
+    var s=o.shippingInfo||{};
+    rows.push([o.id,o.createdAt||'',s.fullName||'',s.phone||'',s.address||'',(o.items||[]).map(function(i){return (i.name||'')+' x'+(i.quantity||1)}).join('; '),o.total||0,o.status||'',o.note||'',o.cancelReason||'']);
+  });
+  var nl=String.fromCharCode(10);
+  var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"'}).join(',')}).join(nl);
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([String.fromCharCode(0xFEFF)+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='thuoc-co-ba-orders.csv';
+  a.click();
+}
 function printJnT(orderId){var o=allOrders.find(function(x){return x.id===orderId});if(!o){alert('Không tìm thấy đơn');return}var s=o.shippingInfo||{},items=o.items||[];var productNames=items.length?items.map(function(i){return (i.name||'SP')+' x'+(i.quantity||1)}).join(', '):'Mini App Thuộc Cô Ba Store';var total=money(o.total),phone=s.phone||'',fullName=s.fullName||'Khách',address=s.address||'—',orderCode=String(o.id);var barcodeValue=orderCode.replace(/[^0-9A-Za-z]/g,'').slice(-12)||orderCode;var sortCode=(orderCode.replace(/\\D/g,'').slice(-6)||orderCode.slice(-6)).toUpperCase();var html='<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>J&T '+orderCode+'</title><script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\\/script><script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\\/script><style>@page{size:100mm 150mm;margin:0}body{font-family:Arial;width:100mm}table{width:100%;border-collapse:collapse}td{border:1.5px solid #000;padding:2mm;font-size:11px;vertical-align:top}.sort{font-size:24px;font-weight:900;text-align:center}</style></head><body><table><tr><td><b>Thuộc Cô Ba</b></td><td style="color:#e11d48;font-weight:900">J&T EXPRESS</td><td>ET</td></tr><tr><td colspan="3" style="text-align:center"><svg id="barcode"></svg><div>'+barcodeValue+'</div></td></tr><tr><td colspan="3" class="sort">'+sortCode+'</td></tr><tr><td colspan="2"><b>Gửi:</b> Kho Thuộc Cô Ba · 0977322861<br/>1117/5 Võ Nguyên Giáp, Hoài Nhơn, Gia Lai<br/><br/><b>Nhận:</b> '+fullName+' '+phone+'<br/>'+address+'</td><td style="text-align:center"><canvas id="qrcode"></canvas></td></tr><tr><td colspan="2">Hàng: '+productNames+'<br/>COD</td><td style="text-align:center;font-weight:900">'+total+' đ<br/>COD</td></tr></table><script>try{JsBarcode("#barcode","'+barcodeValue+'",{format:"CODE128",width:1.3,height:40,displayValue:false})}catch(e){}try{QRCode.toCanvas(document.getElementById("qrcode"),"'+orderCode+'",{width:80,margin:0})}catch(e){}setTimeout(function(){print()},400)<\\/script></body></html>';var w=window.open('','blank','width=420,height=720');w.document.write(html);w.document.close()}
 if(getPwd()===ADMIN_PASS){document.getElementById('loginBox').style.display='none';document.getElementById('app').style.display='grid';setRange('30d');loadOrders()}
 </script>
