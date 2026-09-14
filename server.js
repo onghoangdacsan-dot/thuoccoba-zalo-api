@@ -780,7 +780,7 @@ function openOrderDetail(orderId){
   document.getElementById('invoiceBody').innerHTML=
     '<div class="inv-head"><div class="inv-shop"><div class="logo">CB</div><div><div class="name">Hộ kinh doanh Thuộc Cô Ba ✓</div><div class="sub">Đặc sản Tam Quan</div></div></div><div style="font-size:11px;color:#a08060;text-align:right">Gian hàng chính hãng<br/>OCOP 4 sao</div></div>'+
     '<div class="inv-barcode"><svg id="invBarcode"></svg><div class="code">'+escapeHtml(o.id)+'</div></div>'+
-    '<div class="inv-title">Hoá đơn bán hàng</div>'+
+    '<div class="inv-title">Hoá đơn bán hàng Online</div>'+
     '<div class="inv-grid"><div class="inv-box"><h4>Thông tin khách hàng</h4><p><span class="label">Họ &amp; tên:</span> <b>'+escapeHtml(s.fullName||'—')+'</b></p><p><span class="label">Số điện thoại:</span> '+escapeHtml(s.phone||'—')+'</p><p><span class="label">Địa chỉ:</span> '+escapeHtml(s.address||'—')+'</p></div>'+
     '<div class="inv-box"><h4>Chi tiết đơn hàng</h4><p><span class="label">Thời gian đặt:</span> '+timeStr+'</p><p><span class="label">Ngày/tháng/năm:</span> '+dateStr+'</p><p><span class="label">Ghi chú từ khách:</span> '+escapeHtml(o.note||'Không có')+'</p></div></div>'+
     '<h4 style="margin:0 0 8px;font-size:13px;color:#1e4d8c">Danh sách sản phẩm</h4>'+
