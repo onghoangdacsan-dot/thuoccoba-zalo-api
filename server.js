@@ -788,7 +788,7 @@ function openOrderDetail(orderId){
     '<div class="inv-sums"><div class="row"><span>Tổng giá trị đơn</span><b>'+money(sub)+'đ</b></div><div class="row"><span>Phí vận chuyển</span><b>'+money(ship)+'đ</b></div></div>'+
     '<div class="inv-total"><span>Tổng thanh toán</span><span>'+money(total)+'đ</span></div>'+
     '<div class="inv-pay"><h4>Payment Information</h4><p>Mã đơn hàng: <b>'+escapeHtml(o.id)+'</b></p><p>Đơn vị vận chuyển: J&amp;T Express</p><p>Hình thức: '+payLabel+'</p><p>Tình trạng đơn hàng: <b>'+escapeHtml(statusLabel)+'</b></p></div>'+
-    '<div class="inv-stamp">CONFIRM</div>'+
+    '<div class="inv-stamp">XÁC NHẬN</div>'+
     '<div class="inv-foot"><div class="brand">Thuộc Cô Ba Store</div><div class="contact">☎ 0977 322 861<br/>🌐 https://zalo.me/s/1175503438081610646/<br/>✉ thetam7716@gmail.com<br/>⌂ 1117/5 Võ Nguyên Giáp · Hoài Nhơn · Gia Lai</div></div>';
 
   document.getElementById('orderDetailBox').classList.add('show');
