@@ -741,6 +741,20 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   width:23px;height:23px;border-radius:50%;background:#fff;color:#08459a;
   display:inline-flex;align-items:center;justify-content:center;font-size:11px;flex:none
 }
+
+.inv-barcode{text-align:center;margin:8px 0 4px;position:relative;z-index:2}
+.inv-barcode svg{max-width:240px;height:52px}
+.inv-barcode .code{font-size:11px;color:#64748b;margin-top:2px;letter-spacing:.4px;font-family:ui-monospace,Consolas,monospace}
+.inv-row{display:grid;grid-template-columns:118px 1fr;gap:4px 12px;margin:0 0 8px;align-items:start;font-size:13px;line-height:1.5}
+.inv-row .k{color:#64748b;font-weight:500;padding-top:1px}
+.inv-row .v{color:#1e293b;font-weight:600;word-break:break-word}
+.inv-table{table-layout:fixed}
+.inv-table th.col-qty,.inv-table td.col-qty{width:72px;text-align:center}
+.inv-table th.col-price,.inv-table td.col-price{width:100px;text-align:right;font-variant-numeric:tabular-nums}
+.inv-table th.col-w,.inv-table td.col-w{width:88px;text-align:center}
+.inv-sums .row{display:grid;grid-template-columns:1fr 100px;gap:8px;align-items:center}
+.inv-sums .row span:last-child,.inv-sums .row b{text-align:right;font-variant-numeric:tabular-nums}
+
 .inv-actions{
   padding:10px 14px;display:flex;gap:8px;justify-content:flex-end;
   background:#fff;border-top:1px solid #e8e2d5;position:sticky;bottom:0
@@ -951,22 +965,23 @@ function openOrderDetail(orderId){
 
   var s=o.shippingInfo||{},items=o.items||[];
   var created=o.createdAt?new Date(o.createdAt):null;
-  var timeStr=created?created.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}):'—';
+  var timeStr=created?created.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):'—';
   var dateStr=created?created.toLocaleDateString('vi-VN'):'—';
   var ship=Number(o.shippingFee||0),total=Number(o.total||0);
-  var sub=o.subTotal!=null?Number(o.subTotal):total-ship;
+  var sub=o.subTotal!=null?Number(o.subTotal):Math.max(0,total-ship);
   var statusLabel=STATUS_LABEL[o.status]||o.status||'Đã xác nhận';
+  var barcodeVal=String(o.id||'').replace(/[^0-9A-Za-z_-]/g,'')||('ORD'+Date.now());
 
   var rows=items.length?items.map(function(i){
     var line=Number(i.price||0)*Number(i.quantity||1);
     var weight=i.weight||i.unit||'—';
     return '<tr>'+
-      '<td>'+escapeHtml(i.name||'Sản phẩm')+'</td>'+
-      '<td class="num">'+(i.quantity||1)+'</td>'+
-      '<td class="money">'+money(line)+'đ</td>'+
-      '<td class="w">'+escapeHtml(String(weight))+'</td>'+
+      '<td class="col-name">'+escapeHtml(i.name||'Sản phẩm')+'</td>'+
+      '<td class="col-qty">'+(i.quantity||1)+'</td>'+
+      '<td class="col-price">'+money(line)+'đ</td>'+
+      '<td class="col-w">'+escapeHtml(String(weight))+'</td>'+
     '</tr>';
-  }).join(''):'<tr><td colspan="4" style="color:#888">Không có sản phẩm</td></tr>';
+  }).join(''):'<tr><td colspan="4" style="color:#888;text-align:center">Không có sản phẩm</td></tr>';
 
   document.getElementById('invoiceBody').innerHTML=
     '<div class="inv-header">'+
@@ -980,36 +995,38 @@ function openOrderDetail(orderId){
       '<img class="inv-jars" src="/admin-assets/jars.png" alt=""/>'+
     '</div>'+
 
-    '<div class="inv-title">HOÁ ĐƠN BÁN HÀNG</div>'+
+    '<div class="inv-barcode"><svg id="invBarcode"></svg><div class="code">'+escapeHtml(o.id)+'</div></div>'+
+
+    '<div class="inv-title">HOÁ ĐƠN BÁN HÀNG ONLINE</div>'+
 
     '<div class="inv-grid">'+
       '<div class="inv-box">'+
         '<h4>Thông tin khách hàng</h4>'+
-        '<p><span class="label">Địa chỉ:</span> '+escapeHtml(s.address||'—')+'</p>'+
-        '<p><span class="label">Số điện thoại:</span> '+escapeHtml(s.phone||'—')+'</p>'+
-        '<p><span class="label">Họ &amp; tên khách hàng:</span> <b>'+escapeHtml(s.fullName||'—')+'</b></p>'+
+        '<div class="inv-row"><span class="k">Địa chỉ:</span><span class="v">'+escapeHtml(s.address||'—')+'</span></div>'+
+        '<div class="inv-row"><span class="k">Số điện thoại:</span><span class="v">'+escapeHtml(s.phone||'—')+'</span></div>'+
+        '<div class="inv-row"><span class="k">Họ &amp; tên:</span><span class="v">'+escapeHtml(s.fullName||'—')+'</span></div>'+
       '</div>'+
       '<div class="inv-box">'+
         '<h4>Chi tiết đơn hàng</h4>'+
-        '<p><span class="label">Thời gian đặt:</span> '+timeStr+'</p>'+
-        '<p><span class="label">Ngày/tháng/năm:</span> '+dateStr+'</p>'+
-        '<p><span class="label">Ghi chú từ khách:</span> '+escapeHtml(o.note||'—')+'</p>'+
+        '<div class="inv-row"><span class="k">Thời gian đặt:</span><span class="v">'+timeStr+'</span></div>'+
+        '<div class="inv-row"><span class="k">Ngày/tháng/năm:</span><span class="v">'+dateStr+'</span></div>'+
+        '<div class="inv-row"><span class="k">Ghi chú:</span><span class="v">'+escapeHtml(o.note||'—')+'</span></div>'+
       '</div>'+
     '</div>'+
 
     '<table class="inv-table">'+
       '<thead><tr>'+
-        '<th>Danh sách sản phẩm</th>'+
-        '<th class="num">Số lượng</th>'+
-        '<th class="money">Giá</th>'+
-        '<th class="w">Trọng lượng</th>'+
+        '<th class="col-name">Danh sách sản phẩm</th>'+
+        '<th class="col-qty">Số lượng</th>'+
+        '<th class="col-price">Giá</th>'+
+        '<th class="col-w">Trọng lượng</th>'+
       '</tr></thead>'+
       '<tbody>'+rows+'</tbody>'+
     '</table>'+
 
     '<div class="inv-sums">'+
-      '<div class="row"><span>Tổng giá trị đơn</span><b>'+money(sub)+'đ</b></div>'+
-      '<div class="row"><span>Phí vận chuyển</span><b>'+money(ship)+'đ</b></div>'+
+      '<div class="row"><span>Tổng giá trị đơn</span><span>'+money(sub)+'đ</span></div>'+
+      '<div class="row"><span>Phí vận chuyển</span><span>'+money(ship)+'đ</span></div>'+
     '</div>'+
 
     '<div class="inv-total">'+
@@ -1048,7 +1065,25 @@ function openOrderDetail(orderId){
     '</div>';
 
   document.getElementById('orderDetailBox').classList.add('show');
+
+  /* Vẽ mã vạch sau khi DOM có #invBarcode */
+  setTimeout(function(){
+    try{
+      var el=document.getElementById('invBarcode');
+      if(el && window.JsBarcode){
+        JsBarcode(el, barcodeVal, {
+          format:'CODE128',
+          width:1.6,
+          height:48,
+          displayValue:false,
+          margin:0,
+          background:'transparent'
+        });
+      }
+    }catch(e){console.warn('barcode',e)}
+  }, 30);
 }
+
 function closeOrderDetail(){document.getElementById('orderDetailBox').classList.remove('show')}
 function copyOrderDetail(){var t=window._lastOrderMsg||'';if(!t)return;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){alert('Đã copy mẫu tin nhắn!')})}else{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('Đã copy mẫu tin nhắn!')}}
 function printInvoice(){window.print()}
