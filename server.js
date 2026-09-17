@@ -1059,7 +1059,7 @@ function openOrderDetail(orderId){
     '</div>'+
     '<div class="inv-certs">'+
       '<img src="/admin-assets/boct.png" alt=""/>'+
-      '<img src="/admin-assets/ocop.jpg" alt=""/>'+
+      '<img src="/admin-assets/ocop.png" alt=""/>'+
       '<img src="/admin-assets/hangvn.png" alt=""/>'+
       '<img src="/admin-assets/haccp.png" alt=""/>'+
       '<img src="/admin-assets/vfa.png" alt=""/>'+
