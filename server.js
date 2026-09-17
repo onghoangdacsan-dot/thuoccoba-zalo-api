@@ -607,7 +607,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 }
 #orderDetailBox.show{display:flex}
 .invoice-wrap{
-  background:transparent;border-radius:2px;max-width:860px;width:100%;
+  background:transparent;border-radius:2px;max-width:680px;width:100%;
   max-height:98vh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.35)
 }
 .invoice{
@@ -617,7 +617,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   --cream:#fcfaf3;
   position:relative;overflow:hidden;padding:0;background:var(--cream);
   color:var(--ink);font-family:'Be Vietnam Pro',Arial,sans-serif;
-  min-height:1216px;
+  min-height:0;
 }
 .invoice::before{
   content:"";position:absolute;left:0;top:0;width:100%;height:40px;
@@ -633,108 +633,112 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .invoice > *{position:relative;z-index:2}
 .invoice img{background:transparent}
 .inv-header{
-  min-height:214px;padding:64px 48px 0;display:flex;
+  min-height:120px;padding:36px 28px 0;display:flex;
   justify-content:space-between;align-items:flex-start;gap:18px;
 }
 .inv-brand{display:flex;align-items:center;gap:12px;padding-top:5px}
 .inv-brand img.logo{
-  width:58px;height:58px;border-radius:50%;object-fit:cover;
+  width:44px;height:44px;border-radius:50%;object-fit:cover;
   box-shadow:0 1px 5px rgba(0,0,0,.12);flex-shrink:0
 }
 .inv-brand .name{
-  font-size:19px;font-weight:800;color:#114a8e;display:flex;
+  font-size:14px;font-weight:800;color:#114a8e;display:flex;
   align-items:center;gap:5px;line-height:1.25;white-space:nowrap
 }
 .inv-brand .name img.verified{width:16px;height:16px;object-fit:contain;flex-shrink:0}
-.inv-brand .sub{font-size:16px;color:#1450a0;margin-top:4px;font-weight:500}
+.inv-brand .sub{font-size:12px;color:#1450a0;margin-top:2px;font-weight:500}
 .inv-jars{
-  height:210px;width:auto;max-width:360px;object-fit:contain;
+  height:110px;width:auto;max-width:200px;object-fit:contain;
   object-position:top right;mix-blend-mode:multiply;flex-shrink:0;
-  margin-top:-35px;margin-right:-16px;filter:drop-shadow(0 10px 9px rgba(0,0,0,.16))
+  margin-top:-12px;margin-right:-8px;filter:drop-shadow(0 10px 9px rgba(0,0,0,.16))
 }
-.inv-barcode{display:none}
+.inv-barcode{display:block;text-align:center;margin:4px 0 2px;position:relative;z-index:2}
+.inv-barcode svg{max-width:200px;height:42px}
+.inv-barcode .code{font-size:10px;color:#64748b;margin-top:2px;letter-spacing:.35px;font-family:ui-monospace,Consolas,monospace}
 .inv-title{
-  text-align:center;font-size:47px;font-weight:900;color:#465258;
-  letter-spacing:1.5px;margin:6px 0 58px;text-transform:uppercase;
+  text-align:center;font-size:26px;font-weight:900;color:#465258;
+  letter-spacing:1px;margin:8px 0 22px;text-transform:uppercase;
   line-height:1.1
 }
 .inv-grid{
-  display:grid;grid-template-columns:1.12fr .88fr;gap:54px;
-  padding:0 48px;margin-bottom:36px
+  display:grid;grid-template-columns:1.12fr .88fr;gap:24px;
+  padding:0 28px;margin-bottom:18px
 }
-.inv-box h4{margin:0 0 13px;font-size:18px;color:#06459b;font-weight:800}
-.inv-box p{margin:6px 0;font-size:17px;color:#596367;line-height:1.45}
-.inv-box .label{color:#626b6f;min-width:156px;display:inline-block}
+.inv-box h4{margin:0 0 13px;font-size:13px;color:#06459b;font-weight:800}
+.inv-box p{margin:6px 0;font-size:12.5px;color:#596367;line-height:1.45}
+.inv-box .label{color:#626b6f;min-width:110px;display:inline-block}
 .inv-table{
-  width:calc(100% - 96px);margin:0 48px 6px;border-collapse:collapse;
-  font-size:16px;table-layout:fixed
+  width:calc(100% - 56px);margin:0 28px 6px;border-collapse:collapse;
+  font-size:12.5px;table-layout:fixed
 }
 .inv-table th{
   text-align:left;color:#06459b;font-weight:800;padding:0 0 12px;
   border-bottom:2px solid #1755a0;font-size:17px
 }
 .inv-table th:first-child,.inv-table td:first-child{padding-left:0}
-.inv-table th.num,.inv-table td.num{text-align:center;width:115px}
-.inv-table th.money,.inv-table td.money{text-align:right;width:145px}
-.inv-table th.w,.inv-table td.w{text-align:center;width:130px}
+.inv-table th.num,.inv-table td.num{text-align:center;width:64px}
+.inv-table th.money,.inv-table td.money{text-align:right;width:88px}
+.inv-table th.w,.inv-table td.w{text-align:center;width:72px}
 .inv-table td{
   padding:11px 0;border-bottom:1px solid #e7e4da;color:#586267;
   vertical-align:middle;word-break:break-word
 }
 .inv-sums{
-  margin-left:auto;margin-right:48px;width:355px;font-size:16px;margin-top:25px
+  margin-left:auto;margin-right:28px;width:260px;font-size:12.5px;margin-top:12px
 }
 .inv-sums .row{
   display:flex;justify-content:space-between;padding:7px 0;color:#566066;
   border-bottom:1px solid #e5e2d9
 }
 .inv-sums .row b{font-weight:700}
+.inv-sums .inv-voucher span:first-child{color:#16a34a;font-weight:600;font-size:12px}
 .inv-total{
-  background:#08459a;color:#fff;margin:10px 48px 25px;padding:16px 28px;
+  background:#08459a;color:#fff;margin:10px 28px 16px;padding:12px 18px;
   display:flex;justify-content:space-between;align-items:center;
-  font-weight:800;font-size:23px;line-height:1.1
+  font-weight:800;font-size:15px;line-height:1.1
 }
 .inv-bottom{
   display:grid;grid-template-columns:1fr auto;gap:20px;align-items:end;
-  min-height:174px;margin:0 48px 2px
+  min-height:120px;margin:0 28px 2px
 }
-.inv-pay h4{margin:0 0 11px;font-size:17px;color:#06459b;font-weight:800}
-.inv-pay p{margin:5px 0;font-size:16px;color:#5b6468;line-height:1.45}
+.inv-pay h4{margin:0 0 11px;font-size:13px;color:#06459b;font-weight:800}
+.inv-pay p{margin:5px 0;font-size:12px;color:#5b6468;line-height:1.45}
 .inv-stamp-img{
-  width:195px;height:auto;display:block;mix-blend-mode:multiply;
-  margin-right:10px;margin-bottom:-2px;transform:rotate(-7deg)
+  width:130px;height:auto;display:block;mix-blend-mode:multiply;
+  margin-right:6px;margin-bottom:-2px;transform:rotate(-6deg)
 }
 .inv-certs{
-  display:flex;align-items:center;gap:25px;flex-wrap:nowrap;
-  padding:0 48px 17px;min-height:62px
+  display:flex;align-items:center;justify-content:flex-start;
+  gap:18px;flex-wrap:wrap;padding:8px 28px 12px;min-height:44px
 }
 .inv-certs img{
-  height:38px;width:auto;object-fit:contain;mix-blend-mode:multiply
+  height:28px;width:auto;max-width:72px;object-fit:contain;mix-blend-mode:multiply;
+  flex:0 0 auto
 }
 .inv-foot{
-  display:grid;grid-template-columns:1.12fr .88fr;margin:0;min-height:124px
+  display:grid;grid-template-columns:1.12fr .88fr;margin:0;min-height:88px
 }
 .inv-foot-left{
-  background:#08459a;padding:16px 48px;display:flex;align-items:center;
-  gap:18px;color:#fff;position:relative
+  background:#08459a;padding:12px 28px;display:flex;align-items:center;
+  gap:12px;color:#fff;position:relative
 }
 .inv-foot-left::after{
   content:"";position:absolute;right:-35px;top:0;width:58px;height:100%;
   background:var(--cream);clip-path:polygon(60% 0,100% 0,35% 100%,0 100%)
 }
 .inv-foot-left img{
-  width:64px;height:64px;border-radius:13px;object-fit:cover;flex-shrink:0
+  width:44px;height:44px;border-radius:10px;object-fit:cover;flex-shrink:0
 }
 .inv-foot-left .brand{
-  font-size:27px;font-weight:800;color:#fff;line-height:1.1;white-space:nowrap
+  font-size:18px;font-weight:800;color:#fff;line-height:1.1;white-space:nowrap
 }
 .inv-foot-right{
-  background:#08459a;color:#fff;padding:14px 26px 14px 32px;
+  background:#08459a;color:#fff;padding:10px 18px 10px 24px;
   display:flex;flex-direction:column;justify-content:center;
   clip-path:polygon(10% 0,100% 0,100% 100%,0 100%)
 }
 .inv-foot-right .contact-item{
-  display:flex;align-items:center;gap:10px;font-size:13px;line-height:1.72;
+  display:flex;align-items:center;gap:10px;font-size:11px;line-height:1.65;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
 .inv-foot-right .c-ico{
@@ -953,12 +957,7 @@ function buildOrderMessage(o){
     '💰 TỔNG THANH TOÁN: '+money(total)+'đ',
     '📝 Ghi chú từ khách: '+(o.note||'Không có'),
     '⏰ Thời gian đặt: '+time,
-    '💳 Hình thức thanh toán: '+(o.paymentMethod==='COD'||!o.paymentMethod?'Thanh toán khi nhận hàng (COD)':o.paymentMethod)
-  ];
-  return lines.join(String.fromCharCode(10));
-}
-
-function openOrderDetail(orderId){
+    '💳 Hình thức thanh toán: '+(o.paymentMethod==='COD'||!o.paymentMethod?'Thanh toán khi nhfunction openOrderDetail(orderId){
   var o=allOrders.find(function(x){return x.id===orderId});
   if(!o)return;
   window._lastOrderMsg=buildOrderMessage(o);
@@ -970,6 +969,22 @@ function openOrderDetail(orderId){
   var ship=Number(o.shippingFee||0),total=Number(o.total||0);
   var sub=o.subTotal!=null?Number(o.subTotal):Math.max(0,total-ship);
   var statusLabel=STATUS_LABEL[o.status]||o.status||'Đã xác nhận';
+  var discount=0;
+  if(o.discount!=null) discount=Number(o.discount)||0;
+  else if(o.autoDiscount!=null) discount=Number(o.autoDiscount)||0;
+  else if(o.voucherDiscount!=null) discount=Number(o.voucherDiscount)||0;
+  else discount=Math.max(0, Math.round((sub+ship)-total));
+  var voucherLabel=o.voucherLabel||o.promoLabel||o.discountLabel||'';
+  if(!voucherLabel && discount>0){
+    if(discount===5000) voucherLabel='Giảm 5.000đ khi quan tâm Zalo OA';
+    else if(ship===0 && sub>=500000) voucherLabel='Miễn phí vận chuyển đơn từ 500.000đ';
+    else voucherLabel='Ưu đãi / voucher từ Mini App';
+  }
+  var voucherRow=discount>0
+    ? ('<div class="row inv-voucher"><span>'+escapeHtml(voucherLabel)+'</span><span style="color:#16a34a">−'+money(discount)+'đ</span></div>')
+    : (ship===0 && sub>=500000
+        ? '<div class="row inv-voucher"><span>Miễn phí vận chuyển đơn từ 500.000đ</span><span style="color:#16a34a">−0đ</span></div>'
+        : '');
   var barcodeVal=String(o.id||'').replace(/[^0-9A-Za-z_-]/g,'')||('ORD'+Date.now());
 
   var rows=items.length?items.map(function(i){
@@ -1027,6 +1042,7 @@ function openOrderDetail(orderId){
     '<div class="inv-sums">'+
       '<div class="row"><span>Tổng giá trị đơn</span><span>'+money(sub)+'đ</span></div>'+
       '<div class="row"><span>Phí vận chuyển</span><span>'+money(ship)+'đ</span></div>'+
+      voucherRow+
     '</div>'+
 
     '<div class="inv-total">'+
@@ -1078,6 +1094,13 @@ function openOrderDetail(orderId){
           displayValue:false,
           margin:0,
           background:'transparent'
+        });
+      }
+    }catch(e){console.warn('barcode',e)}
+  }, 30);
+}
+
+ransparent'
         });
       }
     }catch(e){console.warn('barcode',e)}
