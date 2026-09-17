@@ -599,155 +599,176 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .t-dong{background:#f5e6d3;color:#8B5A2B}.t-bac{background:#e8eef5;color:#64748b}
 .t-vang{background:#fff3cd;color:#b8860b}.t-kimcuong{background:#e0f2fe;color:#0284c7}
 
-/* ===== HOÁ ĐƠN — khớp mẫu 100% ===== */
+/* ===== HOÁ ĐƠN — chuyên nghiệp, căn chỉnh chuẩn ===== */
 #orderDetailBox{display:none;position:fixed;inset:0;background:rgba(40,28,18,.55);z-index:9999;align-items:center;justify-content:center;padding:8px}
 #orderDetailBox.show{display:flex}
-.invoice-wrap{background:transparent;border-radius:10px;max-width:820px;width:100%;max-height:96vh;overflow:auto;box-shadow:0 16px 48px rgba(0,0,0,.28)}
+.invoice-wrap{background:transparent;border-radius:12px;max-width:860px;width:100%;max-height:96vh;overflow:auto;box-shadow:0 16px 48px rgba(0,0,0,.28)}
 .invoice{
   position:relative;overflow:hidden;
-  padding:22px 28px 0;
+  padding:24px 32px 0;
   background-color:#FBF6EE;
   background-image:url('/admin-assets/pattern.png');
   background-repeat:no-repeat;
-  background-position:left -2% center;
-  background-size:58% auto;
+  background-position:left -4% 42%;
+  background-size:52% auto;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
 }
 .invoice img{background:transparent}
 
-/* Header: logo trái + hũ phải (không thanh xanh) */
 .inv-header{
   display:flex;justify-content:space-between;align-items:flex-start;
-  gap:12px;margin-bottom:4px;position:relative;z-index:2;
+  gap:16px;margin-bottom:6px;position:relative;z-index:2;
 }
-.inv-brand{display:flex;align-items:center;gap:12px;padding-top:4px}
+.inv-brand{display:flex;align-items:center;gap:12px;padding-top:2px}
 .inv-brand img.logo{
-  width:56px;height:56px;border-radius:50%;object-fit:cover;
-  box-shadow:0 2px 8px rgba(0,0,0,.12);flex-shrink:0;
+  width:54px;height:54px;border-radius:50%;object-fit:cover;
+  box-shadow:0 2px 8px rgba(0,0,0,.1);flex-shrink:0;
 }
 .inv-brand .name{
-  font-size:15px;font-weight:800;color:#2c3e50;
-  display:flex;align-items:center;gap:6px;line-height:1.25;
+  font-size:15px;font-weight:800;color:#1e293b;
+  display:flex;align-items:center;gap:6px;line-height:1.3;
 }
-.inv-brand .name img.verified{width:16px;height:16px;object-fit:contain;flex-shrink:0}
-.inv-brand .sub{font-size:12px;color:#6b7c93;margin-top:3px;font-weight:500}
-
-/* Hũ sản phẩm góc phải – kích thước theo mẫu */
+.inv-brand .name img.verified{width:15px;height:15px;object-fit:contain;flex-shrink:0}
+.inv-brand .sub{font-size:12px;color:#64748b;margin-top:2px;font-weight:500}
 .inv-jars{
-  height:128px;width:auto;max-width:260px;
+  height:118px;width:auto;max-width:240px;
   object-fit:contain;object-position:top right;
   mix-blend-mode:multiply;flex-shrink:0;
-  margin-top:-6px;margin-right:-6px;
+  margin-top:-4px;margin-right:-4px;
 }
 
-.inv-barcode{text-align:center;margin:2px 0 0;position:relative;z-index:2}
-.inv-barcode .code{font-size:11px;color:#666;margin-top:2px;letter-spacing:.4px}
+.inv-barcode{text-align:center;margin:4px 0 0;position:relative;z-index:2}
+.inv-barcode svg{max-width:220px;height:48px}
+.inv-barcode .code{font-size:11px;color:#64748b;margin-top:2px;letter-spacing:.35px;font-family:ui-monospace,monospace}
 
 .inv-title{
-  text-align:center;font-size:34px;font-weight:900;
-  color:#2c3e50;letter-spacing:2px;margin:18px 0 28px;
+  text-align:center;font-size:32px;font-weight:900;
+  color:#1e293b;letter-spacing:1.5px;margin:16px 0 24px;
   text-transform:uppercase;position:relative;z-index:2;
 }
 
+/* 2 cột thông tin — label/value không lệch */
 .inv-grid{
-  display:grid;grid-template-columns:1.2fr 1fr;gap:36px;
-  margin-bottom:20px;position:relative;z-index:2;
+  display:grid;grid-template-columns:1fr 1fr;gap:28px 40px;
+  margin-bottom:22px;position:relative;z-index:2;
 }
-.inv-box h4{margin:0 0 12px;font-size:14px;color:#1e4d8c;font-weight:800}
-.inv-box p{margin:7px 0;font-size:13px;color:#333;line-height:1.5}
-.inv-box .label{color:#666;min-width:128px;display:inline-block}
+.inv-box h4{margin:0 0 12px;font-size:13.5px;color:#1e4d8c;font-weight:800}
+.inv-row{
+  display:grid;grid-template-columns:120px 1fr;
+  gap:6px 10px;margin:0 0 8px;align-items:start;
+  font-size:13px;line-height:1.45;
+}
+.inv-row .k{color:#64748b;font-weight:500}
+.inv-row .v{color:#1e293b;font-weight:600;word-break:break-word}
 
-.inv-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:4px;position:relative;z-index:2}
+/* Bảng sản phẩm — cột cân đối */
+.inv-table{
+  width:100%;border-collapse:collapse;font-size:13px;
+  margin:0 0 8px;position:relative;z-index:2;table-layout:fixed;
+}
 .inv-table th{
   text-align:left;color:#1e4d8c;font-weight:700;
-  padding:10px 6px;border-bottom:2px solid #1e4d8c;font-size:12px;
+  padding:10px 8px;border-bottom:2px solid #1e4d8c;font-size:12px;
 }
-.inv-table th.num,.inv-table td.num{text-align:center;width:72px}
-.inv-table th.money,.inv-table td.money{text-align:right;width:100px}
-.inv-table th.w,.inv-table td.w{text-align:center;width:90px}
-.inv-table td{padding:10px 6px;border-bottom:1px solid #e0d6c8;color:#333}
+.inv-table th.col-name{width:auto}
+.inv-table th.col-qty{width:72px;text-align:center}
+.inv-table th.col-price{width:100px;text-align:right}
+.inv-table th.col-w{width:88px;text-align:center}
+.inv-table td{
+  padding:11px 8px;border-bottom:1px solid #e8dfd2;color:#1e293b;
+  vertical-align:middle;
+}
+.inv-table td.col-qty{text-align:center;font-weight:600}
+.inv-table td.col-price{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.inv-table td.col-w{text-align:center;color:#64748b}
+.inv-table td.col-name{word-break:break-word}
 
-.inv-sums{margin-left:auto;width:260px;font-size:13px;margin-top:14px;position:relative;z-index:2}
-.inv-sums .row{display:flex;justify-content:space-between;padding:6px 0;color:#444}
+/* Tổng — căn phải, cột số thẳng hàng */
+.inv-sums{
+  margin-left:auto;width:280px;font-size:13px;margin-top:12px;
+  position:relative;z-index:2;
+}
+.inv-sums .row{
+  display:grid;grid-template-columns:1fr 100px;
+  gap:8px;padding:6px 8px;color:#475569;align-items:center;
+}
+.inv-sums .row span:last-child,
+.inv-sums .row b{
+  text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#1e293b;
+}
 
 .inv-total{
   background:#1e4d8c;color:#fff;
-  padding:14px 22px;display:flex;justify-content:space-between;align-items:center;
-  font-weight:800;font-size:17px;margin:14px 0 20px;
-  position:relative;z-index:2;
+  padding:14px 20px;display:grid;grid-template-columns:1fr auto;
+  align-items:center;gap:12px;
+  font-weight:800;font-size:16px;margin:14px 0 20px;
+  position:relative;z-index:2;border-radius:2px;
 }
+.inv-total span:last-child{font-variant-numeric:tabular-nums;letter-spacing:.3px}
 
 .inv-bottom{
-  display:grid;grid-template-columns:1fr auto;gap:16px;
-  align-items:end;margin-bottom:8px;min-height:160px;
+  display:grid;grid-template-columns:1fr 170px;gap:12px 24px;
+  align-items:end;margin-bottom:6px;min-height:140px;
   position:relative;z-index:2;
 }
 .inv-pay h4{margin:0 0 10px;font-size:13px;color:#1e4d8c;font-weight:700}
-.inv-pay p{margin:5px 0;font-size:12px;color:#555;line-height:1.55}
+.inv-pay p{margin:5px 0;font-size:12.5px;color:#475569;line-height:1.55}
+.inv-pay b{color:#1e293b}
 
-/* Con dấu – kích thước & vị trí theo mẫu */
 .inv-stamp-img{
-  width:168px;height:auto;display:block;
-  mix-blend-mode:multiply;
-  margin-right:8px;margin-bottom:4px;
+  width:158px;height:auto;display:block;
+  mix-blend-mode:multiply;justify-self:end;
 }
 
-/* Logo chứng nhận */
 .inv-certs{
-  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-  padding:8px 0 12px;position:relative;z-index:2;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:6px 0 14px;position:relative;z-index:2;
 }
-.inv-certs img{
-  height:34px;width:auto;object-fit:contain;
-  mix-blend-mode:multiply;
-}
+.inv-certs img{height:32px;width:auto;object-fit:contain;mix-blend-mode:multiply}
 
-/* Footer 2 cột: store + liên hệ */
 .inv-foot{
-  display:grid;grid-template-columns:1.15fr 1fr;
-  margin:0 -28px;min-height:100px;position:relative;z-index:2;
+  display:grid;grid-template-columns:1.1fr 1fr;
+  margin:0 -32px;min-height:96px;position:relative;z-index:2;
 }
 .inv-foot-left{
-  background:#FBF6EE;padding:16px 24px;
-  display:flex;align-items:center;gap:14px;
+  background:#FBF6EE;padding:14px 28px;
+  display:flex;align-items:center;gap:12px;
 }
-.inv-foot-left img{
-  width:52px;height:52px;border-radius:12px;object-fit:cover;flex-shrink:0;
-}
-.inv-foot-left .brand{font-size:22px;font-weight:800;color:#2c1810;line-height:1.2}
-
+.inv-foot-left img{width:48px;height:48px;border-radius:10px;object-fit:cover;flex-shrink:0}
+.inv-foot-left .brand{font-size:20px;font-weight:800;color:#1e293b}
 .inv-foot-right{
-  background:#0d3b7c;color:#fff;padding:16px 20px 16px 28px;
+  background:#0d3b7c;color:#fff;padding:14px 18px 14px 28px;
   display:flex;flex-direction:column;justify-content:center;
-  clip-path:polygon(12% 0,100% 0,100% 100%,0 100%);
+  clip-path:polygon(11% 0,100% 0,100% 100%,0 100%);
 }
 .inv-foot-right .contact-item{
-  display:flex;align-items:center;gap:10px;
-  font-size:11.5px;line-height:1.85;
+  display:flex;align-items:center;gap:9px;
+  font-size:11.5px;line-height:1.8;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .inv-foot-right .c-ico{
-  width:22px;height:22px;border-radius:50%;
+  width:20px;height:20px;border-radius:50%;
   background:#fff;color:#0d3b7c;
   display:inline-flex;align-items:center;justify-content:center;
-  font-size:11px;flex:none;
+  font-size:10px;flex:none;
 }
-
 .inv-actions{
-  padding:10px 14px;display:flex;gap:8px;justify-content:flex-end;
+  padding:12px 16px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;
   background:#fff;border-top:1px solid #e8d9c4;position:sticky;bottom:0;
 }
 
 @media(max-width:640px){
   .invoice{padding:16px 14px 0}
   .inv-grid,.inv-bottom,.inv-foot{grid-template-columns:1fr}
-  .inv-title{font-size:24px;margin:14px 0 18px}
-  .inv-jars{height:88px;max-width:160px}
-  .inv-brand img.logo{width:44px;height:44px}
+  .inv-row{grid-template-columns:100px 1fr}
+  .inv-title{font-size:22px;margin:12px 0 16px}
+  .inv-jars{height:80px;max-width:140px}
   .inv-sums{width:100%}
+  .inv-table th.col-price,.inv-table td.col-price{width:84px}
+  .inv-table th.col-w,.inv-table td.col-w{width:64px}
   .inv-foot{margin:0 -14px}
   .inv-foot-right{clip-path:none;padding:14px}
-  .inv-stamp-img{width:140px;margin:10px auto 0}
-  .inv-certs img{height:28px}
+  .inv-stamp-img{width:130px;margin:8px auto 0;justify-self:center}
 }
 @media print{
   #orderDetailBox{position:static!important;background:none!important;display:block!important;padding:0!important}
@@ -912,8 +933,8 @@ function openOrderDetail(orderId){
   var rows=items.length?items.map(function(i){
     var line=Number(i.price||0)*Number(i.quantity||1);
     var weight=i.weight||i.unit||'—';
-    return '<tr><td>'+escapeHtml(i.name||'Sản phẩm')+'</td><td class="num">'+(i.quantity||1)+'</td><td class="money">'+money(line)+'đ</td><td class="w">'+escapeHtml(String(weight))+'</td></tr>';
-  }).join(''):'<tr><td colspan="4" style="color:#888">Không có sản phẩm</td></tr>';
+    return '<tr><td class="col-name">'+escapeHtml(i.name||'Sản phẩm')+'</td><td class="col-qty">'+(i.quantity||1)+'</td><td class="col-price">'+money(line)+'đ</td><td class="col-w">'+escapeHtml(String(weight))+'</td></tr>';
+  }).join(''):'<tr><td colspan="4" style="color:#888;text-align:center">Không có sản phẩm</td></tr>';
 
   document.getElementById('invoiceBody').innerHTML=
     /* Header kem: logo trái + hũ phải (theo mẫu) */
@@ -931,18 +952,18 @@ function openOrderDetail(orderId){
     '<div class="inv-title">HOÁ ĐƠN BÁN HÀNG</div>'+
     '<div class="inv-grid">'+
       '<div class="inv-box"><h4>Thông tin khách hàng</h4>'+
-        '<p><span class="label">Địa chỉ:</span> '+escapeHtml(s.address||'—')+'</p>'+
-        '<p><span class="label">Số điện thoại:</span> '+escapeHtml(s.phone||'—')+'</p>'+
-        '<p><span class="label">Họ &amp; tên khách hàng:</span> <b>'+escapeHtml(s.fullName||'—')+'</b></p>'+
+        '<div class="inv-row"><span class="k">Địa chỉ:</span><span class="v">'+escapeHtml(s.address||'—')+'</span></div>'+
+        '<div class="inv-row"><span class="k">Số điện thoại:</span><span class="v">'+escapeHtml(s.phone||'—')+'</span></div>'+
+        '<div class="inv-row"><span class="k">Họ &amp; tên:</span><span class="v">'+escapeHtml(s.fullName||'—')+'</span></div>'+
       '</div>'+
       '<div class="inv-box"><h4>Chi tiết đơn hàng</h4>'+
-        '<p><span class="label">Thời gian đặt:</span> '+timeStr+'</p>'+
-        '<p><span class="label">Ngày/tháng/năm:</span> '+dateStr+'</p>'+
-        '<p><span class="label">Ghi chú từ khách:</span> '+escapeHtml(o.note||'—')+'</p>'+
+        '<div class="inv-row"><span class="k">Thời gian đặt:</span><span class="v">'+timeStr+'</span></div>'+
+        '<div class="inv-row"><span class="k">Ngày/tháng/năm:</span><span class="v">'+dateStr+'</span></div>'+
+        '<div class="inv-row"><span class="k">Ghi chú:</span><span class="v">'+escapeHtml(o.note||'—')+'</span></div>'+
       '</div>'+
     '</div>'+
-    '<table class="inv-table"><thead><tr><th>Danh sách sản phẩm</th><th class="num">Số lượng</th><th class="money">Giá</th><th class="w">Trọng lượng</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-    '<div class="inv-sums"><div class="row"><span>Tổng giá trị đơn</span><b>'+money(sub)+'đ</b></div><div class="row"><span>Phí vận chuyển</span><b>'+money(ship)+'đ</b></div></div>'+
+    '<table class="inv-table"><thead><tr><th class="col-name">Danh sách sản phẩm</th><th class="col-qty">Số lượng</th><th class="col-price">Giá</th><th class="col-w">Trọng lượng</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div class="inv-sums"><div class="row"><span>Tổng giá trị đơn</span><span>'+money(sub)+'đ</span></div><div class="row"><span>Phí vận chuyển</span><span>'+money(ship)+'đ</span></div></div>'+
     '<div class="inv-total"><span>Tổng thanh toán</span><span>'+money(total)+'đ</span></div>'+
     '<div class="inv-bottom">'+
       '<div class="inv-pay"><h4>Payment Information</h4>'+
