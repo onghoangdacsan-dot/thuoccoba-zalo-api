@@ -599,182 +599,207 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .t-dong{background:#f5e6d3;color:#8B5A2B}.t-bac{background:#e8eef5;color:#64748b}
 .t-vang{background:#fff3cd;color:#b8860b}.t-kimcuong{background:#e0f2fe;color:#0284c7}
 
-/* ===== HOÁ ĐƠN — chuyên nghiệp, căn chỉnh chuẩn ===== */
-#orderDetailBox{display:none;position:fixed;inset:0;background:rgba(40,28,18,.55);z-index:9999;align-items:center;justify-content:center;padding:8px}
+/* ===== HOÁ ĐƠN — thiết kế theo mẫu tham chiếu, tối ưu desktop + in A4 ===== */
+#orderDetailBox{
+  display:none;position:fixed;inset:0;background:rgba(15,27,43,.62);
+  z-index:9999;align-items:center;justify-content:center;padding:14px;
+  backdrop-filter:blur(4px)
+}
 #orderDetailBox.show{display:flex}
-.invoice-wrap{background:transparent;border-radius:12px;max-width:860px;width:100%;max-height:96vh;overflow:auto;box-shadow:0 16px 48px rgba(0,0,0,.28)}
+.invoice-wrap{
+  background:transparent;border-radius:2px;max-width:860px;width:100%;
+  max-height:98vh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.35)
+}
 .invoice{
-  position:relative;overflow:hidden;
-  padding:24px 32px 0;
-  background-color:#FBF6EE;
-  background-image:url('/admin-assets/pattern.png');
-  background-repeat:no-repeat;
-  background-position:left -4% 42%;
-  background-size:52% auto;
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --blue:#0b469a;
+  --blue2:#0d3f8c;
+  --ink:#465258;
+  --cream:#fcfaf3;
+  position:relative;overflow:hidden;padding:0;background:var(--cream);
+  color:var(--ink);font-family:'Be Vietnam Pro',Arial,sans-serif;
+  min-height:1216px;
 }
+.invoice::before{
+  content:"";position:absolute;left:0;top:0;width:100%;height:40px;
+  background:var(--blue);z-index:0;
+  clip-path:polygon(0 0,100% 0,88% 100%,0 100%)
+}
+.invoice::after{
+  content:"";position:absolute;left:-160px;top:270px;width:720px;height:720px;
+  background-image:url('/admin-assets/pattern.png');background-repeat:no-repeat;
+  background-position:center;background-size:contain;opacity:.34;z-index:0;
+  pointer-events:none
+}
+.invoice > *{position:relative;z-index:2}
 .invoice img{background:transparent}
-
 .inv-header{
-  display:flex;justify-content:space-between;align-items:flex-start;
-  gap:16px;margin-bottom:6px;position:relative;z-index:2;
+  min-height:214px;padding:64px 48px 0;display:flex;
+  justify-content:space-between;align-items:flex-start;gap:18px;
 }
-.inv-brand{display:flex;align-items:center;gap:12px;padding-top:2px}
+.inv-brand{display:flex;align-items:center;gap:12px;padding-top:5px}
 .inv-brand img.logo{
-  width:54px;height:54px;border-radius:50%;object-fit:cover;
-  box-shadow:0 2px 8px rgba(0,0,0,.1);flex-shrink:0;
+  width:58px;height:58px;border-radius:50%;object-fit:cover;
+  box-shadow:0 1px 5px rgba(0,0,0,.12);flex-shrink:0
 }
 .inv-brand .name{
-  font-size:15px;font-weight:800;color:#1e293b;
-  display:flex;align-items:center;gap:6px;line-height:1.3;
+  font-size:19px;font-weight:800;color:#114a8e;display:flex;
+  align-items:center;gap:5px;line-height:1.25;white-space:nowrap
 }
-.inv-brand .name img.verified{width:15px;height:15px;object-fit:contain;flex-shrink:0}
-.inv-brand .sub{font-size:12px;color:#64748b;margin-top:2px;font-weight:500}
+.inv-brand .name img.verified{width:16px;height:16px;object-fit:contain;flex-shrink:0}
+.inv-brand .sub{font-size:16px;color:#1450a0;margin-top:4px;font-weight:500}
 .inv-jars{
-  height:118px;width:auto;max-width:240px;
-  object-fit:contain;object-position:top right;
-  mix-blend-mode:multiply;flex-shrink:0;
-  margin-top:-4px;margin-right:-4px;
+  height:210px;width:auto;max-width:360px;object-fit:contain;
+  object-position:top right;mix-blend-mode:multiply;flex-shrink:0;
+  margin-top:-35px;margin-right:-16px;filter:drop-shadow(0 10px 9px rgba(0,0,0,.16))
 }
-
-.inv-barcode{text-align:center;margin:4px 0 0;position:relative;z-index:2}
-.inv-barcode svg{max-width:220px;height:48px}
-.inv-barcode .code{font-size:11px;color:#64748b;margin-top:2px;letter-spacing:.35px;font-family:ui-monospace,monospace}
-
+.inv-barcode{display:none}
 .inv-title{
-  text-align:center;font-size:32px;font-weight:900;
-  color:#1e293b;letter-spacing:1.5px;margin:16px 0 24px;
-  text-transform:uppercase;position:relative;z-index:2;
+  text-align:center;font-size:47px;font-weight:900;color:#465258;
+  letter-spacing:1.5px;margin:6px 0 58px;text-transform:uppercase;
+  line-height:1.1
 }
-
-/* 2 cột thông tin — label/value không lệch */
 .inv-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:28px 40px;
-  margin-bottom:22px;position:relative;z-index:2;
+  display:grid;grid-template-columns:1.12fr .88fr;gap:54px;
+  padding:0 48px;margin-bottom:36px
 }
-.inv-box h4{margin:0 0 12px;font-size:13.5px;color:#1e4d8c;font-weight:800}
-.inv-row{
-  display:grid;grid-template-columns:120px 1fr;
-  gap:6px 10px;margin:0 0 8px;align-items:start;
-  font-size:13px;line-height:1.45;
-}
-.inv-row .k{color:#64748b;font-weight:500}
-.inv-row .v{color:#1e293b;font-weight:600;word-break:break-word}
-
-/* Bảng sản phẩm — cột cân đối */
+.inv-box h4{margin:0 0 13px;font-size:18px;color:#06459b;font-weight:800}
+.inv-box p{margin:6px 0;font-size:17px;color:#596367;line-height:1.45}
+.inv-box .label{color:#626b6f;min-width:156px;display:inline-block}
 .inv-table{
-  width:100%;border-collapse:collapse;font-size:13px;
-  margin:0 0 8px;position:relative;z-index:2;table-layout:fixed;
+  width:calc(100% - 96px);margin:0 48px 6px;border-collapse:collapse;
+  font-size:16px;table-layout:fixed
 }
 .inv-table th{
-  text-align:left;color:#1e4d8c;font-weight:700;
-  padding:10px 8px;border-bottom:2px solid #1e4d8c;font-size:12px;
+  text-align:left;color:#06459b;font-weight:800;padding:0 0 12px;
+  border-bottom:2px solid #1755a0;font-size:17px
 }
-.inv-table th.col-name{width:auto}
-.inv-table th.col-qty{width:72px;text-align:center}
-.inv-table th.col-price{width:100px;text-align:right}
-.inv-table th.col-w{width:88px;text-align:center}
+.inv-table th:first-child,.inv-table td:first-child{padding-left:0}
+.inv-table th.num,.inv-table td.num{text-align:center;width:115px}
+.inv-table th.money,.inv-table td.money{text-align:right;width:145px}
+.inv-table th.w,.inv-table td.w{text-align:center;width:130px}
 .inv-table td{
-  padding:11px 8px;border-bottom:1px solid #e8dfd2;color:#1e293b;
-  vertical-align:middle;
+  padding:11px 0;border-bottom:1px solid #e7e4da;color:#586267;
+  vertical-align:middle;word-break:break-word
 }
-.inv-table td.col-qty{text-align:center;font-weight:600}
-.inv-table td.col-price{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
-.inv-table td.col-w{text-align:center;color:#64748b}
-.inv-table td.col-name{word-break:break-word}
-
-/* Tổng — căn phải, cột số thẳng hàng */
 .inv-sums{
-  margin-left:auto;width:280px;font-size:13px;margin-top:12px;
-  position:relative;z-index:2;
+  margin-left:auto;margin-right:48px;width:355px;font-size:16px;margin-top:25px
 }
 .inv-sums .row{
-  display:grid;grid-template-columns:1fr 100px;
-  gap:8px;padding:6px 8px;color:#475569;align-items:center;
+  display:flex;justify-content:space-between;padding:7px 0;color:#566066;
+  border-bottom:1px solid #e5e2d9
 }
-.inv-sums .row span:last-child,
-.inv-sums .row b{
-  text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#1e293b;
-}
-
+.inv-sums .row b{font-weight:700}
 .inv-total{
-  background:#1e4d8c;color:#fff;
-  padding:14px 20px;display:grid;grid-template-columns:1fr auto;
-  align-items:center;gap:12px;
-  font-weight:800;font-size:16px;margin:14px 0 20px;
-  position:relative;z-index:2;border-radius:2px;
+  background:#08459a;color:#fff;margin:10px 48px 25px;padding:16px 28px;
+  display:flex;justify-content:space-between;align-items:center;
+  font-weight:800;font-size:23px;line-height:1.1
 }
-.inv-total span:last-child{font-variant-numeric:tabular-nums;letter-spacing:.3px}
-
 .inv-bottom{
-  display:grid;grid-template-columns:1fr 170px;gap:12px 24px;
-  align-items:end;margin-bottom:6px;min-height:140px;
-  position:relative;z-index:2;
+  display:grid;grid-template-columns:1fr auto;gap:20px;align-items:end;
+  min-height:174px;margin:0 48px 2px
 }
-.inv-pay h4{margin:0 0 10px;font-size:13px;color:#1e4d8c;font-weight:700}
-.inv-pay p{margin:5px 0;font-size:12.5px;color:#475569;line-height:1.55}
-.inv-pay b{color:#1e293b}
-
+.inv-pay h4{margin:0 0 11px;font-size:17px;color:#06459b;font-weight:800}
+.inv-pay p{margin:5px 0;font-size:16px;color:#5b6468;line-height:1.45}
 .inv-stamp-img{
-  width:158px;height:auto;display:block;
-  mix-blend-mode:multiply;justify-self:end;
+  width:195px;height:auto;display:block;mix-blend-mode:multiply;
+  margin-right:10px;margin-bottom:-2px;transform:rotate(-7deg)
 }
-
 .inv-certs{
-  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-  padding:6px 0 14px;position:relative;z-index:2;
+  display:flex;align-items:center;gap:25px;flex-wrap:nowrap;
+  padding:0 48px 17px;min-height:62px
 }
-.inv-certs img{height:32px;width:auto;object-fit:contain;mix-blend-mode:multiply}
-
+.inv-certs img{
+  height:38px;width:auto;object-fit:contain;mix-blend-mode:multiply
+}
 .inv-foot{
-  display:grid;grid-template-columns:1.1fr 1fr;
-  margin:0 -32px;min-height:96px;position:relative;z-index:2;
+  display:grid;grid-template-columns:1.12fr .88fr;margin:0;min-height:124px
 }
 .inv-foot-left{
-  background:#FBF6EE;padding:14px 28px;
-  display:flex;align-items:center;gap:12px;
+  background:#08459a;padding:16px 48px;display:flex;align-items:center;
+  gap:18px;color:#fff;position:relative
 }
-.inv-foot-left img{width:48px;height:48px;border-radius:10px;object-fit:cover;flex-shrink:0}
-.inv-foot-left .brand{font-size:20px;font-weight:800;color:#1e293b}
+.inv-foot-left::after{
+  content:"";position:absolute;right:-35px;top:0;width:58px;height:100%;
+  background:var(--cream);clip-path:polygon(60% 0,100% 0,35% 100%,0 100%)
+}
+.inv-foot-left img{
+  width:64px;height:64px;border-radius:13px;object-fit:cover;flex-shrink:0
+}
+.inv-foot-left .brand{
+  font-size:27px;font-weight:800;color:#fff;line-height:1.1;white-space:nowrap
+}
 .inv-foot-right{
-  background:#0d3b7c;color:#fff;padding:14px 18px 14px 28px;
+  background:#08459a;color:#fff;padding:14px 26px 14px 32px;
   display:flex;flex-direction:column;justify-content:center;
-  clip-path:polygon(11% 0,100% 0,100% 100%,0 100%);
+  clip-path:polygon(10% 0,100% 0,100% 100%,0 100%)
 }
 .inv-foot-right .contact-item{
-  display:flex;align-items:center;gap:9px;
-  font-size:11.5px;line-height:1.8;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:flex;align-items:center;gap:10px;font-size:13px;line-height:1.72;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
 .inv-foot-right .c-ico{
-  width:20px;height:20px;border-radius:50%;
-  background:#fff;color:#0d3b7c;
-  display:inline-flex;align-items:center;justify-content:center;
-  font-size:10px;flex:none;
+  width:23px;height:23px;border-radius:50%;background:#fff;color:#08459a;
+  display:inline-flex;align-items:center;justify-content:center;font-size:11px;flex:none
 }
 .inv-actions{
-  padding:12px 16px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;
-  background:#fff;border-top:1px solid #e8d9c4;position:sticky;bottom:0;
+  padding:10px 14px;display:flex;gap:8px;justify-content:flex-end;
+  background:#fff;border-top:1px solid #e8e2d5;position:sticky;bottom:0
 }
-
+@media(max-width:900px){
+  .invoice{min-height:0}
+  .inv-header{padding-left:30px;padding-right:30px}
+  .inv-grid{padding:0 30px;gap:25px}
+  .inv-table{width:calc(100% - 60px);margin-left:30px;margin-right:30px}
+  .inv-sums{margin-right:30px}
+  .inv-total{margin-left:30px;margin-right:30px}
+  .inv-bottom{margin-left:30px;margin-right:30px}
+  .inv-certs{padding-left:30px;padding-right:30px;gap:14px}
+  .inv-foot-left{padding-left:30px}
+}
 @media(max-width:640px){
-  .invoice{padding:16px 14px 0}
-  .inv-grid,.inv-bottom,.inv-foot{grid-template-columns:1fr}
-  .inv-row{grid-template-columns:100px 1fr}
-  .inv-title{font-size:22px;margin:12px 0 16px}
-  .inv-jars{height:80px;max-width:140px}
-  .inv-sums{width:100%}
-  .inv-table th.col-price,.inv-table td.col-price{width:84px}
-  .inv-table th.col-w,.inv-table td.col-w{width:64px}
-  .inv-foot{margin:0 -14px}
-  .inv-foot-right{clip-path:none;padding:14px}
-  .inv-stamp-img{width:130px;margin:8px auto 0;justify-self:center}
+  #orderDetailBox{padding:0}
+  .invoice-wrap{max-height:100vh}
+  .invoice::after{left:-220px;top:360px;width:600px;height:600px}
+  .inv-header{min-height:150px;padding:48px 16px 0}
+  .inv-brand{gap:8px}
+  .inv-brand img.logo{width:42px;height:42px}
+  .inv-brand .name{font-size:13px;white-space:normal}
+  .inv-brand .sub{font-size:11px}
+  .inv-jars{height:112px;max-width:175px;margin-top:-25px;margin-right:-8px}
+  .inv-title{font-size:26px;margin:6px 16px 34px}
+  .inv-grid{grid-template-columns:1fr;gap:22px;padding:0 16px;margin-bottom:24px}
+  .inv-box h4{font-size:14px}.inv-box p{font-size:13px}.inv-box .label{min-width:125px}
+  .inv-table{width:calc(100% - 32px);margin-left:16px;margin-right:16px;font-size:12px}
+  .inv-table th{font-size:12px}.inv-table th.num,.inv-table td.num{width:60px}
+  .inv-table th.money,.inv-table td.money{width:85px}.inv-table th.w,.inv-table td.w{width:75px}
+  .inv-sums{width:calc(100% - 32px);margin:16px 16px 0;font-size:13px}
+  .inv-total{margin:8px 16px 18px;padding:13px 16px;font-size:16px}
+  .inv-bottom{grid-template-columns:1fr;min-height:0;margin:0 16px 10px}
+  .inv-pay h4{font-size:14px}.inv-pay p{font-size:12px}
+  .inv-stamp-img{width:150px;margin:0 auto}
+  .inv-certs{padding:4px 16px 12px;gap:9px;overflow:hidden}
+  .inv-certs img{height:25px}
+  .inv-foot{grid-template-columns:1fr}
+  .inv-foot-left{padding:13px 16px;min-height:78px}
+  .inv-foot-left::after{display:none}
+  .inv-foot-left img{width:48px;height:48px}
+  .inv-foot-left .brand{font-size:21px}
+  .inv-foot-right{clip-path:none;padding:13px 16px}
+  .inv-foot-right .contact-item{font-size:11px}
 }
 @media print{
-  #orderDetailBox{position:static!important;background:none!important;display:block!important;padding:0!important}
-  .invoice-wrap{box-shadow:none;max-height:none;border-radius:0}
+  @page{size:A4 portrait;margin:0}
+  html,body{margin:0!important;padding:0!important;background:#fff!important}
+  #orderDetailBox{position:static!important;inset:auto!important;background:none!important;
+    display:block!important;padding:0!important}
+  .invoice-wrap{width:210mm!important;max-width:none!important;max-height:none!important;
+    overflow:visible!important;box-shadow:none!important}
+  .invoice{width:210mm!important;min-height:297mm!important;height:auto!important;
+    box-shadow:none!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
   .inv-actions{display:none!important}
-  body{background:#fff}
+  .inv-header{padding-top:18mm}
+  .invoice::before{height:10mm}
+  .invoice::after{opacity:.34}
 }
 </style>
 </head>
@@ -923,21 +948,27 @@ function openOrderDetail(orderId){
   var o=allOrders.find(function(x){return x.id===orderId});
   if(!o)return;
   window._lastOrderMsg=buildOrderMessage(o);
+
   var s=o.shippingInfo||{},items=o.items||[];
   var created=o.createdAt?new Date(o.createdAt):null;
-  var timeStr=created?created.toLocaleTimeString('vi-VN'):'—';
+  var timeStr=created?created.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}):'—';
   var dateStr=created?created.toLocaleDateString('vi-VN'):'—';
   var ship=Number(o.shippingFee||0),total=Number(o.total||0);
   var sub=o.subTotal!=null?Number(o.subTotal):total-ship;
   var statusLabel=STATUS_LABEL[o.status]||o.status||'Đã xác nhận';
+
   var rows=items.length?items.map(function(i){
     var line=Number(i.price||0)*Number(i.quantity||1);
     var weight=i.weight||i.unit||'—';
-    return '<tr><td class="col-name">'+escapeHtml(i.name||'Sản phẩm')+'</td><td class="col-qty">'+(i.quantity||1)+'</td><td class="col-price">'+money(line)+'đ</td><td class="col-w">'+escapeHtml(String(weight))+'</td></tr>';
-  }).join(''):'<tr><td colspan="4" style="color:#888;text-align:center">Không có sản phẩm</td></tr>';
+    return '<tr>'+
+      '<td>'+escapeHtml(i.name||'Sản phẩm')+'</td>'+
+      '<td class="num">'+(i.quantity||1)+'</td>'+
+      '<td class="money">'+money(line)+'đ</td>'+
+      '<td class="w">'+escapeHtml(String(weight))+'</td>'+
+    '</tr>';
+  }).join(''):'<tr><td colspan="4" style="color:#888">Không có sản phẩm</td></tr>';
 
   document.getElementById('invoiceBody').innerHTML=
-    /* Header kem: logo trái + hũ phải (theo mẫu) */
     '<div class="inv-header">'+
       '<div class="inv-brand">'+
         '<img class="logo" src="/admin-assets/logo.png" alt=""/>'+
@@ -948,31 +979,53 @@ function openOrderDetail(orderId){
       '</div>'+
       '<img class="inv-jars" src="/admin-assets/jars.png" alt=""/>'+
     '</div>'+
-    '<div class="inv-barcode"><svg id="invBarcode"></svg><div class="code">'+escapeHtml(o.id)+'</div></div>'+
+
     '<div class="inv-title">HOÁ ĐƠN BÁN HÀNG</div>'+
+
     '<div class="inv-grid">'+
-      '<div class="inv-box"><h4>Thông tin khách hàng</h4>'+
-        '<div class="inv-row"><span class="k">Địa chỉ:</span><span class="v">'+escapeHtml(s.address||'—')+'</span></div>'+
-        '<div class="inv-row"><span class="k">Số điện thoại:</span><span class="v">'+escapeHtml(s.phone||'—')+'</span></div>'+
-        '<div class="inv-row"><span class="k">Họ &amp; tên:</span><span class="v">'+escapeHtml(s.fullName||'—')+'</span></div>'+
+      '<div class="inv-box">'+
+        '<h4>Thông tin khách hàng</h4>'+
+        '<p><span class="label">Địa chỉ:</span> '+escapeHtml(s.address||'—')+'</p>'+
+        '<p><span class="label">Số điện thoại:</span> '+escapeHtml(s.phone||'—')+'</p>'+
+        '<p><span class="label">Họ &amp; tên khách hàng:</span> <b>'+escapeHtml(s.fullName||'—')+'</b></p>'+
       '</div>'+
-      '<div class="inv-box"><h4>Chi tiết đơn hàng</h4>'+
-        '<div class="inv-row"><span class="k">Thời gian đặt:</span><span class="v">'+timeStr+'</span></div>'+
-        '<div class="inv-row"><span class="k">Ngày/tháng/năm:</span><span class="v">'+dateStr+'</span></div>'+
-        '<div class="inv-row"><span class="k">Ghi chú:</span><span class="v">'+escapeHtml(o.note||'—')+'</span></div>'+
+      '<div class="inv-box">'+
+        '<h4>Chi tiết đơn hàng</h4>'+
+        '<p><span class="label">Thời gian đặt:</span> '+timeStr+'</p>'+
+        '<p><span class="label">Ngày/tháng/năm:</span> '+dateStr+'</p>'+
+        '<p><span class="label">Ghi chú từ khách:</span> '+escapeHtml(o.note||'—')+'</p>'+
       '</div>'+
     '</div>'+
-    '<table class="inv-table"><thead><tr><th class="col-name">Danh sách sản phẩm</th><th class="col-qty">Số lượng</th><th class="col-price">Giá</th><th class="col-w">Trọng lượng</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-    '<div class="inv-sums"><div class="row"><span>Tổng giá trị đơn</span><span>'+money(sub)+'đ</span></div><div class="row"><span>Phí vận chuyển</span><span>'+money(ship)+'đ</span></div></div>'+
-    '<div class="inv-total"><span>Tổng thanh toán</span><span>'+money(total)+'đ</span></div>'+
+
+    '<table class="inv-table">'+
+      '<thead><tr>'+
+        '<th>Danh sách sản phẩm</th>'+
+        '<th class="num">Số lượng</th>'+
+        '<th class="money">Giá</th>'+
+        '<th class="w">Trọng lượng</th>'+
+      '</tr></thead>'+
+      '<tbody>'+rows+'</tbody>'+
+    '</table>'+
+
+    '<div class="inv-sums">'+
+      '<div class="row"><span>Tổng giá trị đơn</span><b>'+money(sub)+'đ</b></div>'+
+      '<div class="row"><span>Phí vận chuyển</span><b>'+money(ship)+'đ</b></div>'+
+    '</div>'+
+
+    '<div class="inv-total">'+
+      '<span>Tổng thanh toán</span><span>'+money(total)+'đ</span>'+
+    '</div>'+
+
     '<div class="inv-bottom">'+
-      '<div class="inv-pay"><h4>Payment Information</h4>'+
+      '<div class="inv-pay">'+
+        '<h4>Payment Information</h4>'+
         '<p>Mã đơn hàng: <b>'+escapeHtml(o.id)+'</b></p>'+
         '<p>Đơn vị vận chuyển: J&amp;T Express</p>'+
         '<p>Tình trạng đơn hàng: <b>'+escapeHtml(statusLabel)+'</b></p>'+
       '</div>'+
       '<img class="inv-stamp-img" src="/admin-assets/stamp.png" alt="Gian hàng chính hãng"/>'+
     '</div>'+
+
     '<div class="inv-certs">'+
       '<img src="/admin-assets/boct.png" alt=""/>'+
       '<img src="/admin-assets/ocop.jpg" alt=""/>'+
@@ -980,6 +1033,7 @@ function openOrderDetail(orderId){
       '<img src="/admin-assets/haccp.png" alt=""/>'+
       '<img src="/admin-assets/vfa.png" alt=""/>'+
     '</div>'+
+
     '<div class="inv-foot">'+
       '<div class="inv-foot-left">'+
         '<img src="/admin-assets/logo-footer.png" alt=""/>'+
@@ -994,7 +1048,6 @@ function openOrderDetail(orderId){
     '</div>';
 
   document.getElementById('orderDetailBox').classList.add('show');
-  setTimeout(function(){try{var barcodeVal=String(o.id).replace(/[^0-9A-Za-z]/g,'').slice(-16)||String(o.id);JsBarcode('#invBarcode',barcodeVal,{format:'CODE128',width:1.5,height:44,displayValue:false,margin:0,background:'transparent'});}catch(e){}},60);
 }
 function closeOrderDetail(){document.getElementById('orderDetailBox').classList.remove('show')}
 function copyOrderDetail(){var t=window._lastOrderMsg||'';if(!t)return;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){alert('Đã copy mẫu tin nhắn!')})}else{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('Đã copy mẫu tin nhắn!')}}
