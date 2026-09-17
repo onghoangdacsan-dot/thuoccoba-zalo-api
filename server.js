@@ -957,7 +957,12 @@ function buildOrderMessage(o){
     '💰 TỔNG THANH TOÁN: '+money(total)+'đ',
     '📝 Ghi chú từ khách: '+(o.note||'Không có'),
     '⏰ Thời gian đặt: '+time,
-    '💳 Hình thức thanh toán: '+(o.paymentMethod==='COD'||!o.paymentMethod?'Thanh toán khi nhfunction openOrderDetail(orderId){
+    '💳 Hình thức thanh toán: '+(o.paymentMethod==='COD'||!o.paymentMethod?'Thanh toán khi nhận hàng (COD)':o.paymentMethod)
+  ];
+  return lines.join(String.fromCharCode(10));
+}
+
+function openOrderDetail(orderId){
   var o=allOrders.find(function(x){return x.id===orderId});
   if(!o)return;
   window._lastOrderMsg=buildOrderMessage(o);
@@ -969,11 +974,13 @@ function buildOrderMessage(o){
   var ship=Number(o.shippingFee||0),total=Number(o.total||0);
   var sub=o.subTotal!=null?Number(o.subTotal):Math.max(0,total-ship);
   var statusLabel=STATUS_LABEL[o.status]||o.status||'Đã xác nhận';
+
   var discount=0;
   if(o.discount!=null) discount=Number(o.discount)||0;
   else if(o.autoDiscount!=null) discount=Number(o.autoDiscount)||0;
   else if(o.voucherDiscount!=null) discount=Number(o.voucherDiscount)||0;
   else discount=Math.max(0, Math.round((sub+ship)-total));
+
   var voucherLabel=o.voucherLabel||o.promoLabel||o.discountLabel||'';
   if(!voucherLabel && discount>0){
     if(discount===5000) voucherLabel='Giảm 5.000đ khi quan tâm Zalo OA';
@@ -981,11 +988,10 @@ function buildOrderMessage(o){
     else voucherLabel='Ưu đãi / voucher từ Mini App';
   }
   var voucherRow=discount>0
-    ? ('<div class="row inv-voucher"><span>'+escapeHtml(voucherLabel)+'</span><span style="color:#16a34a">−'+money(discount)+'đ</span></div>')
+    ? ('<div class="row inv-voucher"><span>'+escapeHtml(voucherLabel)+'</span><span style="color:#16a34a">-'+money(discount)+'đ</span></div>')
     : (ship===0 && sub>=500000
-        ? '<div class="row inv-voucher"><span>Miễn phí vận chuyển đơn từ 500.000đ</span><span style="color:#16a34a">−0đ</span></div>'
+        ? '<div class="row inv-voucher"><span>Miễn phí vận chuyển đơn từ 500.000đ</span><span style="color:#16a34a">-0đ</span></div>'
         : '');
-  var barcodeVal=String(o.id||'').replace(/[^0-9A-Za-z_-]/g,'')||('ORD'+Date.now());
 
   var rows=items.length?items.map(function(i){
     var line=Number(i.price||0)*Number(i.quantity||1);
@@ -1009,11 +1015,8 @@ function buildOrderMessage(o){
       '</div>'+
       '<img class="inv-jars" src="/admin-assets/jars.png" alt=""/>'+
     '</div>'+
-
     '<div class="inv-barcode"><svg id="invBarcode"></svg><div class="code">'+escapeHtml(o.id)+'</div></div>'+
-
     '<div class="inv-title">HOÁ ĐƠN BÁN HÀNG ONLINE</div>'+
-
     '<div class="inv-grid">'+
       '<div class="inv-box">'+
         '<h4>Thông tin khách hàng</h4>'+
@@ -1028,7 +1031,6 @@ function buildOrderMessage(o){
         '<div class="inv-row"><span class="k">Ghi chú:</span><span class="v">'+escapeHtml(o.note||'—')+'</span></div>'+
       '</div>'+
     '</div>'+
-
     '<table class="inv-table">'+
       '<thead><tr>'+
         '<th class="col-name">Danh sách sản phẩm</th>'+
@@ -1038,17 +1040,14 @@ function buildOrderMessage(o){
       '</tr></thead>'+
       '<tbody>'+rows+'</tbody>'+
     '</table>'+
-
     '<div class="inv-sums">'+
       '<div class="row"><span>Tổng giá trị đơn</span><span>'+money(sub)+'đ</span></div>'+
       '<div class="row"><span>Phí vận chuyển</span><span>'+money(ship)+'đ</span></div>'+
       voucherRow+
     '</div>'+
-
     '<div class="inv-total">'+
       '<span>Tổng thanh toán</span><span>'+money(total)+'đ</span>'+
     '</div>'+
-
     '<div class="inv-bottom">'+
       '<div class="inv-pay">'+
         '<h4>Payment Information</h4>'+
@@ -1058,7 +1057,6 @@ function buildOrderMessage(o){
       '</div>'+
       '<img class="inv-stamp-img" src="/admin-assets/stamp.png" alt="Gian hàng chính hãng"/>'+
     '</div>'+
-
     '<div class="inv-certs">'+
       '<img src="/admin-assets/boct.png" alt=""/>'+
       '<img src="/admin-assets/ocop.jpg" alt=""/>'+
@@ -1066,7 +1064,6 @@ function buildOrderMessage(o){
       '<img src="/admin-assets/haccp.png" alt=""/>'+
       '<img src="/admin-assets/vfa.png" alt=""/>'+
     '</div>'+
-
     '<div class="inv-foot">'+
       '<div class="inv-foot-left">'+
         '<img src="/admin-assets/logo-footer.png" alt=""/>'+
@@ -1081,30 +1078,15 @@ function buildOrderMessage(o){
     '</div>';
 
   document.getElementById('orderDetailBox').classList.add('show');
-
-  /* Vẽ mã vạch sau khi DOM có #invBarcode */
   setTimeout(function(){
     try{
       var el=document.getElementById('invBarcode');
+      var code=String(o.id||'').replace(/[^0-9A-Za-z_-]/g,'')||('ORD'+Date.now());
       if(el && window.JsBarcode){
-        JsBarcode(el, barcodeVal, {
-          format:'CODE128',
-          width:1.6,
-          height:48,
-          displayValue:false,
-          margin:0,
-          background:'transparent'
-        });
+        JsBarcode(el, code, {format:'CODE128',width:1.5,height:42,displayValue:false,margin:0,background:'transparent'});
       }
-    }catch(e){console.warn('barcode',e)}
-  }, 30);
-}
-
-ransparent'
-        });
-      }
-    }catch(e){console.warn('barcode',e)}
-  }, 30);
+    }catch(e){console.warn(e)}
+  },40);
 }
 
 function closeOrderDetail(){document.getElementById('orderDetailBox').classList.remove('show')}
