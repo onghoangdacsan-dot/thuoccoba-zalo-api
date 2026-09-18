@@ -7,7 +7,28 @@ const path = require("path");
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use("/admin-assets", express.static(path.join(__dirname, "admin-assets")));
+const ADMIN_ASSETS_DIR = path.join(__dirname, "admin-assets");
+app.use("/admin-assets", express.static(ADMIN_ASSETS_DIR, {
+  maxAge: "7d",
+  fallthrough: true,
+  index: false,
+  setHeaders(res) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+  },
+}));
+// Fallback: serve known assets even if path case differs
+app.get("/admin-assets/:file", (req, res, next) => {
+  const file = String(req.params.file || "").replace(/[^a-zA-Z0-9._-]/g, "");
+  const full = path.join(ADMIN_ASSETS_DIR, file);
+  if (!full.startsWith(ADMIN_ASSETS_DIR)) return res.status(400).end();
+  res.sendFile(full, (err) => {
+    if (err) {
+      console.error("admin-asset missing:", file, err.message);
+      res.status(404).type("text/plain").send("Missing asset: " + file);
+    }
+  });
+});
 
 const { createOrder: createJnTOrder } = require("./src/server/jntService");
 
@@ -523,10 +544,16 @@ app.post("/api/zalo-callback", (req, res) => {
 
 app.get(["/admin", "/admin.html"], (req, res) => {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.send(getAdminHTML());
+  const proto = (req.headers["x-forwarded-proto"] || req.protocol || "https").split(",")[0].trim();
+  const host = req.headers["x-forwarded-host"] || req.get("host") || "";
+  const base = process.env.PUBLIC_URL || process.env.RAILWAY_PUBLIC_DOMAIN
+    ? (process.env.PUBLIC_URL || ("https://" + process.env.RAILWAY_PUBLIC_DOMAIN))
+    : (proto + "://" + host);
+  res.send(getAdminHTML(String(base).replace(/\/$/, "")));
 });
 
-function getAdminHTML() {
+function getAdminHTML(ASSET_BASE) {
+  const BASE = ASSET_BASE || "";
   return `<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -627,7 +654,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .invoice::after{
   content:"";position:absolute;left:-8%;top:12%;
   width:72%;height:78%;
-  background-image:url('/admin-assets/pattern.png');background-repeat:no-repeat;
+  background-image:url('${BASE}/admin-assets/pattern.png');background-repeat:no-repeat;
   background-position:left center;background-size:contain;opacity:.22;z-index:0;
   pointer-events:none
 }
@@ -926,7 +953,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 var STATUS_LABEL={pending:'Chờ xác nhận',preparing:'Đang chuẩn bị',shipping:'Đang giao',completed:'Đã giao',cancelled:'Đã hủy'};
 var TIERS=[{key:'dong',label:'Đồng',minPoints:0,cls:'t-dong'},{key:'bac',label:'Bạc',minPoints:200,cls:'t-bac'},{key:'vang',label:'Vàng',minPoints:500,cls:'t-vang'},{key:'kimcuong',label:'Kim Cương',minPoints:1000,cls:'t-kimcuong'}];
 function tierOf(p){var c=TIERS[0];TIERS.forEach(function(t){if(p>=t.minPoints)c=t});return c}
-var allOrders=[],rangeMode='30d',fromTs=null,toTs=null,ADMIN_PASS='thuoccoba2026';
+var ASSET_BASE='${BASE}';window.ASSET_BASE=ASSET_BASE;var allOrders=[],rangeMode='30d',fromTs=null,toTs=null,ADMIN_PASS='thuoccoba2026';
 window._lastOrderMsg='';
 function getPwd(){return sessionStorage.getItem('admin_pwd')||''}
 function login(){var p=(document.getElementById('pwd').value||'').trim(),err=document.getElementById('loginErr');if(!p){err.textContent='Vui lòng nhập mật khẩu';return}if(p!==ADMIN_PASS){err.textContent='Sai mật khẩu';return}sessionStorage.setItem('admin_pwd',p);err.textContent='';document.getElementById('loginBox').style.display='none';document.getElementById('app').style.display='grid';setRange('30d');loadOrders()}
@@ -1010,13 +1037,13 @@ function openOrderDetail(orderId){
   document.getElementById('invoiceBody').innerHTML=
     '<div class="inv-header">'+
       '<div class="inv-brand">'+
-        '<img class="logo" src="/admin-assets/logo.png" alt=""/>'+
+        '<img class="logo" src="'+ASSET_BASE+'/admin-assets/logo.png" alt=""/>'+
         '<div>'+
-          '<div class="name">Hộ kinh doanh Thuộc Cô Ba <img class="verified" src="/admin-assets/verified.png" alt=""/></div>'+
+          '<div class="name">Hộ kinh doanh Thuộc Cô Ba <img class="verified" src="'+ASSET_BASE+'/admin-assets/verified.png" alt=""/></div>'+
           '<div class="sub">Đặc sản Tam Quan</div>'+
         '</div>'+
       '</div>'+
-      '<img class="inv-jars" src="/admin-assets/jars.png" alt=""/>'+
+      '<img class="inv-jars" src="'+ASSET_BASE+'/admin-assets/jars.png" alt=""/>'+
     '</div>'+
     '<div class="inv-barcode"><svg id="invBarcode"></svg><div class="code">'+escapeHtml(o.id)+'</div></div>'+
     '<div class="inv-title">HOÁ ĐƠN BÁN HÀNG ONLINE</div>'+
@@ -1058,18 +1085,18 @@ function openOrderDetail(orderId){
         '<p>Đơn vị vận chuyển: J&amp;T Express</p>'+
         '<p>Tình trạng đơn hàng: <b>'+escapeHtml(statusLabel)+'</b></p>'+
       '</div>'+
-      '<img class="inv-stamp-img" src="/admin-assets/stamp.png" alt="Gian hàng chính hãng"/>'+
+      '<img class="inv-stamp-img" src="'+ASSET_BASE+'/admin-assets/stamp.png" alt="Gian hàng chính hãng"/>'+
     '</div>'+
     '<div class="inv-certs">'+
-      '<img src="/admin-assets/boct.png" alt=""/>'+
-      '<img src="/admin-assets/ocop.png" alt=""/>'+
-      '<img src="/admin-assets/hangvn.png" alt=""/>'+
-      '<img src="/admin-assets/haccp.png" alt=""/>'+
-      '<img src="/admin-assets/vfa.png" alt=""/>'+
+      '<img src="'+ASSET_BASE+'/admin-assets/boct.png" alt=""/>'+
+      '<img src="'+ASSET_BASE+'/admin-assets/ocop.png" alt=""/>'+
+      '<img src="'+ASSET_BASE+'/admin-assets/hangvn.png" alt=""/>'+
+      '<img src="'+ASSET_BASE+'/admin-assets/haccp.png" alt=""/>'+
+      '<img src="'+ASSET_BASE+'/admin-assets/vfa.png" alt=""/>'+
     '</div>'+
     '<div class="inv-foot">'+
       '<div class="inv-foot-left">'+
-        '<img src="/admin-assets/logo-footer.png" alt=""/>'+
+        '<img src="'+ASSET_BASE+'/admin-assets/logo-footer.png" alt=""/>'+
         '<div class="brand">Thuộc Cô Ba Store</div>'+
       '</div>'+
       '<div class="inv-foot-right">'+
