@@ -634,7 +634,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 }
 #orderDetailBox.show{display:flex}
 .invoice-wrap{
-  background:transparent;border-radius:2px;max-width:680px;width:100%;
+  background:transparent;border-radius:2px;max-width:720px;width:100%;
   max-height:98vh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.35)
 }
 .invoice{
@@ -647,22 +647,21 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   min-height:0;
 }
 .invoice::before{
-  content:"";position:absolute;left:0;top:0;width:100%;height:40px;
+  content:"";position:absolute;left:0;top:0;width:100%;height:36px;
   background:var(--blue);z-index:0;
-  clip-path:polygon(0 0,100% 0,88% 100%,0 100%)
 }
 .invoice::after{
-  content:"";position:absolute;left:-8%;top:12%;
-  width:72%;height:78%;
-  background-image:url('https://raw.githubusercontent.com/onghoangdacsan-dot/thuoccoba-zalo-api/main/admin-assets/pattern.png');background-repeat:no-repeat;
-  background-position:left center;background-size:contain;opacity:.22;z-index:0;
-  pointer-events:none
+  content:"";position:absolute;left:0;top:8%;
+  width:58%;height:85%;
+  background-image:url('https://raw.githubusercontent.com/onghoangdacsan-dot/thuoccoba-zalo-api/main/admin-assets/pattern.png');
+  background-repeat:no-repeat;background-position:left center;background-size:contain;
+  opacity:.2;z-index:0;pointer-events:none
 }
 .invoice > *{position:relative;z-index:2}
 .invoice img{background:transparent;image-rendering:-webkit-optimize-contrast}
 .inv-header{
-  min-height:150px;padding:28px 0 0 28px;display:flex;
-  justify-content:space-between;align-items:flex-start;gap:12px;
+  min-height:168px;padding:42px 0 0 32px;display:flex;
+  justify-content:space-between;align-items:flex-start;gap:8px;
   overflow:visible
 }
 .inv-brand{display:flex;align-items:center;gap:12px;padding-top:5px}
@@ -677,18 +676,25 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .inv-brand .name img.verified{width:16px;height:16px;object-fit:contain;flex-shrink:0}
 .inv-brand .sub{font-size:12px;color:#1450a0;margin-top:2px;font-weight:500}
 .inv-jars{
-  height:168px;width:auto;max-width:280px;object-fit:contain;
+  height:200px;width:auto;max-width:320px;object-fit:contain;
   object-position:top right;mix-blend-mode:normal;flex-shrink:0;
-  margin-top:-36px;margin-right:0;margin-left:auto;
-  filter:drop-shadow(0 8px 12px rgba(0,0,0,.18))
+  margin-top:-48px;margin-right:8px;margin-left:auto;
+  filter:drop-shadow(0 8px 14px rgba(0,0,0,.18))
 }
-.inv-barcode{display:block;text-align:center;margin:4px 0 2px;position:relative;z-index:2}
-.inv-barcode svg{max-width:200px;height:42px}
-.inv-barcode .code{font-size:10px;color:#64748b;margin-top:2px;letter-spacing:.35px;font-family:ui-monospace,Consolas,monospace}
+.inv-barcode{
+  display:block;text-align:center;margin:2px 0 0;padding:0;
+  position:relative;z-index:2;line-height:1
+}
+.inv-barcode svg{max-width:240px;height:56px;display:block;margin:0 auto}
+.inv-barcode .code{
+  font-size:11px;color:#475569;margin-top:0;padding-top:2px;
+  letter-spacing:1.5px;font-family:ui-monospace,Consolas,monospace;
+  line-height:1.2
+}
 .inv-title{
-  text-align:center;font-size:26px;font-weight:900;color:#465258;
-  letter-spacing:1px;margin:8px 0 22px;text-transform:uppercase;
-  line-height:1.1
+  text-align:center;font-size:28px;font-weight:900;color:#465258;
+  letter-spacing:1.2px;margin:10px 0 20px;text-transform:uppercase;
+  line-height:1.15
 }
 .inv-grid{
   display:grid;grid-template-columns:1.12fr .88fr;gap:24px;
@@ -728,22 +734,24 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   font-weight:800;font-size:15px;line-height:1.1
 }
 .inv-bottom{
-  display:grid;grid-template-columns:1fr auto;gap:20px;align-items:end;
-  min-height:120px;margin:0 28px 2px
+  display:grid;grid-template-columns:1fr auto;gap:16px;align-items:end;
+  min-height:130px;margin:0 32px 4px;padding-right:12px
 }
 .inv-pay h4{margin:0 0 11px;font-size:13px;color:#06459b;font-weight:800}
 .inv-pay p{margin:5px 0;font-size:12px;color:#5b6468;line-height:1.45}
 .inv-stamp-img{
-  width:158px;height:auto;display:block;mix-blend-mode:normal;
-  margin-right:4px;margin-bottom:0;transform:rotate(-8deg)
+  width:148px;height:auto;display:block;mix-blend-mode:normal;
+  margin-right:28px;margin-bottom:4px;transform:rotate(-8deg)
 }
 .inv-certs{
-  display:flex;align-items:center;justify-content:flex-start;
-  gap:16px;flex-wrap:wrap;padding:12px 28px 14px;min-height:52px
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;flex-wrap:nowrap;padding:14px 32px 16px;min-height:56px;
+  width:100%;box-sizing:border-box
 }
 .inv-certs img{
-  height:40px;width:auto;max-width:100px;object-fit:contain;mix-blend-mode:normal;
-  flex:0 0 auto;image-rendering:-webkit-optimize-contrast
+  height:44px;width:auto;max-width:none;flex:1 1 0;object-fit:contain;
+  mix-blend-mode:normal;image-rendering:-webkit-optimize-contrast;
+  max-height:48px
 }
 .inv-foot{
   display:grid;grid-template-columns:1.12fr .88fr;margin:0;min-height:88px
@@ -776,9 +784,16 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   display:inline-flex;align-items:center;justify-content:center;font-size:11px;flex:none
 }
 
-.inv-barcode{text-align:center;margin:8px 0 4px;position:relative;z-index:2}
-.inv-barcode svg{max-width:240px;height:52px}
-.inv-barcode .code{font-size:11px;color:#64748b;margin-top:2px;letter-spacing:.4px;font-family:ui-monospace,Consolas,monospace}
+.inv-barcode{
+  display:block;text-align:center;margin:2px 0 0;padding:0;
+  position:relative;z-index:2;line-height:1
+}
+.inv-barcode svg{max-width:240px;height:56px;display:block;margin:0 auto}
+.inv-barcode .code{
+  font-size:11px;color:#475569;margin-top:0;padding-top:2px;
+  letter-spacing:1.5px;font-family:ui-monospace,Consolas,monospace;
+  line-height:1.2
+}
 .inv-row{display:grid;grid-template-columns:118px 1fr;gap:4px 12px;margin:0 0 8px;align-items:start;font-size:13px;line-height:1.5}
 .inv-row .k{color:#64748b;font-weight:500;padding-top:1px}
 .inv-row .v{color:#1e293b;font-weight:600;word-break:break-word}
@@ -807,13 +822,13 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 @media(max-width:640px){
   #orderDetailBox{padding:0}
   .invoice-wrap{max-height:100vh}
-  .invoice::after{left:-5%;top:10%;transform:none;width:85%;height:70%}
+  .invoice::after{left:0;top:6%;transform:none;width:70%;height:80%}
   .inv-header{min-height:150px;padding:48px 16px 0}
   .inv-brand{gap:8px}
   .inv-brand img.logo{width:42px;height:42px}
   .inv-brand .name{font-size:13px;white-space:normal}
   .inv-brand .sub{font-size:11px}
-  .inv-jars{height:130px;max-width:200px;margin-top:-28px;margin-right:0}
+  .inv-jars{height:150px;max-width:230px;margin-top:-36px;margin-right:6px}
   .inv-title{font-size:26px;margin:6px 16px 34px}
   .inv-grid{grid-template-columns:1fr;gap:22px;padding:0 16px;margin-bottom:24px}
   .inv-box h4{font-size:14px}.inv-box p{font-size:13px}.inv-box .label{min-width:125px}
@@ -826,7 +841,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   .inv-pay h4{font-size:14px}.inv-pay p{font-size:12px}
   .inv-stamp-img{width:150px;margin:0 auto}
   .inv-certs{padding:4px 16px 12px;gap:9px;overflow:hidden}
-  .inv-certs img{height:34px}
+  .inv-certs img{height:38px;flex:1 1 0}
   .inv-foot{grid-template-columns:1fr}
   .inv-foot-left{padding:13px 16px;min-height:78px}
   .inv-foot-left::after{display:none}
@@ -1128,7 +1143,7 @@ function openOrderDetail(orderId){
       var el=document.getElementById('invBarcode');
       var code=String(o.id||'').replace(/[^0-9A-Za-z_-]/g,'')||('ORD'+Date.now());
       if(el && window.JsBarcode){
-        JsBarcode(el, code, {format:'CODE128',width:1.5,height:42,displayValue:false,margin:0,background:'transparent'});
+        JsBarcode(el, code, {format:'CODE128',width:1.8,height:52,displayValue:false,margin:0,marginTop:0,marginBottom:0,background:'transparent'});
       }
     }catch(e){console.warn(e)}
   },40);
