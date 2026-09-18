@@ -626,249 +626,76 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .t-dong{background:#f5e6d3;color:#8B5A2B}.t-bac{background:#e8eef5;color:#64748b}
 .t-vang{background:#fff3cd;color:#b8860b}.t-kimcuong{background:#e0f2fe;color:#0284c7}
 
-/* ===== HOÁ ĐƠN — thiết kế bám sát mẫu 1414 × 2000 ===== */
+/* ===== HOÁ ĐƠN — bố cục bám sát mẫu 1414 × 2000 ===== */
 #orderDetailBox{
-  display:none;position:fixed;inset:0;
-  background:rgba(18,28,40,.66);z-index:9999;
-  align-items:center;justify-content:center;padding:10px;
+  display:none;position:fixed;inset:0;background:rgba(18,28,40,.66);z-index:9999;
+  align-items:center;justify-content:center;padding:12px;
 }
 #orderDetailBox.show{display:flex}
 .invoice-wrap{
-  background:transparent;border-radius:4px;
-  width:min(707px,calc(100vw - 20px));
-  max-width:707px;max-height:calc(100vh - 20px);
-  overflow:auto;box-shadow:0 18px 55px rgba(0,0,0,.32);
+  width:min(707px,calc(100vw - 24px));max-width:707px;max-height:calc(100vh - 24px);
+  overflow:auto;background:transparent;border-radius:4px;box-shadow:0 18px 55px rgba(0,0,0,.32);
 }
 .invoice{
-  --blue:#06479f;
-  --blue2:#0a4da7;
-  --ink:#48565b;
-  --muted:#647177;
-  --paper:#fcfaf2;
-  position:relative;overflow:hidden;
-  width:100%;min-height:1000px;
-  aspect-ratio:1414 / 2000;
-  padding:0 7.2% 0;
-  background:var(--paper);
-  color:var(--ink);
+  --blue:#06479f;--ink:#4d5a5f;--paper:#fcfaf2;
+  position:relative;overflow:hidden;width:707px;height:1000px;min-height:1000px;
+  box-sizing:border-box;padding:0 50px;background:var(--paper);color:var(--ink);
   font-family:'Be Vietnam Pro',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
 }
 .invoice::before{
-  content:"";position:absolute;z-index:0;
-  left:0;top:0;width:100%;height:39px;
-  background:var(--blue);
+  content:"";position:absolute;z-index:0;left:0;top:0;width:100%;height:39px;background:var(--blue);
   clip-path:polygon(0 0,100% 0,88.3% 100%,0 100%);
 }
 .invoice::after{
-  content:"";position:absolute;z-index:0;pointer-events:none;
-  left:-1.5%;top:19.5%;width:57%;height:60%;
-  background:url('/admin-assets/pattern.png') left top/contain no-repeat;
-  opacity:.20;
+  content:"";position:absolute;z-index:0;pointer-events:none;left:-20px;top:192px;width:405px;height:610px;
+  background:url('/admin-assets/pattern.png') left top/contain no-repeat;opacity:.19;
 }
-.invoice > *{position:relative;z-index:2}
-.invoice img{background:transparent}
-
-.inv-header{
-  height:184px;display:flex;justify-content:space-between;
-  align-items:flex-start;gap:10px;
-  padding-top:39px;margin:0;
-}
-.inv-brand{
-  display:flex;align-items:center;gap:9px;
-  padding-top:27px;min-width:0;
-}
-.inv-brand img.logo{
-  width:52px;height:52px;border-radius:50%;
-  object-fit:cover;flex:0 0 auto;
-  box-shadow:none;
-}
-.inv-brand .name{
-  font-size:15px;font-weight:700;color:#06479f;
-  display:flex;align-items:center;gap:4px;
-  line-height:1.25;white-space:nowrap;
-}
-.inv-brand .name img.verified{
-  width:13px;height:13px;object-fit:contain;flex:0 0 auto;
-}
-.inv-brand .sub{
-  font-size:13px;color:#06479f;margin-top:4px;font-weight:400;
-}
-.inv-jars{
-  height:205px;width:285px;max-width:43%;
-  object-fit:contain;object-position:top right;
-  display:block;filter:none;
-  margin-top:-12px;margin-right:-2%;
-}
-
+.invoice>*{position:relative;z-index:2}.invoice img{background:transparent}
+.inv-header{height:173px;display:flex;justify-content:space-between;align-items:flex-start;padding-top:39px;box-sizing:border-box}
+.inv-brand{display:flex;align-items:center;gap:9px;padding-top:28px;min-width:0}
+.inv-brand img.logo{width:52px;height:52px;border-radius:50%;object-fit:cover;flex:0 0 auto}
+.inv-brand .name{font-size:15px;font-weight:700;color:#06479f;display:flex;align-items:center;gap:4px;line-height:1.25;white-space:nowrap}
+.inv-brand .name img.verified{width:13px;height:13px;object-fit:contain}
+.inv-brand .sub{font-size:13px;color:#06479f;margin-top:4px}
+.inv-jars{height:164px;width:235px;max-width:38%;object-fit:contain;object-position:top right;display:block;margin-top:-10px;margin-right:-4px}
 .inv-barcode{display:none!important}
-.inv-title{
-  text-align:center;font-size:31px;font-weight:900;
-  color:#465258;letter-spacing:1px;
-  margin:62px 0 48px;text-transform:uppercase;
-  line-height:1.08;
-}
-
-.inv-grid{
-  display:grid;grid-template-columns:1.08fr .92fr;
-  gap:28px;margin:0 0 29px;
-}
-.inv-box h4{
-  margin:0 0 15px;font-size:14px;color:#06479f;font-weight:800;
-}
-.inv-row{
-  display:grid;grid-template-columns:125px 1fr;
-  gap:4px 10px;margin:0 0 7px;
-  align-items:start;font-size:13px;line-height:1.42;
-}
-.inv-row .k{color:#5f6b70;font-weight:400}
-.inv-row .v{color:#4f5b60;font-weight:500;word-break:break-word}
-
-.inv-table{
-  width:100%;border-collapse:collapse;font-size:13px;
-  margin:0;table-layout:fixed;
-}
-.inv-table th{
-  text-align:left;color:#06479f;font-weight:700;
-  padding:10px 7px;border-bottom:2px solid #06479f;
-  font-size:12.5px;white-space:nowrap;
-}
-.inv-table th.col-name{width:auto}
-.inv-table th.col-qty{width:78px;text-align:center}
-.inv-table th.col-price{width:100px;text-align:right}
-.inv-table th.col-w{width:92px;text-align:center}
-.inv-table td{
-  height:37px;padding:7px;color:#536066;
-  border-bottom:1px solid #e8e8df;vertical-align:middle;
-}
-.inv-table td.col-qty{text-align:center;font-weight:500}
-.inv-table td.col-price{text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
-.inv-table td.col-w{text-align:center;color:#5f6b70}
-.inv-table td.col-name{word-break:break-word}
-
-.inv-sums{
-  margin-left:auto;width:285px;font-size:13px;
-  margin-top:24px;
-}
-.inv-sums .row{
-  display:grid;grid-template-columns:1fr 95px;gap:8px;
-  padding:6px 7px;color:#59656a;align-items:center;
-}
-.inv-sums .row span:last-child,.inv-sums .row b{
-  text-align:right;font-variant-numeric:tabular-nums;
-  font-weight:600;color:#4b575c;
-}
-.inv-sums .inv-voucher span:first-child{
-  color:#159447;font-weight:600;font-size:12px;
-}
-
-.inv-total{
-  background:#06479f;color:#fff;
-  padding:14px 20px;display:grid;grid-template-columns:1fr auto;
-  align-items:center;gap:12px;font-weight:800;font-size:17px;
-  margin:10px 0 48px;position:relative;border-radius:0;
-}
+.inv-title{text-align:center;font-size:31px;font-weight:900;color:#465258;letter-spacing:1px;margin:18px 0 43px;text-transform:uppercase;line-height:1.08}
+.inv-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:28px;margin:0 0 24px}
+.inv-box h4{margin:0 0 14px;font-size:14px;color:#06479f;font-weight:800}
+.inv-row{display:grid;grid-template-columns:125px 1fr;gap:4px 10px;margin:0 0 6px;align-items:start;font-size:13px;line-height:1.35}
+.inv-row .k{color:#5f6b70}.inv-row .v{color:#4f5b60;font-weight:500;word-break:break-word}
+.inv-table{width:100%;border-collapse:collapse;font-size:13px;margin:0;table-layout:fixed}
+.inv-table th{text-align:left;color:#06479f;font-weight:700;padding:9px 7px;border-bottom:2px solid #06479f;font-size:12.5px;white-space:nowrap}
+.inv-table th.col-qty{width:78px;text-align:center}.inv-table th.col-price{width:100px;text-align:right}.inv-table th.col-w{width:92px;text-align:center}
+.inv-table td{height:36px;padding:6px 7px;color:#536066;border-bottom:1px solid #e8e8df;vertical-align:middle}
+.inv-table td.col-qty{text-align:center}.inv-table td.col-price{text-align:right;font-variant-numeric:tabular-nums}.inv-table td.col-w{text-align:center}.inv-table td.col-name{word-break:break-word}
+.inv-sums{margin-left:auto;width:285px;font-size:13px;margin-top:18px}
+.inv-sums .row{display:grid;grid-template-columns:1fr 95px;gap:8px;padding:5px 7px;color:#59656a;align-items:center}
+.inv-sums .row span:last-child{ text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:#4b575c}
+.inv-sums .inv-voucher span:first-child{color:#159447;font-weight:600;font-size:12px}
+.inv-total{background:#06479f;color:#fff;padding:13px 20px;display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;font-weight:800;font-size:17px;margin:8px 0 37px;border-radius:0}
 .inv-total span:last-child{font-variant-numeric:tabular-nums}
-
-.inv-bottom{
-  display:grid;grid-template-columns:1fr 190px;
-  gap:18px;align-items:start;margin-bottom:7px;
-  min-height:154px;
-}
-.inv-pay h4{
-  margin:0 0 11px;font-size:13px;color:#06479f;font-weight:700;
-}
-.inv-pay p{
-  margin:5px 0;font-size:12.5px;color:#566268;line-height:1.55;
-}
-.inv-pay b{color:#4b575c}
-.inv-stamp-img{
-  width:170px;height:auto;display:block;
-  justify-self:end;margin:0 0 0 auto;
-  mix-blend-mode:multiply;
-}
-
-.inv-certs{
-  display:flex;align-items:center;justify-content:flex-start;
-  gap:17px;flex-wrap:nowrap;padding:5px 0 12px;
-  width:60%;box-sizing:border-box;
-}
-.inv-certs img{
-  height:39px;width:auto;object-fit:contain;
-  mix-blend-mode:multiply;flex:0 0 auto;
-  max-width:92px;
-}
-
-.inv-foot{
-  display:grid;grid-template-columns:1.06fr .94fr;
-  margin:0 -7.2%;min-height:105px;position:relative;
-}
-.inv-foot-left{
-  background:#06479f;padding:12px 35px 12px 68px;
-  display:flex;align-items:center;gap:15px;
-}
-.inv-foot-left img{
-  width:57px;height:57px;border-radius:10px;
-  object-fit:cover;flex:0 0 auto;
-}
-.inv-foot-left .brand{
-  font-size:21px;font-weight:700;color:#fff;white-space:nowrap;
-}
-.inv-foot-right{
-  background:#06479f;color:#fff;padding:12px 22px 11px 48px;
-  display:flex;flex-direction:column;justify-content:center;
-  clip-path:polygon(12% 0,100% 0,100% 100%,0 100%);
-}
-.inv-foot-right .contact-item{
-  display:flex;align-items:center;gap:9px;
-  font-size:11px;line-height:1.8;white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis;
-}
-.inv-foot-right .c-ico{
-  width:20px;height:20px;border-radius:50%;
-  background:#fff;color:#06479f;
-  display:inline-flex;align-items:center;justify-content:center;
-  font-size:10px;flex:none;
-}
-
-.inv-actions{
-  padding:10px 12px;display:flex;gap:8px;justify-content:flex-end;
-  flex-wrap:wrap;background:#fff;border-top:1px solid #e1e1d9;
-  position:sticky;bottom:0;
-}
-
+.inv-bottom{display:grid;grid-template-columns:1fr 190px;gap:18px;align-items:start;margin-bottom:0;min-height:125px}
+.inv-pay h4{margin:0 0 10px;font-size:13px;color:#06479f;font-weight:700}.inv-pay p{margin:5px 0;font-size:12.5px;color:#566268;line-height:1.5}.inv-pay b{color:#4b575c}
+.inv-stamp-img{width:158px;height:auto;display:block;justify-self:end;margin:-4px 0 0 auto;mix-blend-mode:multiply}
+.inv-certs{height:46px;display:flex;align-items:center;justify-content:flex-start;gap:17px;flex-wrap:nowrap;padding:0;width:62%;box-sizing:border-box}
+.inv-certs img{height:30px;width:auto;object-fit:contain;mix-blend-mode:multiply;flex:0 0 auto;max-width:75px}
+.inv-foot{display:grid;grid-template-columns:1.06fr .94fr;margin:0 -50px;min-height:96px;height:96px}
+.inv-foot-left{background:#06479f;padding:10px 22px 10px 35px;display:flex;align-items:center;gap:12px}
+.inv-foot-left img{width:52px;height:52px;border-radius:10px;object-fit:cover;flex:0 0 auto}.inv-foot-left .brand{font-size:21px;font-weight:700;color:#fff;white-space:nowrap}
+.inv-foot-right{background:#06479f;color:#fff;padding:9px 18px 9px 43px;display:flex;flex-direction:column;justify-content:center;clip-path:polygon(12% 0,100% 0,100% 100%,0 100%)}
+.inv-foot-right .contact-item{display:flex;align-items:center;gap:8px;font-size:10px;line-height:1.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.inv-foot-right .c-ico{width:18px;height:18px;border-radius:50%;background:#fff;color:#06479f;display:inline-flex;align-items:center;justify-content:center;font-size:9px;flex:none}
+.inv-actions{padding:10px 12px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;background:#fff;border-top:1px solid #e1e1d9;position:sticky;bottom:0}
 @media(max-width:640px){
-  .invoice-wrap{width:calc(100vw - 12px);max-width:none}
-  .invoice{min-height:auto;padding:0 5.5%}
-  .inv-header{height:150px}
-  .inv-brand{padding-top:22px}
-  .inv-brand img.logo{width:42px;height:42px}
-  .inv-brand .name{font-size:11px}
-  .inv-brand .sub{font-size:10px}
-  .inv-jars{height:160px;max-width:44%}
-  .inv-title{font-size:22px;margin:43px 0 35px}
-  .inv-grid{grid-template-columns:1fr;gap:18px}
-  .inv-row{grid-template-columns:105px 1fr;font-size:11px}
-  .inv-table{font-size:10px}
-  .inv-table th{font-size:10px;padding:7px 4px}
-  .inv-table td{height:30px;padding:5px 4px}
-  .inv-table th.col-qty{width:55px}.inv-table th.col-price{width:75px}.inv-table th.col-w{width:62px}
-  .inv-sums{width:100%;margin-top:15px}
-  .inv-total{font-size:14px;margin-bottom:30px}
-  .inv-bottom{grid-template-columns:1fr 135px;min-height:125px}
-  .inv-pay p{font-size:10px}
-  .inv-stamp-img{width:120px}
-  .inv-certs{width:65%;gap:6px}
-  .inv-certs img{height:25px;max-width:60px}
-  .inv-foot{margin:0 -5.5%;grid-template-columns:1fr}
-  .inv-foot-left{padding:9px 18px}.inv-foot-left .brand{font-size:17px}
-  .inv-foot-right{clip-path:none;padding:10px 18px}
-  .inv-foot-right .contact-item{font-size:9.5px}
+  .invoice-wrap{width:calc(100vw - 12px);max-width:none}.invoice{transform-origin:top left;width:707px;height:1000px}
+  .inv-title{font-size:28px}.inv-foot-left .brand{font-size:18px}
 }
 @media print{
-  #orderDetailBox{position:static!important;background:none!important;display:block!important;padding:0!important}
-  .invoice-wrap{box-shadow:none;max-height:none;border-radius:0}
+  @page{size:A4 portrait;margin:0}html,body{margin:0!important;padding:0!important;background:#fff!important}
+  #orderDetailBox{position:static!important;inset:auto!important;background:none!important;display:block!important;padding:0!important}
+  .invoice-wrap{width:210mm!important;max-width:none!important;max-height:none!important;overflow:visible!important;box-shadow:none!important;border-radius:0!important}
+  .invoice{width:210mm!important;height:297mm!important;min-height:297mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   .inv-actions{display:none!important}
-  body{background:#fff}
 }
 </style>
 </head>
@@ -1082,7 +909,7 @@ function openOrderDetail(orderId){
       assetImg('jars.png','inv-jars','')+
     '</div>'+
     '<div class="inv-barcode"><svg id="invBarcode"></svg><div class="code">'+escapeHtml(o.id)+'</div></div>'+
-    '<div class="inv-title">HOÁ ĐƠN BÁN HÀNG ONLINE</div>'+
+    '<div class="inv-title">HOÁ ĐƠN BÁN HÀNG</div>'+
     '<div class="inv-grid">'+
       '<div class="inv-box">'+
         '<h4>Thông tin khách hàng</h4>'+
