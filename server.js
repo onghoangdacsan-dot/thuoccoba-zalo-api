@@ -627,18 +627,18 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .invoice::after{
   content:"";position:absolute;left:-160px;top:270px;width:720px;height:720px;
   background-image:url('/admin-assets/pattern.png');background-repeat:no-repeat;
-  background-position:center;background-size:contain;opacity:.34;z-index:0;
+  background-position:center;background-size:contain;opacity:.16;z-index:0;
   pointer-events:none
 }
 .invoice > *{position:relative;z-index:2}
-.invoice img{background:transparent}
+.invoice img{background:transparent;image-rendering:-webkit-optimize-contrast}
 .inv-header{
   min-height:120px;padding:36px 28px 0;display:flex;
   justify-content:space-between;align-items:flex-start;gap:18px;
 }
 .inv-brand{display:flex;align-items:center;gap:12px;padding-top:5px}
 .inv-brand img.logo{
-  width:44px;height:44px;border-radius:50%;object-fit:cover;
+  width:48px;height:48px;border-radius:50%;object-fit:cover;image-rendering:-webkit-optimize-contrast;
   box-shadow:0 1px 5px rgba(0,0,0,.12);flex-shrink:0
 }
 .inv-brand .name{
@@ -648,8 +648,8 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .inv-brand .name img.verified{width:16px;height:16px;object-fit:contain;flex-shrink:0}
 .inv-brand .sub{font-size:12px;color:#1450a0;margin-top:2px;font-weight:500}
 .inv-jars{
-  height:110px;width:auto;max-width:200px;object-fit:contain;
-  object-position:top right;mix-blend-mode:multiply;flex-shrink:0;
+  height:120px;width:auto;max-width:210px;object-fit:contain;
+  object-position:top right;mix-blend-mode:normal;flex-shrink:0;
   margin-top:-12px;margin-right:-8px;filter:drop-shadow(0 10px 9px rgba(0,0,0,.16))
 }
 .inv-barcode{display:block;text-align:center;margin:4px 0 2px;position:relative;z-index:2}
@@ -704,33 +704,33 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .inv-pay h4{margin:0 0 11px;font-size:13px;color:#06459b;font-weight:800}
 .inv-pay p{margin:5px 0;font-size:12px;color:#5b6468;line-height:1.45}
 .inv-stamp-img{
-  width:130px;height:auto;display:block;mix-blend-mode:multiply;
+  width:130px;height:auto;display:block;mix-blend-mode:normal;
   margin-right:6px;margin-bottom:-2px;transform:rotate(-6deg)
 }
 .inv-certs{
   display:flex;align-items:center;justify-content:flex-start;
-  gap:18px;flex-wrap:wrap;padding:8px 28px 12px;min-height:44px
+  gap:14px;flex-wrap:wrap;padding:10px 28px 12px;min-height:48px
 }
 .inv-certs img{
-  height:28px;width:auto;max-width:72px;object-fit:contain;mix-blend-mode:multiply;
-  flex:0 0 auto
+  height:32px;width:auto;max-width:80px;object-fit:contain;mix-blend-mode:normal;
+  flex:0 0 auto;image-rendering:-webkit-optimize-contrast;-ms-interpolation-mode:nearest-neighbor
 }
 .inv-foot{
   display:grid;grid-template-columns:1.12fr .88fr;margin:0;min-height:88px
 }
 .inv-foot-left{
-  background:#08459a;padding:12px 28px;display:flex;align-items:center;
-  gap:12px;color:#fff;position:relative
+  background:#08459a;padding:14px 28px;display:flex;align-items:center;
+  gap:14px;color:#fff;min-height:88px;position:relative
 }
 .inv-foot-left::after{
   content:"";position:absolute;right:-35px;top:0;width:58px;height:100%;
   background:var(--cream);clip-path:polygon(60% 0,100% 0,35% 100%,0 100%)
 }
 .inv-foot-left img{
-  width:44px;height:44px;border-radius:10px;object-fit:cover;flex-shrink:0
+  width:56px;height:56px;border-radius:12px;object-fit:cover;flex-shrink:0;image-rendering:-webkit-optimize-contrast;box-shadow:0 2px 8px rgba(0,0,0,.2)
 }
 .inv-foot-left .brand{
-  font-size:18px;font-weight:800;color:#fff;line-height:1.1;white-space:nowrap
+  font-size:22px;font-weight:800;color:#fff;line-height:1.15;white-space:nowrap;letter-spacing:.3px
 }
 .inv-foot-right{
   background:#08459a;color:#fff;padding:10px 18px 10px 24px;
@@ -817,7 +817,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   .inv-actions{display:none!important}
   .inv-header{padding-top:18mm}
   .invoice::before{height:10mm}
-  .invoice::after{opacity:.34}
+  .invoice::after{opacity:.16}
 }
 </style>
 </head>
