@@ -625,22 +625,23 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   clip-path:polygon(0 0,100% 0,88% 100%,0 100%)
 }
 .invoice::after{
-  content:"";position:absolute;left:-20px;top:50%;transform:translateY(-50%);
-  width:520px;height:520px;
+  content:"";position:absolute;left:-8%;top:12%;
+  width:72%;height:78%;
   background-image:url('/admin-assets/pattern.png');background-repeat:no-repeat;
-  background-position:left center;background-size:contain;opacity:.18;z-index:0;
+  background-position:left center;background-size:contain;opacity:.22;z-index:0;
   pointer-events:none
 }
 .invoice > *{position:relative;z-index:2}
 .invoice img{background:transparent;image-rendering:-webkit-optimize-contrast}
 .inv-header{
-  min-height:120px;padding:36px 28px 0;display:flex;
-  justify-content:space-between;align-items:flex-start;gap:18px;
+  min-height:150px;padding:28px 0 0 28px;display:flex;
+  justify-content:space-between;align-items:flex-start;gap:12px;
+  overflow:visible
 }
 .inv-brand{display:flex;align-items:center;gap:12px;padding-top:5px}
 .inv-brand img.logo{
-  width:48px;height:48px;border-radius:50%;object-fit:cover;image-rendering:-webkit-optimize-contrast;
-  box-shadow:0 1px 5px rgba(0,0,0,.12);flex-shrink:0
+  width:56px;height:56px;border-radius:50%;object-fit:cover;image-rendering:-webkit-optimize-contrast;
+  box-shadow:0 1px 5px rgba(0,0,0,.12);flex-shrink:0;background:#fff
 }
 .inv-brand .name{
   font-size:14px;font-weight:800;color:#114a8e;display:flex;
@@ -649,9 +650,10 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .inv-brand .name img.verified{width:16px;height:16px;object-fit:contain;flex-shrink:0}
 .inv-brand .sub{font-size:12px;color:#1450a0;margin-top:2px;font-weight:500}
 .inv-jars{
-  height:120px;width:auto;max-width:210px;object-fit:contain;
+  height:168px;width:auto;max-width:280px;object-fit:contain;
   object-position:top right;mix-blend-mode:normal;flex-shrink:0;
-  margin-top:-12px;margin-right:-8px;filter:drop-shadow(0 10px 9px rgba(0,0,0,.16))
+  margin-top:-36px;margin-right:0;margin-left:auto;
+  filter:drop-shadow(0 8px 12px rgba(0,0,0,.18))
 }
 .inv-barcode{display:block;text-align:center;margin:4px 0 2px;position:relative;z-index:2}
 .inv-barcode svg{max-width:200px;height:42px}
@@ -705,16 +707,16 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .inv-pay h4{margin:0 0 11px;font-size:13px;color:#06459b;font-weight:800}
 .inv-pay p{margin:5px 0;font-size:12px;color:#5b6468;line-height:1.45}
 .inv-stamp-img{
-  width:130px;height:auto;display:block;mix-blend-mode:normal;
-  margin-right:6px;margin-bottom:-2px;transform:rotate(-6deg)
+  width:158px;height:auto;display:block;mix-blend-mode:normal;
+  margin-right:4px;margin-bottom:0;transform:rotate(-8deg)
 }
 .inv-certs{
   display:flex;align-items:center;justify-content:flex-start;
-  gap:14px;flex-wrap:wrap;padding:10px 28px 12px;min-height:48px
+  gap:16px;flex-wrap:wrap;padding:12px 28px 14px;min-height:52px
 }
 .inv-certs img{
-  height:32px;width:auto;max-width:80px;object-fit:contain;mix-blend-mode:normal;
-  flex:0 0 auto;image-rendering:-webkit-optimize-contrast;-ms-interpolation-mode:nearest-neighbor
+  height:40px;width:auto;max-width:100px;object-fit:contain;mix-blend-mode:normal;
+  flex:0 0 auto;image-rendering:-webkit-optimize-contrast
 }
 .inv-foot{
   display:grid;grid-template-columns:1.12fr .88fr;margin:0;min-height:88px
@@ -728,7 +730,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   background:var(--cream);clip-path:polygon(60% 0,100% 0,35% 100%,0 100%)
 }
 .inv-foot-left img{
-  width:56px;height:56px;border-radius:12px;object-fit:cover;flex-shrink:0;image-rendering:-webkit-optimize-contrast;box-shadow:0 2px 8px rgba(0,0,0,.2)
+  width:58px;height:58px;border-radius:12px;object-fit:cover;flex-shrink:0;image-rendering:-webkit-optimize-contrast;box-shadow:0 2px 8px rgba(0,0,0,.2);background:#fff
 }
 .inv-foot-left .brand{
   font-size:22px;font-weight:800;color:#fff;line-height:1.15;white-space:nowrap;letter-spacing:.3px
@@ -778,13 +780,13 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 @media(max-width:640px){
   #orderDetailBox{padding:0}
   .invoice-wrap{max-height:100vh}
-  .invoice::after{left:-10px;top:50%;transform:translateY(-50%);width:380px;height:380px}
+  .invoice::after{left:-5%;top:10%;transform:none;width:85%;height:70%}
   .inv-header{min-height:150px;padding:48px 16px 0}
   .inv-brand{gap:8px}
   .inv-brand img.logo{width:42px;height:42px}
   .inv-brand .name{font-size:13px;white-space:normal}
   .inv-brand .sub{font-size:11px}
-  .inv-jars{height:112px;max-width:175px;margin-top:-25px;margin-right:-8px}
+  .inv-jars{height:130px;max-width:200px;margin-top:-28px;margin-right:0}
   .inv-title{font-size:26px;margin:6px 16px 34px}
   .inv-grid{grid-template-columns:1fr;gap:22px;padding:0 16px;margin-bottom:24px}
   .inv-box h4{font-size:14px}.inv-box p{font-size:13px}.inv-box .label{min-width:125px}
@@ -797,7 +799,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   .inv-pay h4{font-size:14px}.inv-pay p{font-size:12px}
   .inv-stamp-img{width:150px;margin:0 auto}
   .inv-certs{padding:4px 16px 12px;gap:9px;overflow:hidden}
-  .inv-certs img{height:25px}
+  .inv-certs img{height:34px}
   .inv-foot{grid-template-columns:1fr}
   .inv-foot-left{padding:13px 16px;min-height:78px}
   .inv-foot-left::after{display:none}
