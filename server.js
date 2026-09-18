@@ -654,7 +654,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .invoice::after{
   content:"";position:absolute;left:-8%;top:12%;
   width:72%;height:78%;
-  background-image:url('${BASE}/admin-assets/pattern.png');background-repeat:no-repeat;
+  background-image:url('https://raw.githubusercontent.com/onghoangdacsan-dot/thuoccoba-zalo-api/main/admin-assets/pattern.png');background-repeat:no-repeat;
   background-position:left center;background-size:contain;opacity:.22;z-index:0;
   pointer-events:none
 }
@@ -953,7 +953,22 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 var STATUS_LABEL={pending:'Chờ xác nhận',preparing:'Đang chuẩn bị',shipping:'Đang giao',completed:'Đã giao',cancelled:'Đã hủy'};
 var TIERS=[{key:'dong',label:'Đồng',minPoints:0,cls:'t-dong'},{key:'bac',label:'Bạc',minPoints:200,cls:'t-bac'},{key:'vang',label:'Vàng',minPoints:500,cls:'t-vang'},{key:'kimcuong',label:'Kim Cương',minPoints:1000,cls:'t-kimcuong'}];
 function tierOf(p){var c=TIERS[0];TIERS.forEach(function(t){if(p>=t.minPoints)c=t});return c}
-var ASSET_BASE='${BASE}';window.ASSET_BASE=ASSET_BASE;var allOrders=[],rangeMode='30d',fromTs=null,toTs=null,ADMIN_PASS='thuoccoba2026';
+var ASSET_BASE='${BASE}';window.ASSET_BASE=ASSET_BASE;var GH_ASSETS='https://raw.githubusercontent.com/onghoangdacsan-dot/thuoccoba-zalo-api/main/admin-assets';function assetUrl(file){
+  var f=String(file||'');
+  while(f.charAt(0)==='/') f=f.slice(1);
+  return GH_ASSETS+'/'+f;
+}
+function assetImg(srcFile, cls, alt, extraStyle){
+  var f=String(srcFile||'');
+  while(f.charAt(0)==='/') f=f.slice(1);
+  var gh=GH_ASSETS+'/'+f;
+  var local=(ASSET_BASE||'')+'/admin-assets/'+f;
+  var c=cls?(' class="'+cls+'"'):'';
+  var a=alt!=null?(' alt="'+String(alt).replace(/"/g,'')+'"'):' alt=""';
+  var st=extraStyle?(' style="'+extraStyle+'"'):'';
+  return '<img'+c+a+st+' src="'+gh+'" data-fb="'+local+'" onerror="this.onerror=null;this.src=this.dataset.fb" loading="eager" referrerpolicy="no-referrer"/>';
+}
+var allOrders=[],rangeMode='30d',fromTs=null,toTs=null,ADMIN_PASS='thuoccoba2026';
 window._lastOrderMsg='';
 function getPwd(){return sessionStorage.getItem('admin_pwd')||''}
 function login(){var p=(document.getElementById('pwd').value||'').trim(),err=document.getElementById('loginErr');if(!p){err.textContent='Vui lòng nhập mật khẩu';return}if(p!==ADMIN_PASS){err.textContent='Sai mật khẩu';return}sessionStorage.setItem('admin_pwd',p);err.textContent='';document.getElementById('loginBox').style.display='none';document.getElementById('app').style.display='grid';setRange('30d');loadOrders()}
@@ -1037,13 +1052,13 @@ function openOrderDetail(orderId){
   document.getElementById('invoiceBody').innerHTML=
     '<div class="inv-header">'+
       '<div class="inv-brand">'+
-        '<img class="logo" src="'+ASSET_BASE+'/admin-assets/logo.png" alt=""/>'+
+        assetImg('logo.png','logo','')+
         '<div>'+
-          '<div class="name">Hộ kinh doanh Thuộc Cô Ba <img class="verified" src="'+ASSET_BASE+'/admin-assets/verified.png" alt=""/></div>'+
+          '<div class="name">Hộ kinh doanh Thuộc Cô Ba '+assetImg('verified.png','verified','')+'</div>'+
           '<div class="sub">Đặc sản Tam Quan</div>'+
         '</div>'+
       '</div>'+
-      '<img class="inv-jars" src="'+ASSET_BASE+'/admin-assets/jars.png" alt=""/>'+
+      assetImg('jars.png','inv-jars','')+
     '</div>'+
     '<div class="inv-barcode"><svg id="invBarcode"></svg><div class="code">'+escapeHtml(o.id)+'</div></div>'+
     '<div class="inv-title">HOÁ ĐƠN BÁN HÀNG ONLINE</div>'+
@@ -1085,18 +1100,18 @@ function openOrderDetail(orderId){
         '<p>Đơn vị vận chuyển: J&amp;T Express</p>'+
         '<p>Tình trạng đơn hàng: <b>'+escapeHtml(statusLabel)+'</b></p>'+
       '</div>'+
-      '<img class="inv-stamp-img" src="'+ASSET_BASE+'/admin-assets/stamp.png" alt="Gian hàng chính hãng"/>'+
+      assetImg('stamp.png','inv-stamp-img','Gian hàng chính hãng')+
     '</div>'+
     '<div class="inv-certs">'+
-      '<img src="'+ASSET_BASE+'/admin-assets/boct.png" alt=""/>'+
-      '<img src="'+ASSET_BASE+'/admin-assets/ocop.png" alt=""/>'+
-      '<img src="'+ASSET_BASE+'/admin-assets/hangvn.png" alt=""/>'+
-      '<img src="'+ASSET_BASE+'/admin-assets/haccp.png" alt=""/>'+
-      '<img src="'+ASSET_BASE+'/admin-assets/vfa.png" alt=""/>'+
+      assetImg('boct.png','','')+
+      assetImg('ocop.png','','')+
+      assetImg('hangvn.png','','')+
+      assetImg('haccp.png','','')+
+      assetImg('vfa.png','','')+
     '</div>'+
     '<div class="inv-foot">'+
       '<div class="inv-foot-left">'+
-        '<img src="'+ASSET_BASE+'/admin-assets/logo-footer.png" alt=""/>'+
+        assetImg('logo-footer.png','','')+
         '<div class="brand">Thuộc Cô Ba Store</div>'+
       '</div>'+
       '<div class="inv-foot-right">'+
