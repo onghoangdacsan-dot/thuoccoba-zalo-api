@@ -625,9 +625,10 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   clip-path:polygon(0 0,100% 0,88% 100%,0 100%)
 }
 .invoice::after{
-  content:"";position:absolute;left:-160px;top:270px;width:720px;height:720px;
+  content:"";position:absolute;left:-20px;top:50%;transform:translateY(-50%);
+  width:520px;height:520px;
   background-image:url('/admin-assets/pattern.png');background-repeat:no-repeat;
-  background-position:center;background-size:contain;opacity:.16;z-index:0;
+  background-position:left center;background-size:contain;opacity:.18;z-index:0;
   pointer-events:none
 }
 .invoice > *{position:relative;z-index:2}
@@ -777,7 +778,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 @media(max-width:640px){
   #orderDetailBox{padding:0}
   .invoice-wrap{max-height:100vh}
-  .invoice::after{left:-220px;top:360px;width:600px;height:600px}
+  .invoice::after{left:-10px;top:50%;transform:translateY(-50%);width:380px;height:380px}
   .inv-header{min-height:150px;padding:48px 16px 0}
   .inv-brand{gap:8px}
   .inv-brand img.logo{width:42px;height:42px}
