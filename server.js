@@ -640,7 +640,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 /* thanh xanh trên — THẲNG, full-width */
 .invoice::before{
   content:"";position:absolute;left:0;top:0;width:100%;height:24px;
-  background:#1e4d8c;z-index:1;
+  background:#0d2b4e;z-index:1;
 }
 .invoice::after{display:none;content:none}
 .inv-pattern{
@@ -657,18 +657,22 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 
 .inv-header{
   display:flex;justify-content:space-between;align-items:flex-start;
-  gap:6px;margin-bottom:0;padding-top:4px;
+  gap:6px;margin-bottom:0;padding-top:8px;
 }
-.inv-brand{display:flex;align-items:center;gap:8px;padding-top:2px}
+.inv-brand{display:flex;align-items:center;gap:8px;padding-top:10px}
 .inv-brand img.logo{
   width:46px;height:46px;border-radius:50%;object-fit:cover;
   box-shadow:0 2px 6px rgba(0,0,0,.1);flex-shrink:0;
 }
 .inv-brand .name{
   font-size:13.5px;font-weight:800;color:#1e293b;
-  display:flex;align-items:center;gap:4px;line-height:1.2;
+  display:inline-flex;align-items:center;gap:3px;line-height:1.2;
+  white-space:nowrap;
 }
-.inv-brand .name img.verified{width:13px;height:13px;object-fit:contain;flex-shrink:0}
+.inv-brand .name img.verified{
+  width:14px;height:14px;object-fit:contain;flex-shrink:0;
+  margin-left:1px;vertical-align:middle;
+}
 .inv-brand .sub{font-size:11px;color:#64748b;margin-top:1px;font-weight:500}
 
 .inv-jars-wrap{
@@ -694,14 +698,20 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 }
 
 .inv-grid{
-  display:grid;grid-template-columns:1.05fr 0.95fr;gap:6px 20px;
+  display:grid;grid-template-columns:1.25fr 0.85fr;gap:6px 8px;
   margin-bottom:6px;
 }
-.inv-box:last-child{padding-left:4px}
-.inv-box:last-child .inv-row{
-  grid-template-columns:100px 1fr;
+.inv-box:last-child{
+  justify-self:stretch;
+  margin-left:auto;
+  width:100%;
 }
-.inv-box h4{margin:0 0 4px;font-size:12.5px;color:#1e4d8c;font-weight:700}
+.inv-box:last-child h4{text-align:left}
+.inv-box:last-child .inv-row{
+  grid-template-columns:95px 1fr;
+}
+
+.inv-box h4{margin:0 0 4px;font-size:12.5px;color:#0d2b4e;font-weight:700}
 .inv-row{
   display:grid;grid-template-columns:108px 1fr;gap:1px 6px;
   margin:0 0 2px;align-items:start;font-size:12px;line-height:1.35;
@@ -714,8 +724,8 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   margin:0 0 2px;table-layout:fixed;
 }
 .inv-table th{
-  text-align:left;color:#1e4d8c;font-weight:700;
-  padding:6px 4px;border-bottom:2px solid #1e4d8c;font-size:11.5px;
+  text-align:left;color:#0d2b4e;font-weight:700;
+  padding:6px 4px;border-bottom:2px solid #0d2b4e;font-size:11.5px;
   white-space:nowrap;
 }
 .inv-table th.col-name{width:auto}
@@ -745,7 +755,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .inv-sums .inv-voucher span:first-child{color:#16a34a;font-weight:600;font-size:11px}
 
 .inv-total{
-  background:#1e4d8c;color:#fff;
+  background:#0d2b4e;color:#fff;
   padding:8px 12px;display:grid;grid-template-columns:1fr auto;
   align-items:center;gap:8px;
   font-weight:800;font-size:13.5px;margin:4px 0 6px;border-radius:2px;
@@ -759,7 +769,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   margin-bottom:6px;min-height:0;margin-bottom:4px;
 }
 .inv-pay{align-self:center}
-.inv-pay h4{margin:0 0 5px;font-size:12px;color:#1e4d8c;font-weight:700}
+.inv-pay h4{margin:0 0 5px;font-size:12px;color:#0d2b4e;font-weight:700}
 .inv-pay p{margin:2px 0;font-size:11.5px;color:#475569;line-height:1.4}
 .inv-pay b{color:#1e293b}
 .inv-stamp-img{
@@ -786,11 +796,15 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .inv-legal > *{position:relative;z-index:1}
 .inv-legal .certs{
   display:flex;align-items:center;justify-content:center;
-  gap:12px;flex-wrap:wrap;margin:0 auto 8px;max-width:480px;
+  gap:10px;flex-wrap:wrap;margin:0 auto 10px;max-width:520px;
 }
 .inv-legal .certs img{
-  height:40px;width:auto;object-fit:contain;max-width:100px;
-  filter:brightness(1.05);
+  height:38px;width:auto;object-fit:contain;max-width:96px;
+  background:#fff;
+  border-radius:8px;
+  padding:5px 8px;
+  box-shadow:0 1px 4px rgba(0,0,0,.2);
+  box-sizing:content-box;
 }
 .inv-legal .legal-title{
   font-size:11px;font-weight:700;color:#fff;margin:0 0 4px;
