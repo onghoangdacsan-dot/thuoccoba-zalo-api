@@ -632,7 +632,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .invoice-wrap{background:transparent;border-radius:12px;max-width:700px;width:100%;max-height:96vh;overflow:auto;box-shadow:0 16px 48px rgba(0,0,0,.28)}
 .invoice{
   position:relative;overflow:hidden;
-  padding:0;
+  padding:0 0 0 0;
   background-color:#FFFFFF;
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
   min-height:0;
@@ -647,13 +647,14 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 /* pattern dùng thẻ img .inv-pattern (assetImg có fallback) */
 .invoice::after{display:none;content:none}
 .inv-pattern{
-  position:absolute;left:0;top:3%;
-  width:58%;height:90%;
+  position:absolute !important;left:0;top:2%;
+  width:55%;height:88%;
   object-fit:contain;object-position:left center;
-  opacity:.22;z-index:0;pointer-events:none;
+  opacity:.20;z-index:0 !important;pointer-events:none;
+  margin:0;padding:0;border:0;display:block;
 }
-.invoice > *{position:relative;z-index:2}
-.invoice img{background:transparent;max-width:100%}
+.invoice > *:not(.inv-pattern){position:relative;z-index:2}
+.invoice img{background:transparent}.invoice img:not(.inv-pattern){max-width:100%}
 
 /* nội dung chung: 1 lề đồng bộ 24px */
 .inv-body{padding:16px 24px 0}
@@ -678,18 +679,18 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 /* hủ mắm: sát mép phải tuyệt đối */
 .inv-jars-wrap{
   position:relative;
-  margin-top:-40px;
-  margin-right:-28px; /* phá lề phải → sát mép giấy */
+  margin-top:-20px;
+  margin-right:-24px;
   margin-left:auto;
   flex-shrink:0;
   display:block;
   line-height:0;
 }
 .inv-jars{
-  height:255px;width:auto;max-width:360px;object-fit:contain;
+  height:230px;width:auto;max-width:300px;object-fit:contain;
   object-position:top right;display:block;
   margin-left:auto;
-  filter:drop-shadow(0 8px 16px rgba(0,0,0,.14));
+  filter:drop-shadow(0 6px 14px rgba(0,0,0,.12));
 }
 
 .inv-barcode{text-align:center;margin:2px 0 0;position:relative;z-index:2}
