@@ -632,39 +632,40 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .invoice-wrap{background:transparent;border-radius:12px;max-width:700px;width:100%;max-height:96vh;overflow:auto;box-shadow:0 16px 48px rgba(0,0,0,.28)}
 .invoice{
   position:relative;overflow:hidden;
-  padding:18px 28px 0;
+  padding:0;
   background-color:#FFFFFF;
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
   min-height:0;
   color:#1e293b;
 }
-/* thanh xanh trên full-width, cạnh phải hơi chéo như mẫu */
+/* thanh xanh trên full-width, cạnh phải chéo nhẹ như mẫu */
 .invoice::before{
-  content:"";position:absolute;left:0;top:0;width:100%;height:32px;
-  background:#1e4d8c;z-index:0;
-  clip-path:polygon(0 0,100% 0,100% 70%,0 100%);
+  content:"";position:absolute;left:0;top:0;width:100%;height:30px;
+  background:#1e4d8c;z-index:1;
+  clip-path:polygon(0 0,100% 0,100% 65%,0 100%);
 }
-/* trống đồng sát trái, to, không cắt */
-.invoice::after{
-  content:"";position:absolute;left:-2%;top:6%;
+/* pattern dùng thẻ img .inv-pattern (assetImg có fallback) */
+.invoice::after{display:none;content:none}
+.inv-pattern{
+  position:absolute;left:0;top:3%;
   width:58%;height:90%;
-  background-image:url('/admin-assets/pattern.png');
-  background-repeat:no-repeat;
-  background-position:left center;
-  background-size:contain;
-  opacity:.18;z-index:0;pointer-events:none;
+  object-fit:contain;object-position:left center;
+  opacity:.22;z-index:0;pointer-events:none;
 }
 .invoice > *{position:relative;z-index:2}
 .invoice img{background:transparent;max-width:100%}
 
+/* nội dung chung: 1 lề đồng bộ 24px */
+.inv-body{padding:16px 24px 0}
+
 .inv-header{
   display:flex;justify-content:space-between;align-items:flex-start;
   gap:8px;margin-bottom:0;position:relative;z-index:2;
-  padding-top:14px;
+  padding-top:8px;
 }
-.inv-brand{display:flex;align-items:center;gap:10px;padding-top:4px}
+.inv-brand{display:flex;align-items:center;gap:10px;padding-top:8px}
 .inv-brand img.logo{
-  width:58px;height:58px;border-radius:50%;object-fit:cover;
+  width:56px;height:56px;border-radius:50%;object-fit:cover;
   box-shadow:0 2px 8px rgba(0,0,0,.12);flex-shrink:0;
 }
 .inv-brand .name{
@@ -674,40 +675,46 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .inv-brand .name img.verified{width:16px;height:16px;object-fit:contain;flex-shrink:0}
 .inv-brand .sub{font-size:12.5px;color:#64748b;margin-top:2px;font-weight:500}
 
-/* hủ mắm to, sát mép phải */
+/* hủ mắm: sát mép phải tuyệt đối */
 .inv-jars-wrap{
-  display:flex;flex-direction:column;align-items:flex-end;
-  margin-top:-28px;margin-right:-10px;flex-shrink:0;
+  position:relative;
+  margin-top:-40px;
+  margin-right:-28px; /* phá lề phải → sát mép giấy */
+  margin-left:auto;
+  flex-shrink:0;
+  display:block;
+  line-height:0;
 }
 .inv-jars{
-  height:240px;width:auto;max-width:320px;object-fit:contain;
+  height:255px;width:auto;max-width:360px;object-fit:contain;
   object-position:top right;display:block;
+  margin-left:auto;
   filter:drop-shadow(0 8px 16px rgba(0,0,0,.14));
 }
 
-.inv-barcode{text-align:center;margin:0 0 2px;position:relative;z-index:2}
-.inv-barcode svg{max-width:200px;height:40px;display:block;margin:0 auto}
+.inv-barcode{text-align:center;margin:2px 0 0;position:relative;z-index:2}
+.inv-barcode svg{max-width:200px;height:38px;display:block;margin:0 auto}
 .inv-barcode .code{
   font-size:10px;color:#94a3b8;margin-top:1px;letter-spacing:.4px;
   font-family:ui-monospace,Consolas,monospace;line-height:1.2;
 }
 
 .inv-title{
-  text-align:center;font-size:32px;font-weight:900;color:#334155;
-  letter-spacing:1px;margin:8px 0 22px;text-transform:uppercase;
+  text-align:center;font-size:30px;font-weight:900;color:#334155;
+  letter-spacing:1px;margin:6px 0 20px;text-transform:uppercase;
   position:relative;z-index:2;
 }
 
 .inv-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:12px 40px;
-  margin-bottom:16px;position:relative;z-index:2;
+  display:grid;grid-template-columns:1fr 1fr;gap:10px 36px;
+  margin-bottom:14px;position:relative;z-index:2;
 }
 .inv-box h4{
-  margin:0 0 10px;font-size:14px;color:#1e4d8c;font-weight:700;
+  margin:0 0 8px;font-size:14px;color:#1e4d8c;font-weight:700;
 }
 .inv-row{
-  display:grid;grid-template-columns:auto 1fr;gap:4px 8px;
-  margin:0 0 6px;align-items:start;font-size:13px;line-height:1.45;
+  display:grid;grid-template-columns:auto 1fr;gap:2px 8px;
+  margin:0 0 5px;align-items:start;font-size:13px;line-height:1.45;
 }
 .inv-row .k{color:#64748b;font-weight:500;white-space:nowrap}
 .inv-row .v{color:#1e293b;font-weight:600;word-break:break-word}
@@ -718,7 +725,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 }
 .inv-table th{
   text-align:left;color:#1e4d8c;font-weight:700;
-  padding:10px 8px;border-bottom:2px solid #1e4d8c;font-size:12.5px;
+  padding:9px 6px;border-bottom:2px solid #1e4d8c;font-size:12.5px;
   white-space:nowrap;
 }
 .inv-table th.col-name{width:auto}
@@ -726,7 +733,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .inv-table th.col-price{width:100px;text-align:right}
 .inv-table th.col-w{width:96px;text-align:center}
 .inv-table td{
-  padding:10px 8px;border-bottom:1px solid #e2e8f0;color:#1e293b;
+  padding:9px 6px;border-bottom:1px solid #e2e8f0;color:#1e293b;
   vertical-align:middle;
 }
 .inv-table td.col-qty{text-align:center;font-weight:600}
@@ -735,12 +742,12 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .inv-table td.col-name{word-break:break-word}
 
 .inv-sums{
-  margin-left:auto;width:260px;font-size:13px;margin-top:10px;
+  margin-left:auto;width:250px;font-size:13px;margin-top:8px;
   position:relative;z-index:2;
 }
 .inv-sums .row{
   display:grid;grid-template-columns:1fr 100px;
-  gap:8px;padding:5px 4px;color:#475569;align-items:center;
+  gap:8px;padding:4px 2px;color:#475569;align-items:center;
 }
 .inv-sums .row span:last-child,
 .inv-sums .row b{
@@ -750,62 +757,69 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 
 .inv-total{
   background:#1e4d8c;color:#fff;
-  padding:14px 22px;display:grid;grid-template-columns:1fr auto;
+  padding:13px 20px;display:grid;grid-template-columns:1fr auto;
   align-items:center;gap:12px;
-  font-weight:800;font-size:16px;margin:14px 0 18px;
+  font-weight:800;font-size:16px;margin:12px 0 16px;
   position:relative;z-index:2;border-radius:2px;
 }
 .inv-total span:last-child{font-variant-numeric:tabular-nums;letter-spacing:.3px}
 
 .inv-bottom{
-  display:grid;grid-template-columns:1fr 170px;gap:12px 16px;
-  align-items:start;margin-bottom:8px;min-height:150px;
+  display:grid;grid-template-columns:1fr 160px;gap:10px 12px;
+  align-items:start;margin-bottom:6px;min-height:140px;
   position:relative;z-index:2;
 }
-.inv-pay h4{margin:0 0 10px;font-size:13px;color:#1e4d8c;font-weight:700}
-.inv-pay p{margin:5px 0;font-size:12.5px;color:#475569;line-height:1.55}
+.inv-pay h4{margin:0 0 8px;font-size:13px;color:#1e4d8c;font-weight:700}
+.inv-pay p{margin:4px 0;font-size:12.5px;color:#475569;line-height:1.5}
 .inv-pay b{color:#1e293b}
 
 .inv-stamp-img{
-  width:160px;height:auto;display:block;
-  mix-blend-mode:multiply;justify-self:end;margin-right:12px;margin-top:0;
+  width:150px;height:auto;display:block;
+  mix-blend-mode:multiply;justify-self:end;margin-right:0;margin-top:0;
 }
 
 .inv-certs{
   display:flex;align-items:center;justify-content:space-between;
-  gap:10px;flex-wrap:nowrap;padding:6px 0 12px;
+  gap:8px;flex-wrap:nowrap;padding:4px 0 10px;
   position:relative;z-index:2;width:100%;box-sizing:border-box;
 }
 .inv-certs img{
-  height:40px;width:auto;object-fit:contain;mix-blend-mode:normal;
-  flex:1 1 0;max-width:105px;min-width:0;
+  height:38px;width:auto;object-fit:contain;mix-blend-mode:normal;
+  flex:1 1 0;max-width:100px;min-width:0;
 }
 
+/* FOOTER khớp mẫu: full-bleed, chéo rõ, logo + chữ trái, contact phải */
 .inv-foot{
-  display:grid;grid-template-columns:1.2fr 1fr;
-  margin:0 -28px;min-height:108px;position:relative;z-index:2;
+  display:grid;grid-template-columns:1.15fr 1fr;
+  margin:0;min-height:100px;position:relative;z-index:2;
+  width:100%;
 }
 .inv-foot-left{
-  background:#1e4d8c;padding:16px 22px;
-  display:flex;align-items:center;justify-content:flex-start;gap:14px;
+  background:#1e4d8c;padding:14px 20px 14px 24px;
+  display:flex;align-items:center;justify-content:flex-start;gap:12px;
 }
-.inv-foot-left img{width:58px;height:58px;border-radius:10px;object-fit:cover;flex-shrink:0}
-.inv-foot-left .brand{font-size:22px;font-weight:800;color:#fff;letter-spacing:.2px}
+.inv-foot-left img{
+  width:52px;height:52px;border-radius:8px;object-fit:cover;flex-shrink:0;
+  background:#fff;
+}
+.inv-foot-left .brand{font-size:20px;font-weight:800;color:#fff;letter-spacing:.2px;line-height:1.2}
 .inv-foot-right{
-  background:#1e4d8c;color:#fff;padding:14px 18px 14px 32px;
-  display:flex;flex-direction:column;justify-content:center;
-  clip-path:polygon(14% 0,100% 0,100% 100%,0 100%);
+  background:#1e4d8c;color:#fff;padding:12px 16px 12px 28px;
+  display:flex;flex-direction:column;justify-content:center;gap:2px;
+  clip-path:polygon(18% 0,100% 0,100% 100%,0 100%);
+  margin-left:-18px; /* overlap để đường chéo mượt */
+  padding-left:36px;
 }
 .inv-foot-right .contact-item{
-  display:flex;align-items:center;gap:9px;
-  font-size:11.5px;line-height:1.7;
+  display:flex;align-items:center;gap:8px;
+  font-size:11px;line-height:1.65;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .inv-foot-right .c-ico{
-  width:20px;height:20px;border-radius:50%;
+  width:18px;height:18px;border-radius:50%;
   background:#fff;color:#1e4d8c;
   display:inline-flex;align-items:center;justify-content:center;
-  font-size:10px;flex:none;
+  font-size:9px;flex:none;
 }
 .inv-actions{
   padding:12px 16px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;
@@ -813,22 +827,19 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 }
 
 @media(max-width:640px){
-  .invoice{padding:14px 14px 0}
+  .inv-body{padding:12px 14px 0}
   .inv-grid,.inv-bottom,.inv-foot{grid-template-columns:1fr}
   .inv-row{grid-template-columns:100px 1fr}
-  .inv-title{font-size:24px;margin:10px 0 14px}
+  .inv-title{font-size:22px;margin:8px 0 12px}
   .inv-jars{height:160px;max-width:220px}
-  .inv-jars-wrap{margin-top:-12px;margin-right:0}
+  .inv-jars-wrap{margin-top:-16px;margin-right:-14px}
   .inv-sums{width:100%}
   .inv-table th.col-price,.inv-table td.col-price{width:84px}
   .inv-table th.col-w,.inv-table td.col-w{width:72px}
-  .inv-foot{margin:0 -14px}
-  .inv-foot-right{clip-path:none;padding:14px}
-  .inv-foot-left{justify-content:flex-start}
-  .inv-stamp-img{width:130px;margin:8px auto 0}
-  .inv-certs{flex-wrap:nowrap;justify-content:space-between;gap:4px}
-  .inv-certs img{height:32px;max-width:70px}
-  .invoice::before{height:24px}
+  .inv-foot-right{clip-path:none;margin-left:0;padding:12px 14px}
+  .inv-stamp-img{width:120px;margin:8px auto 0}
+  .inv-certs img{height:30px;max-width:68px}
+  .invoice::before{height:22px}
 }
 @media print{
   #orderDetailBox{position:static!important;background:none!important;display:block!important;padding:0!important}
@@ -1038,6 +1049,8 @@ function openOrderDetail(orderId){
   }).join(''):'<tr><td colspan="4" style="color:#888;text-align:center">Không có sản phẩm</td></tr>';
 
   document.getElementById('invoiceBody').innerHTML=
+    assetImg('pattern.png','inv-pattern','')+
+    '<div class="inv-body">'+
     '<div class="inv-header">'+
       '<div class="inv-brand">'+
         assetImg('logo.png','logo','')+
@@ -1099,6 +1112,7 @@ function openOrderDetail(orderId){
       assetImg('haccp.png','','')+
       assetImg('vfa.png','','')+
     '</div>'+
+    '</div>'+ /* end inv-body */
     '<div class="inv-foot">'+
       '<div class="inv-foot-left">'+
         assetImg('logo-footer.png','','')+
