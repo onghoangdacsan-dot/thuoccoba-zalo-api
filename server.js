@@ -798,14 +798,15 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .inv-legal > *{position:relative;z-index:1}
 .inv-legal .certs{
   display:flex;align-items:center;justify-content:center;
-  gap:12px;flex-wrap:wrap;margin:0 auto 12px;max-width:560px;
+  gap:10px;flex-wrap:nowrap;margin:0 auto 12px;max-width:100%;
 }
 .inv-legal .certs img{
-  height:48px;width:auto;object-fit:contain;max-width:120px;
+  height:36px;width:auto;object-fit:contain;
+  min-width:72px;max-width:100px;
   background:#fff;
-  border-radius:10px;
-  padding:10px 14px;
-  box-shadow:0 2px 8px rgba(0,0,0,.25);
+  border-radius:8px;
+  padding:8px 16px;
+  box-shadow:0 2px 6px rgba(0,0,0,.22);
   box-sizing:content-box;
 }
 .inv-legal .legal-title{
@@ -830,7 +831,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   gap:14px;width:100%;margin-top:4px;
 }
 .inv-foot-logo{
-  width:56px;height:56px;object-fit:cover;border-radius:10px;
+  width:72px;height:72px;object-fit:cover;border-radius:10px;
   background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);
 }
 .inv-qr{
@@ -1131,12 +1132,12 @@ function openOrderDetail(orderId){
       '</div>'+
       '<div class="inv-legal-row">'+
         '<div class="legal-text">'+
-          '<div class="legal-title">© Ứng dụng Thuộc Cô Ba Store — Phiên bản cao cấp được Zalo chứng nhận</div>'+
+          '<div class="legal-title">® Ứng dụng Thuộc Cô Ba Store — Phiên bản cao cấp được Zalo chứng nhận</div>'+
           '<div class="legal-line">Chịu trách nhiệm quản lý nội dung: Nguyễn Thị Thuộc</div>'+
           '<div class="legal-line">Tổng đài hỗ trợ: 0977322861</div>'+
           '<div class="legal-line">Mã số doanh nghiệp: 83271137688-001 do Cục cảnh sát QLHC về TTXH</div>'+
           '<div class="legal-line legal-addr">Địa chỉ: 1117/5 Võ Nguyên Giáp, khu phố Tăng Long 2, phường Tam Quan Nam, thị xã Hoài Nhơn, tỉnh Bình Định (Gia Lai mới)</div>'+
-          '<div class="legal-copy">Được sở hữu độc quyền của hộ kinh doanh Nguyễn Thị Thuộc</div>'+
+          '<div class="legal-copy">Được sở hữu độc quyền của hộ kinh doanh Nguyễn Thị Thuộc™</div>'+
         '</div>'+
         '<div class="inv-qr-wrap">'+
           assetImg('logo-footer.png','inv-foot-logo','')+
