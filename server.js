@@ -653,7 +653,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .invoice > *:not(.inv-pattern){position:relative;z-index:2}
 .invoice img{background:transparent}.invoice img:not(.inv-pattern){max-width:100%}
 
-.inv-body{padding:10px 18px 0}
+.inv-body{padding:8px 16px 0}
 
 .inv-header{
   display:flex;justify-content:space-between;align-items:flex-start;
@@ -676,7 +676,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   flex-shrink:0;display:block;line-height:0;
 }
 .inv-jars{
-  height:160px;width:auto;max-width:210px;object-fit:contain;
+  height:140px;width:auto;max-width:190px;object-fit:contain;
   object-position:top right;display:block;margin-left:auto;
   filter:drop-shadow(0 4px 10px rgba(0,0,0,.1));
 }
@@ -689,15 +689,19 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 }
 
 .inv-title{
-  text-align:center;font-size:24px;font-weight:900;color:#334155;
-  letter-spacing:.6px;margin:2px 0 10px;text-transform:uppercase;
+  text-align:center;font-size:22px;font-weight:900;color:#334155;
+  letter-spacing:.5px;margin:2px 0 8px;text-transform:uppercase;
 }
 
 .inv-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;
-  margin-bottom:8px;
+  display:grid;grid-template-columns:1.05fr 0.95fr;gap:6px 20px;
+  margin-bottom:6px;
 }
-.inv-box h4{margin:0 0 5px;font-size:12.5px;color:#1e4d8c;font-weight:700}
+.inv-box:last-child{padding-left:4px}
+.inv-box:last-child .inv-row{
+  grid-template-columns:100px 1fr;
+}
+.inv-box h4{margin:0 0 4px;font-size:12.5px;color:#1e4d8c;font-weight:700}
 .inv-row{
   display:grid;grid-template-columns:108px 1fr;gap:1px 6px;
   margin:0 0 2px;align-items:start;font-size:12px;line-height:1.35;
@@ -742,9 +746,9 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 
 .inv-total{
   background:#1e4d8c;color:#fff;
-  padding:9px 14px;display:grid;grid-template-columns:1fr auto;
+  padding:8px 12px;display:grid;grid-template-columns:1fr auto;
   align-items:center;gap:8px;
-  font-weight:800;font-size:14px;margin:6px 0 8px;border-radius:2px;
+  font-weight:800;font-size:13.5px;margin:4px 0 6px;border-radius:2px;
 }
 .inv-total span:last-child{font-variant-numeric:tabular-nums}
 
@@ -752,7 +756,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .inv-bottom{
   display:grid;grid-template-columns:1fr 130px;
   gap:8px 12px;align-items:center;
-  margin-bottom:6px;min-height:0;
+  margin-bottom:6px;min-height:0;margin-bottom:4px;
 }
 .inv-pay{align-self:center}
 .inv-pay h4{margin:0 0 5px;font-size:12px;color:#1e4d8c;font-weight:700}
@@ -763,35 +767,48 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   mix-blend-mode:multiply;justify-self:end;align-self:center;margin:0;
 }
 
-/* ===== FOOTER kiểu Shopee ===== */
+/* ===== FOOTER nền network, căn giữa ===== */
 .inv-legal{
-  background:#f5f5f5;border-top:1px solid #e5e5e5;
-  padding:12px 16px 10px;margin:0;
-  text-align:center;font-size:10px;color:#888;line-height:1.55;
+  position:relative;
+  background:#0f2744;
+  background-image:url('/admin-assets/footer-bg.png');
+  background-size:cover;
+  background-position:center;
+  border-top:none;
+  padding:14px 16px 12px;margin:0;
+  text-align:center;font-size:10px;color:rgba(255,255,255,.88);line-height:1.5;
+  overflow:hidden;
 }
+.inv-legal::before{
+  content:"";position:absolute;inset:0;
+  background:rgba(10,25,50,.55);z-index:0;
+}
+.inv-legal > *{position:relative;z-index:1}
 .inv-legal .certs{
   display:flex;align-items:center;justify-content:center;
-  gap:14px;flex-wrap:wrap;margin:0 0 8px;
+  gap:12px;flex-wrap:wrap;margin:0 auto 8px;max-width:480px;
 }
 .inv-legal .certs img{
-  height:42px;width:auto;object-fit:contain;max-width:110px;
+  height:40px;width:auto;object-fit:contain;max-width:100px;
+  filter:brightness(1.05);
 }
 .inv-legal .legal-title{
-  font-size:11px;font-weight:700;color:#555;margin:0 0 4px;
+  font-size:11px;font-weight:700;color:#fff;margin:0 0 4px;
 }
-.inv-legal .legal-line{margin:1px 0;color:#777}
-.inv-legal .legal-copy{margin-top:6px;font-size:9.5px;color:#999}
+.inv-legal .legal-line{margin:1px auto;color:rgba(255,255,255,.85);max-width:520px}
+.inv-legal .legal-copy{margin-top:5px;font-size:9.5px;color:rgba(255,255,255,.7)}
 
 .inv-legal-row{
-  display:grid;grid-template-columns:1fr 90px;gap:10px;
-  align-items:center;text-align:left;
-  max-width:100%;
+  display:flex;flex-direction:column;align-items:center;
+  gap:8px;width:100%;max-width:560px;margin:0 auto;
 }
-.inv-legal-row .legal-text{text-align:center}
+.inv-legal-row .legal-text{text-align:center;width:100%}
+.inv-qr-wrap{
+  display:flex;justify-content:center;width:100%;
+}
 .inv-qr{
-  width:80px;height:80px;object-fit:contain;
-  background:#fff;border:1px solid #e5e5e5;border-radius:6px;
-  justify-self:end;
+  width:72px;height:72px;object-fit:contain;
+  background:#fff;border:2px solid rgba(255,255,255,.4);border-radius:6px;
 }
 
 .inv-actions{
@@ -808,8 +825,8 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   .inv-jars-wrap{margin-top:-8px;margin-right:-12px}
   .inv-sums{width:100%}
   .inv-stamp-img{width:100px;margin:4px auto 0;justify-self:center}
-  .inv-legal-row{grid-template-columns:1fr}
-  .inv-qr{justify-self:center;margin-top:6px}
+  .inv-legal-row{flex-direction:column}
+  .inv-qr{margin-top:4px}
   .invoice::before{height:18px}
 }
 @media print{
@@ -1041,7 +1058,7 @@ function openOrderDetail(orderId){
         '<h4>Thông tin khách hàng</h4>'+
         '<div class="inv-row"><span class="k">Địa chỉ:</span><span class="v">'+escapeHtml(s.address||'—')+'</span></div>'+
         '<div class="inv-row"><span class="k">Số điện thoại:</span><span class="v">'+escapeHtml(s.phone||'—')+'</span></div>'+
-        '<div class="inv-row"><span class="k">Họ &amp; tên khách hàng:</span><span class="v">'+escapeHtml(s.fullName||'—')+'</span></div>'+
+        '<div class="inv-row"><span class="k">Họ &amp; tên:</span><span class="v">'+escapeHtml(s.fullName||'—')+'</span></div>'+
       '</div>'+
       '<div class="inv-box">'+
         '<h4>Chi tiết đơn hàng</h4>'+
@@ -1093,9 +1110,8 @@ function openOrderDetail(orderId){
           '<div class="legal-line">Mã số doanh nghiệp: 83271137688-001 do Cục cảnh sát QLHC về TTXH</div>'+
           '<div class="legal-line">Địa chỉ: 1117/5 Võ Nguyên Giáp, khu phố Tăng Long 2, phường Tam Quan Nam, thị xã Hoài Nhơn, tỉnh Bình Định (Gia Lai mới)</div>'+
           '<div class="legal-copy">© 2026 Thuộc Cô Ba Store — Các quyền được bảo lưu</div>'+
-          '<div class="legal-copy">© 2026 — Bản quyền độc quyền thuộc về hộ kinh doanh Nguyễn Thị Thuộc</div>'+
         '</div>'+
-        '<img class="inv-qr" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&amp;margin=8&amp;data='+encodeURIComponent('https://zalo.me/s/1175503438081610646/')+'" alt="QR Mini App" width="80" height="80"/>'+
+        '<div class="inv-qr-wrap"><img class="inv-qr" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&amp;margin=8&amp;data='+encodeURIComponent('https://zalo.me/s/1175503438081610646/')+'" alt="QR Mini App" width="72" height="72"/></div>'+
       '</div>'+
     '</div>';
 
