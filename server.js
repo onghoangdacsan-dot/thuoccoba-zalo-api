@@ -626,41 +626,43 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .t-dong{background:#f5e6d3;color:#8B5A2B}.t-bac{background:#e8eef5;color:#64748b}
 .t-vang{background:#fff3cd;color:#b8860b}.t-kimcuong{background:#e0f2fe;color:#0284c7}
 
-/* ===== HOÁ ĐƠN — layout chuẩn mẫu ===== */
+/* ===== HOÁ ĐƠN — layout chuẩn mẫu 100% ===== */
 #orderDetailBox{display:none;position:fixed;inset:0;background:rgba(40,28,18,.55);z-index:9999;align-items:center;justify-content:center;padding:8px}
 #orderDetailBox.show{display:flex}
-.invoice-wrap{background:transparent;border-radius:12px;max-width:700px;width:100%;max-height:96vh;overflow:auto;box-shadow:0 16px 48px rgba(0,0,0,.28)}
+.invoice-wrap{background:transparent;border-radius:12px;max-width:720px;width:100%;max-height:96vh;overflow:auto;box-shadow:0 16px 48px rgba(0,0,0,.28)}
 .invoice{
   position:relative;overflow:hidden;
-  padding:16px 24px 0;
+  padding:14px 22px 0;
   background-color:#FBF6EE;
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
   min-height:0;
 }
+/* thanh xanh trên: thẳng, full-width, không nhọn */
 .invoice::before{
-  content:"";position:absolute;left:0;top:0;width:100%;height:28px;
+  content:"";position:absolute;left:0;top:0;width:100%;height:26px;
   background:#1e4d8c;z-index:0;
 }
+/* trống đồng: sát mép trái, to hơn, không bị cắt */
 .invoice::after{
-  content:"";position:absolute;left:0;top:8%;
-  width:55%;height:82%;
+  content:"";position:absolute;left:0;top:5%;
+  width:62%;height:88%;
   background-image:url('/admin-assets/pattern.png');
   background-repeat:no-repeat;
-  background-position:left top;
+  background-position:left center;
   background-size:contain;
-  opacity:.22;z-index:0;pointer-events:none;
+  opacity:.24;z-index:0;pointer-events:none;
 }
 .invoice > *{position:relative;z-index:2}
 .invoice img{background:transparent}
 
 .inv-header{
   display:flex;justify-content:space-between;align-items:flex-start;
-  gap:12px;margin-bottom:2px;position:relative;z-index:2;
-  padding-top:8px;
+  gap:10px;margin-bottom:0;position:relative;z-index:2;
+  padding-top:10px;
 }
-.inv-brand{display:flex;align-items:center;gap:10px;padding-top:4px}
+.inv-brand{display:flex;align-items:center;gap:10px;padding-top:6px}
 .inv-brand img.logo{
-  width:52px;height:52px;border-radius:50%;object-fit:cover;
+  width:54px;height:54px;border-radius:50%;object-fit:cover;
   box-shadow:0 2px 8px rgba(0,0,0,.1);flex-shrink:0;
 }
 .inv-brand .name{
@@ -670,34 +672,44 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .inv-brand .name img.verified{width:15px;height:15px;object-fit:contain;flex-shrink:0}
 .inv-brand .sub{font-size:12px;color:#64748b;margin-top:2px;font-weight:500}
 
+/* khối hủ mắm + caption sát mép phải */
+.inv-jars-wrap{
+  display:flex;flex-direction:column;align-items:flex-end;
+  margin-top:-14px;margin-right:-6px;flex-shrink:0;
+}
 .inv-jars{
-  height:195px;width:auto;max-width:280px;object-fit:contain;
+  height:210px;width:auto;max-width:300px;object-fit:contain;
   object-position:top right;display:block;
   filter:drop-shadow(0 6px 12px rgba(0,0,0,.15));
-  margin-right:0;margin-top:-12px;
+}
+.inv-jars-cap{
+  font-size:11px;color:#64748b;font-weight:600;margin-top:2px;
+  text-align:right;line-height:1.35;max-width:280px;
+  letter-spacing:.2px;
 }
 
-.inv-barcode{text-align:center;margin:4px 0 0;position:relative;z-index:2}
-.inv-barcode svg{max-width:230px;height:52px;display:block;margin:0 auto}
+/* barcode đẩy lên, số sát dưới vạch */
+.inv-barcode{text-align:center;margin:2px 0 0;position:relative;z-index:2}
+.inv-barcode svg{max-width:240px;height:48px;display:block;margin:0 auto}
 .inv-barcode .code{
-  font-size:11px;color:#64748b;margin-top:2px;letter-spacing:.5px;
-  font-family:ui-monospace,Consolas,monospace;
+  font-size:11px;color:#64748b;margin-top:1px;letter-spacing:.5px;
+  font-family:ui-monospace,Consolas,monospace;line-height:1.2;
 }
 
 .inv-title{
   text-align:center;font-size:28px;font-weight:900;color:#1e293b;
-  letter-spacing:1.2px;margin:12px 0 20px;text-transform:uppercase;
+  letter-spacing:1.2px;margin:10px 0 16px;text-transform:uppercase;
   position:relative;z-index:2;
 }
 
 .inv-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:18px 36px;
-  margin-bottom:18px;position:relative;z-index:2;
+  display:grid;grid-template-columns:1fr 1fr;gap:16px 32px;
+  margin-bottom:14px;position:relative;z-index:2;
 }
-.inv-box h4{margin:0 0 12px;font-size:13.5px;color:#1e4d8c;font-weight:800}
+.inv-box h4{margin:0 0 8px;font-size:13px;color:#1e4d8c;font-weight:700}
 .inv-row{
-  display:grid;grid-template-columns:120px 1fr;
-  gap:4px 10px;margin:0 0 8px;align-items:start;
+  display:grid;grid-template-columns:118px 1fr;
+  gap:4px 10px;margin:0 0 6px;align-items:start;
   font-size:13px;line-height:1.45;
 }
 .inv-row .k{color:#64748b;font-weight:500}
@@ -743,45 +755,47 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   background:#1e4d8c;color:#fff;
   padding:14px 20px;display:grid;grid-template-columns:1fr auto;
   align-items:center;gap:12px;
-  font-weight:800;font-size:16px;margin:14px 0 20px;
+  font-weight:800;font-size:16px;margin:14px 0 18px;
   position:relative;z-index:2;border-radius:2px;
 }
 .inv-total span:last-child{font-variant-numeric:tabular-nums;letter-spacing:.3px}
 
 .inv-bottom{
-  display:grid;grid-template-columns:1fr 160px;gap:12px 20px;
-  align-items:start;margin-bottom:6px;min-height:140px;
+  display:grid;grid-template-columns:1fr 150px;gap:12px 16px;
+  align-items:start;margin-bottom:4px;min-height:130px;
   position:relative;z-index:2;
 }
 .inv-pay h4{margin:0 0 10px;font-size:13px;color:#1e4d8c;font-weight:700}
 .inv-pay p{margin:5px 0;font-size:12.5px;color:#475569;line-height:1.55}
 .inv-pay b{color:#1e293b}
 
+/* stamp kéo vào trong (không sát mép phải) */
 .inv-stamp-img{
-  width:145px;height:auto;display:block;
-  mix-blend-mode:normal;justify-self:end;margin-right:24px;margin-top:4px;
+  width:140px;height:auto;display:block;
+  mix-blend-mode:normal;justify-self:center;margin:8px auto 0;margin-right:36px;
 }
 
+/* logo chứng nhận: to hơn, full chiều ngang */
 .inv-certs{
   display:flex;align-items:center;justify-content:space-between;
-  gap:12px;flex-wrap:nowrap;padding:8px 4px 14px;
+  gap:8px;flex-wrap:nowrap;padding:6px 0 12px;
   position:relative;z-index:2;width:100%;box-sizing:border-box;
 }
 .inv-certs img{
-  height:42px;width:auto;object-fit:contain;mix-blend-mode:normal;
-  flex:1 1 auto;max-width:100px;
+  height:46px;width:auto;object-fit:contain;mix-blend-mode:normal;
+  flex:1 1 0;max-width:110px;min-width:0;
 }
 
 .inv-foot{
-  display:grid;grid-template-columns:1.1fr 1fr;
-  margin:0 -24px;min-height:96px;position:relative;z-index:2;
+  display:grid;grid-template-columns:1.15fr 1fr;
+  margin:0 -22px;min-height:100px;position:relative;z-index:2;
 }
 .inv-foot-left{
-  background:#1e4d8c;padding:14px 28px;
-  display:flex;align-items:center;gap:14px;
+  background:#1e4d8c;padding:16px 24px;
+  display:flex;align-items:center;justify-content:center;gap:14px;
 }
-.inv-foot-left img{width:52px;height:52px;border-radius:10px;object-fit:cover;flex-shrink:0}
-.inv-foot-left .brand{font-size:20px;font-weight:800;color:#fff}
+.inv-foot-left img{width:56px;height:56px;border-radius:10px;object-fit:cover;flex-shrink:0}
+.inv-foot-left .brand{font-size:22px;font-weight:800;color:#fff;letter-spacing:.3px}
 .inv-foot-right{
   background:#1e4d8c;color:#fff;padding:12px 18px 12px 28px;
   display:flex;flex-direction:column;justify-content:center;
@@ -789,7 +803,7 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 }
 .inv-foot-right .contact-item{
   display:flex;align-items:center;gap:9px;
-  font-size:11.5px;line-height:1.75;
+  font-size:11.5px;line-height:1.7;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .inv-foot-right .c-ico{
@@ -804,18 +818,21 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 }
 
 @media(max-width:640px){
-  .invoice{padding:16px 14px 0}
+  .invoice{padding:14px 12px 0}
   .inv-grid,.inv-bottom,.inv-foot{grid-template-columns:1fr}
   .inv-row{grid-template-columns:100px 1fr}
-  .inv-title{font-size:22px;margin:12px 0 16px}
-  .inv-jars{height:140px;max-width:180px}
+  .inv-title{font-size:22px;margin:10px 0 14px}
+  .inv-jars{height:150px;max-width:200px}
+  .inv-jars-wrap{margin-top:-8px;margin-right:0}
   .inv-sums{width:100%}
   .inv-table th.col-price,.inv-table td.col-price{width:84px}
   .inv-table th.col-w,.inv-table td.col-w{width:64px}
-  .inv-foot{margin:0 -14px}
+  .inv-foot{margin:0 -12px}
   .inv-foot-right{clip-path:none;padding:14px}
-  .inv-stamp-img{width:130px;margin:8px 20px 0 auto;justify-self:end}
-  .inv-certs{flex-wrap:nowrap;justify-content:space-between}
+  .inv-foot-left{justify-content:flex-start}
+  .inv-stamp-img{width:120px;margin:8px auto 0;margin-right:auto}
+  .inv-certs{flex-wrap:nowrap;justify-content:space-between;gap:4px}
+  .inv-certs img{height:36px;max-width:70px}
 }
 @media print{
   #orderDetailBox{position:static!important;background:none!important;display:block!important;padding:0!important}
@@ -1032,7 +1049,10 @@ function openOrderDetail(orderId){
           '<div class="sub">Đặc sản Tam Quan</div>'+
         '</div>'+
       '</div>'+
-      assetImg('jars.png','inv-jars','')+
+      '<div class="inv-jars-wrap">'+
+        assetImg('jars.png','inv-jars','')+
+        '<div class="inv-jars-cap">Tam Quan Nam / Hoài Nhơn / Gia Lai</div>'+
+      '</div>'+
     '</div>'+
     '<div class="inv-barcode"><svg id="invBarcode"></svg><div class="code">'+escapeHtml(o.id)+'</div></div>'+
     '<div class="inv-title">HOÁ ĐƠN BÁN HÀNG ONLINE</div>'+
