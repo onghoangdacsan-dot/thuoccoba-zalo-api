@@ -798,19 +798,25 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .inv-legal > *{position:relative;z-index:1}
 .inv-legal .certs{
   display:flex;align-items:center;justify-content:center;
-  gap:10px;flex-wrap:nowrap;margin:0 auto 12px;max-width:100%;
+  gap:8px;flex-wrap:nowrap;margin:0 auto 10px;max-width:100%;
 }
 .inv-legal .certs img{
-  height:36px;width:auto;object-fit:contain;
-  min-width:72px;max-width:100px;
+  height:44px;width:auto;object-fit:contain;
+  max-width:110px;
   background:#fff;
-  border-radius:8px;
-  padding:8px 16px;
-  box-shadow:0 2px 6px rgba(0,0,0,.22);
+  border-radius:6px;
+  padding:4px 8px;
+  box-shadow:0 1px 4px rgba(0,0,0,.2);
   box-sizing:content-box;
 }
 .inv-legal .legal-title{
   font-size:11px;font-weight:700;color:#fff;margin:0 0 4px;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  flex-wrap:wrap;
+}
+.inv-trophy{
+  height:28px;width:auto;object-fit:contain;vertical-align:middle;
+  display:inline-block;
 }
 .inv-legal .legal-line{margin:1px auto;color:rgba(255,255,255,.85);max-width:520px}
 .inv-legal .legal-copy{margin-top:5px;font-size:9.5px;color:rgba(255,255,255,.7)}
@@ -1132,7 +1138,7 @@ function openOrderDetail(orderId){
       '</div>'+
       '<div class="inv-legal-row">'+
         '<div class="legal-text">'+
-          '<div class="legal-title">® Ứng dụng Thuộc Cô Ba Store — Phiên bản cao cấp được Zalo chứng nhận</div>'+
+          '<div class="legal-title">® Ứng dụng Thuộc Cô Ba Store — Phiên bản cao cấp được Zalo chứng nhận '+assetImg('trophy.png','inv-trophy','')+'</div>'+
           '<div class="legal-line">Chịu trách nhiệm quản lý nội dung: Nguyễn Thị Thuộc</div>'+
           '<div class="legal-line">Tổng đài hỗ trợ: 0977322861</div>'+
           '<div class="legal-line">Mã số doanh nghiệp: 83271137688-001 do Cục cảnh sát QLHC về TTXH</div>'+
