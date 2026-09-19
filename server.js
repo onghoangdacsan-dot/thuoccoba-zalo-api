@@ -787,9 +787,14 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   background-size:cover;
   background-position:center;
   border-top:none;
-  padding:14px 16px 12px;margin:0;
+  padding:12px 28px 10px;margin:0 auto;
   text-align:center;font-size:10px;color:rgba(255,255,255,.88);line-height:1.5;
   overflow:hidden;
+  max-width:100%;
+  box-sizing:border-box;
+}
+.inv-legal-inner{
+  max-width:480px;margin:0 auto;
 }
 .inv-legal::before{
   content:"";position:absolute;inset:0;
@@ -801,29 +806,31 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   gap:8px;flex-wrap:nowrap;margin:0 auto 10px;max-width:100%;
 }
 .inv-legal .certs img{
-  height:44px;width:auto;object-fit:contain;
-  max-width:110px;
+  height:32px;width:auto;object-fit:contain;
+  max-width:90px;
   background:#fff;
-  border-radius:6px;
-  padding:4px 8px;
-  box-shadow:0 1px 4px rgba(0,0,0,.2);
+  border:2px solid #2a2a2a;
+  border-radius:999px;
+  padding:6px 18px;
+  box-shadow:0 2px 0 #1a1a1a, 0 3px 6px rgba(0,0,0,.25);
   box-sizing:content-box;
 }
 .inv-legal .legal-title{
   font-size:11px;font-weight:700;color:#fff;margin:0 0 4px;
-  display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  flex-wrap:wrap;
+  display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  flex-wrap:nowrap;white-space:nowrap;
+  line-height:1.2;
 }
 .inv-trophy{
-  height:28px;width:auto;object-fit:contain;vertical-align:middle;
-  display:inline-block;
+  height:22px;width:auto;object-fit:contain;vertical-align:middle;
+  display:inline-block;margin-left:2px;flex-shrink:0;
 }
 .inv-legal .legal-line{margin:1px auto;color:rgba(255,255,255,.85);max-width:520px}
 .inv-legal .legal-copy{margin-top:5px;font-size:9.5px;color:rgba(255,255,255,.7)}
 
 .inv-legal-row{
   display:flex;flex-direction:column;align-items:center;
-  gap:8px;width:100%;max-width:580px;margin:0 auto;
+  gap:8px;width:100%;max-width:480px;margin:0 auto;
 }
 .inv-legal-row .legal-text{text-align:center;width:100%}
 .inv-legal .legal-addr{
