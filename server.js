@@ -698,17 +698,19 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 }
 
 .inv-grid{
-  display:grid;grid-template-columns:1.25fr 0.85fr;gap:6px 8px;
+  display:grid;grid-template-columns:1.2fr 0.9fr;gap:6px 10px;
   margin-bottom:6px;
 }
 .inv-box:last-child{
-  justify-self:stretch;
-  margin-left:auto;
+  justify-self:end;
   width:100%;
+  max-width:260px;
+  margin-left:auto;
+  text-align:left;
 }
 .inv-box:last-child h4{text-align:left}
 .inv-box:last-child .inv-row{
-  grid-template-columns:95px 1fr;
+  grid-template-columns:98px 1fr;
 }
 
 .inv-box h4{margin:0 0 4px;font-size:12.5px;color:#0d2b4e;font-weight:700}
@@ -796,14 +798,14 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 .inv-legal > *{position:relative;z-index:1}
 .inv-legal .certs{
   display:flex;align-items:center;justify-content:center;
-  gap:10px;flex-wrap:wrap;margin:0 auto 10px;max-width:520px;
+  gap:12px;flex-wrap:wrap;margin:0 auto 12px;max-width:560px;
 }
 .inv-legal .certs img{
-  height:38px;width:auto;object-fit:contain;max-width:96px;
+  height:48px;width:auto;object-fit:contain;max-width:120px;
   background:#fff;
-  border-radius:8px;
-  padding:5px 8px;
-  box-shadow:0 1px 4px rgba(0,0,0,.2);
+  border-radius:10px;
+  padding:10px 14px;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
   box-sizing:content-box;
 }
 .inv-legal .legal-title{
@@ -814,11 +816,22 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 
 .inv-legal-row{
   display:flex;flex-direction:column;align-items:center;
-  gap:8px;width:100%;max-width:560px;margin:0 auto;
+  gap:8px;width:100%;max-width:580px;margin:0 auto;
 }
 .inv-legal-row .legal-text{text-align:center;width:100%}
+.inv-legal .legal-addr{
+  white-space:nowrap;
+  font-size:9.5px;
+  overflow:hidden;text-overflow:ellipsis;
+  max-width:100%;
+}
 .inv-qr-wrap{
-  display:flex;justify-content:center;width:100%;
+  display:flex;justify-content:center;align-items:center;
+  gap:14px;width:100%;margin-top:4px;
+}
+.inv-foot-logo{
+  width:56px;height:56px;object-fit:cover;border-radius:10px;
+  background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);
 }
 .inv-qr{
   width:72px;height:72px;object-fit:contain;
@@ -1066,7 +1079,7 @@ function openOrderDetail(orderId){
       '</div>'+
     '</div>'+
     '<div class="inv-barcode"><svg id="invBarcode"></svg><div class="code">'+escapeHtml(o.id)+'</div></div>'+
-    '<div class="inv-title">HOÁ ĐƠN BÁN HÀNG</div>'+
+    '<div class="inv-title">HOÁ ĐƠN BÁN HÀNG ONLINE</div>'+
     '<div class="inv-grid">'+
       '<div class="inv-box">'+
         '<h4>Thông tin khách hàng</h4>'+
@@ -1118,14 +1131,17 @@ function openOrderDetail(orderId){
       '</div>'+
       '<div class="inv-legal-row">'+
         '<div class="legal-text">'+
-          '<div class="legal-title">Bản quyền độc quyền của doanh nghiệp Thuộc Cô Ba</div>'+
+          '<div class="legal-title">© Ứng dụng Thuộc Cô Ba Store — Phiên bản cao cấp được Zalo chứng nhận</div>'+
           '<div class="legal-line">Chịu trách nhiệm quản lý nội dung: Nguyễn Thị Thuộc</div>'+
           '<div class="legal-line">Tổng đài hỗ trợ: 0977322861</div>'+
           '<div class="legal-line">Mã số doanh nghiệp: 83271137688-001 do Cục cảnh sát QLHC về TTXH</div>'+
-          '<div class="legal-line">Địa chỉ: 1117/5 Võ Nguyên Giáp, khu phố Tăng Long 2, phường Tam Quan Nam, thị xã Hoài Nhơn, tỉnh Bình Định (Gia Lai mới)</div>'+
-          '<div class="legal-copy">© 2026 Thuộc Cô Ba Store — Các quyền được bảo lưu</div>'+
+          '<div class="legal-line legal-addr">Địa chỉ: 1117/5 Võ Nguyên Giáp, khu phố Tăng Long 2, phường Tam Quan Nam, thị xã Hoài Nhơn, tỉnh Bình Định (Gia Lai mới)</div>'+
+          '<div class="legal-copy">Được sở hữu độc quyền của hộ kinh doanh Nguyễn Thị Thuộc</div>'+
         '</div>'+
-        '<div class="inv-qr-wrap"><img class="inv-qr" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&amp;margin=8&amp;data='+encodeURIComponent('https://zalo.me/s/1175503438081610646/')+'" alt="QR Mini App" width="72" height="72"/></div>'+
+        '<div class="inv-qr-wrap">'+
+          assetImg('logo-footer.png','inv-foot-logo','')+
+          '<img class="inv-qr" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&amp;margin=8&amp;data='+encodeURIComponent('https://zalo.me/s/1175503438081610646/')+'" alt="QR Mini App" width="72" height="72"/>'+
+        '</div>'+
       '</div>'+
     '</div>';
 
