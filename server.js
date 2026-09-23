@@ -560,73 +560,136 @@ function getAdminHTML(ASSET_BASE) {
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Thuộc Cô Ba · Admin</title>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <style>
-:root{--bg:#f4efe6;--panel:#fffdf9;--card:#fff;--line:#e8d9c4;--gold:#c9a227;--gold2:#d4a84b;--brown:#8B4513;--text:#2c1810;--muted:#7a6548}
+/* ====================== BẢNG MÀU SANG TRỌNG - ĐỎ MẬN (theo ảnh mẫu) ====================== */
+:root{
+  --bg:#f7f0ee;
+  --panel:#fffaf9;
+  --card:#ffffff;
+  --line:#ecd9d6;
+  --primary:#7a1f2b;
+  --primary2:#9c2c3a;
+  --primary-dark:#4a1119;
+  --gold:#c9a227;
+  --gold2:#e0bd52;
+  --text:#2b1416;
+  --muted:#8a6b6a;
+  --ink:#3a1418;
+}
 *{box-sizing:border-box}
-body{margin:0;font-family:'Be Vietnam Pro',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-button,input,select{font:inherit}button{cursor:pointer;border:none;border-radius:10px;padding:9px 14px;font-weight:600}
-.layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
-.sidebar{background:#fff9f0;border-right:1px solid var(--line);padding:18px 12px;position:sticky;top:0;height:100vh}
-.brand{display:flex;gap:10px;align-items:center;padding:8px 8px 18px}
-.brand-badge{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--gold2),var(--brown));display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff}
-.brand h1{font-size:14px;margin:0;color:var(--brown)}.brand span{font-size:11px;color:var(--muted)}
-.nav button{width:100%;text-align:left;background:transparent;color:var(--muted);margin-bottom:4px}
-.nav button.on,.nav button:hover{background:rgba(139,69,19,.08);color:var(--brown)}
-.main{padding:18px 20px 40px}
-.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-.topbar h2{margin:0;font-size:20px;font-weight:800;color:var(--brown)}
-.sub{color:var(--muted);font-size:12px;margin-top:4px}
+body{margin:0;font-family:'Be Vietnam Pro',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit}
+button{cursor:pointer;border:none;border-radius:10px;padding:9px 14px;font-weight:700}
+.layout{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+
+/* Sidebar */
+.sidebar{
+  background:linear-gradient(180deg,var(--primary-dark) 0%,var(--primary) 60%,#5c1620 100%);
+  padding:22px 14px;position:sticky;top:0;height:100vh;
+  box-shadow:2px 0 18px rgba(74,17,25,.25);
+}
+.brand{display:flex;gap:10px;align-items:center;padding:6px 8px 26px;border-bottom:1px solid rgba(230,190,120,.25);margin-bottom:16px}
+.brand-badge{
+  width:44px;height:44px;border-radius:12px;
+  background:linear-gradient(135deg,var(--gold2),var(--gold));
+  display:flex;align-items:center;justify-content:center;font-weight:900;color:#4a1119;
+  font-size:15px;letter-spacing:.5px;box-shadow:0 3px 8px rgba(0,0,0,.25);
+}
+.brand h1{font-size:15px;margin:0;color:#fff2e0;font-weight:800;letter-spacing:.3px}
+.brand span{font-size:10.5px;color:rgba(255,242,224,.65);text-transform:uppercase;letter-spacing:1px}
+.nav button{
+  width:100%;text-align:left;background:transparent;color:rgba(255,242,224,.75);
+  margin-bottom:6px;padding:11px 14px;border-radius:10px;font-size:13.5px;
+  display:flex;align-items:center;gap:10px;transition:all .15s;
+}
+.nav button.on{background:rgba(255,255,255,.14);color:#fff2e0;box-shadow:inset 3px 0 0 var(--gold2)}
+.nav button:hover{background:rgba(255,255,255,.08);color:#fff2e0}
+
+.main{padding:26px 30px 44px}
+.topbar{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.topbar h2{
+  margin:0;font-size:24px;font-weight:900;color:var(--primary);
+  letter-spacing:.3px;position:relative;padding-bottom:8px;
+}
+.topbar h2::after{content:'';position:absolute;left:0;bottom:0;width:46px;height:3px;background:linear-gradient(90deg,var(--gold2),var(--gold));border-radius:3px}
+.sub{color:var(--muted);font-size:12px;margin-top:6px}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
-.btn-gold{background:linear-gradient(135deg,var(--gold2),var(--brown));color:#fff}
-.btn-ghost{background:#fff;border:1px solid var(--line);color:var(--text)}
-.kpis{display:grid;grid-template-columns:repeat(6,minmax(100px,1fr));gap:10px;margin-bottom:14px}
-@media(max-width:1100px){.layout{grid-template-columns:1fr}.sidebar{display:none}.kpis{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 2px 8px rgba(139,69,19,.06)}
-.kpi .label{font-size:11px;color:var(--muted);font-weight:600}
-.kpi .value{font-size:18px;font-weight:800;margin-top:4px;color:var(--brown)}
-.kpi .hint{font-size:11px;color:var(--muted);margin-top:4px}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(139,69,19,.05)}
-.panel-title{font-size:14px;font-weight:700;margin:0 0 10px;color:var(--brown)}
-.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
-.chip{background:#faf6ef;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:7px 12px;font-size:12px}
-.chip.on{background:rgba(139,69,19,.1);border-color:var(--brown);color:var(--brown)}
+.btn-gold{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#4a1119;box-shadow:0 3px 10px rgba(201,162,39,.35)}
+.btn-ghost{background:#fff;border:1px solid var(--line);color:var(--primary)}
+.btn-ghost:hover{border-color:var(--primary2)}
+
+/* ====================== KPI - THẺ CHỈ SỐ CÓ XU HƯỚNG TĂNG/GIẢM ====================== */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(150px,1fr));gap:14px;margin-bottom:22px}
+@media(max-width:1200px){.layout{grid-template-columns:1fr}.sidebar{display:none}.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}.main{padding:18px 16px 32px}}
+.kpi{
+  position:relative;overflow:hidden;border-radius:16px;padding:16px 16px 14px;color:#fff;
+  box-shadow:0 8px 22px -8px rgba(74,17,25,.35);
+}
+.kpi::before{content:'';position:absolute;right:-18px;top:-18px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.12)}
+.kpi .label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;opacity:.88}
+.kpi .value{font-size:21px;font-weight:900;margin-top:8px;letter-spacing:.2px}
+.kpi .trend{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;margin-top:9px;padding:3px 8px;border-radius:20px;background:rgba(255,255,255,.16)}
+.kpi .trend.up{color:#d7ffe6}
+.kpi .trend.down{color:#ffe0e0}
+.kpi .trend.flat{color:rgba(255,255,255,.75)}
+.kpi-1{background:linear-gradient(135deg,#8a2432,#4a1119)}
+.kpi-2{background:linear-gradient(135deg,var(--gold2),#b8860b)}
+.kpi-3{background:linear-gradient(135deg,#a52a3a,#6b1a26)}
+.kpi-4{background:linear-gradient(135deg,#c65d6c,#8a2432)}
+.kpi-5{background:linear-gradient(135deg,#5c1620,#2e0b10)}
+.kpi-6{background:linear-gradient(135deg,#9a8579,#5c4c44)}
+.kpi .hint{font-size:10.5px;opacity:.8;margin-top:4px}
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 3px 14px rgba(74,17,25,.06)}
+.panel-title{font-size:14.5px;font-weight:800;margin:0 0 14px;color:var(--primary);display:flex;align-items:center;gap:8px}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.chip{background:#faf3f1;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600}
+.chip.on{background:linear-gradient(135deg,var(--primary2),var(--primary));border-color:var(--primary);color:#fff}
 input,select{background:#fff;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 12px}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;color:var(--muted);font-weight:600;padding:10px 8px;border-bottom:1px solid var(--line);font-size:11px}
-td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
-.badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700}
-.pending{background:#fff3cd;color:#856404}.preparing{background:#cfe2ff;color:#084298}
-.shipping{background:#e0d4ff;color:#5a3d9a}.completed{background:#d1e7dd;color:#0f5132}.cancelled{background:#f8d7da;color:#842029}
-.row-btns{display:flex;flex-wrap:wrap;gap:4px}
-.row-btns button{font-size:11px;padding:5px 8px;border-radius:8px}
-.b-prep{background:#1e3a5f;color:#93c5fd}.b-ship{background:#312e81;color:#c7d2fe}
-.b-ok{background:#14532d;color:#86efac}.b-bad{background:#7f1d1d;color:#fecaca}.b-jnt{background:#9a3412;color:#fdba74}
+th{text-align:left;color:var(--primary);font-weight:700;padding:10px 8px;border-bottom:2px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+td{padding:12px 8px;border-bottom:1px solid #f3e6e3;vertical-align:top}
+tbody tr:hover{background:#fdf6f5}
+.badge{display:inline-block;padding:4px 11px;border-radius:999px;font-size:11px;font-weight:700}
+.pending{background:#fdf0d6;color:#9a6b12}.preparing{background:#e3ecfb;color:#2451a3}
+.shipping{background:#ece3fb;color:#5a3d9a}.completed{background:#e0f4e6;color:#1a7a3d}.cancelled{background:#fbe3e6;color:#a3243a}
+.row-btns{display:flex;flex-wrap:wrap;gap:5px}
+.pill-btn{
+  font-size:11px;padding:7px 11px;border-radius:20px;font-weight:700;display:inline-flex;
+  align-items:center;gap:5px;transition:all .15s;border:1px solid transparent;
+}
+.pill-btn:active{transform:scale(0.96)}
+.pill-prep{background:#e3ecfb;color:#2451a3}.pill-prep:hover{background:#2451a3;color:#fff}
+.pill-ship{background:#ece3fb;color:#5a3d9a}.pill-ship:hover{background:#5a3d9a;color:#fff}
+.pill-ok{background:#e0f4e6;color:#1a7a3d}.pill-ok:hover{background:#1a7a3d;color:#fff}
+.pill-bad{background:#fbe3e6;color:#a3243a}.pill-bad:hover{background:#a3243a;color:#fff}
 .muted{color:var(--muted);font-size:12px}
-.products{font-size:11px;color:#8a7250;margin-top:4px;line-height:1.4}
-.order-id{cursor:pointer;color:var(--brown);font-weight:800}.order-id:hover{text-decoration:underline}
-.chart{display:flex;align-items:flex-end;gap:8px;height:110px}
+.products{font-size:11px;color:#9c8079;margin-top:4px;line-height:1.4}
+.order-id{cursor:pointer;color:var(--primary);font-weight:800}.order-id:hover{text-decoration:underline}
+.chart{display:flex;align-items:flex-end;gap:10px;height:120px}
 .bar-wrap{flex:1;text-align:center}
-.bar{background:linear-gradient(180deg,var(--gold2),var(--brown));border-radius:8px 8px 4px 4px;min-height:4px}
-.bar-label{font-size:10px;color:var(--muted);margin-top:6px}
-#loginBox{max-width:400px;margin:12vh auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:28px;box-shadow:0 8px 30px rgba(139,69,19,.12)}
-#loginBox h1{margin:0 0 8px;font-size:20px;color:var(--brown)}#loginBox p{color:var(--muted);font-size:13px}
-#loginBox input{width:100%;margin:12px 0}
-#loginBox button{width:100%;background:linear-gradient(135deg,var(--gold2),var(--brown));color:#fff}
-.err{color:#c0392b;font-size:13px;margin-top:8px}
+.bar{background:linear-gradient(180deg,var(--gold2),var(--primary));border-radius:8px 8px 4px 4px;min-height:4px}
+.bar-label{font-size:10px;color:var(--muted);margin-top:6px;font-weight:600}
+#loginBox{max-width:400px;margin:14vh auto;background:#fff;border:1px solid var(--line);border-radius:20px;padding:32px;box-shadow:0 16px 40px rgba(74,17,25,.15)}
+#loginBox h1{margin:0 0 8px;font-size:22px;color:var(--primary);font-weight:900}
+#loginBox p{color:var(--muted);font-size:13px}
+#loginBox input{width:100%;margin:14px 0}
+#loginBox button{width:100%;background:linear-gradient(135deg,var(--gold2),var(--gold));color:#4a1119;font-weight:800}
+.err{color:#a3243a;font-size:13px;margin-top:8px}
 .banner-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .banner-card{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#fff;min-height:120px;position:relative}
 .banner-card .bg{position:absolute;inset:0;opacity:.3;background-size:cover;background-position:center}
 .banner-card .body{position:relative;padding:14px}
-.banner-card h4{margin:0 0 4px;font-size:14px;color:var(--brown)}.banner-card p{margin:0;font-size:12px;color:var(--muted)}
+.banner-card h4{margin:0 0 4px;font-size:14px;color:var(--primary)}.banner-card p{margin:0;font-size:12px;color:var(--muted)}
 .hidden{display:none!important}
 .tier-badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700}
 .t-dong{background:#f5e6d3;color:#8B5A2B}.t-bac{background:#e8eef5;color:#64748b}
 .t-vang{background:#fff3cd;color:#b8860b}.t-kimcuong{background:#e0f2fe;color:#0284c7}
 
-/* ===== HOÁ ĐƠN — khớp mẫu 100% ===== */
+/* ===== HOÁ ĐƠN — giữ nguyên như đã chốt, không đổi ===== */
 #orderDetailBox{display:none;position:fixed;inset:0;background:rgba(40,28,18,.55);z-index:9999;align-items:center;justify-content:center;padding:8px}
 #orderDetailBox.show{display:flex}
 .invoice-wrap{background:transparent;border-radius:12px;max-width:640px;width:100%;max-height:96vh;overflow:auto;box-shadow:0 16px 48px rgba(0,0,0,.28)}
@@ -637,7 +700,6 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
   min-height:0;color:#1e293b;
 }
-/* thanh xanh trên — THẲNG, full-width */
 .invoice::before{
   content:"";position:absolute;left:0;top:0;width:100%;height:24px;
   background:#0d2b4e;z-index:1;
@@ -764,7 +826,6 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 }
 .inv-total span:last-child{font-variant-numeric:tabular-nums}
 
-/* Payment + stamp cùng hàng, cùng trục dọc */
 .inv-bottom{
   display:grid;grid-template-columns:1fr 130px;
   gap:8px 12px;align-items:center;
@@ -779,7 +840,6 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   mix-blend-mode:multiply;justify-self:end;align-self:center;margin:0;
 }
 
-/* ===== FOOTER nền network, căn giữa ===== */
 .inv-legal{
   position:relative;
   background:#0f2744;
@@ -890,12 +950,12 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   <aside class="sidebar">
     <div class="brand"><div class="brand-badge">CB</div><div><h1>Thuộc Cô Ba</h1><span>Admin Panel</span></div></div>
     <nav class="nav">
-      <button type="button" class="on" id="navOrders" onclick="showView('orders')">📦 Đơn hàng</button>
-      <button type="button" id="navDash" onclick="showView('dash')">📊 Tổng quan</button>
-      <button type="button" id="navLoyalty" onclick="showView('loyalty')">🎖️ Hội viên & Tích điểm</button>
-      <button type="button" id="navBanner" onclick="showView('banner')">🖼️ Banner</button>
-      <button type="button" onclick="exportCSV()">⬇ Xuất CSV</button>
-      <button type="button" onclick="logout()">🚪 Đăng xuất</button>
+      <button type="button" class="on" id="navOrders" onclick="showView('orders')">📦 &nbsp;Đơn hàng</button>
+      <button type="button" id="navDash" onclick="showView('dash')">📊 &nbsp;Tổng quan</button>
+      <button type="button" id="navLoyalty" onclick="showView('loyalty')">🎖️ &nbsp;Hội viên & Tích điểm</button>
+      <button type="button" id="navBanner" onclick="showView('banner')">🖼️ &nbsp;Banner</button>
+      <button type="button" onclick="exportCSV()">⬇ &nbsp;Xuất CSV</button>
+      <button type="button" onclick="logout()">🚪 &nbsp;Đăng xuất</button>
     </nav>
   </aside>
   <main class="main">
@@ -993,7 +1053,6 @@ function assetImg(srcFile, cls, alt, extraStyle){
   var c=cls?(' class="'+cls+'"'):'';
   var a=alt!=null?(' alt="'+String(alt).replace(/"/g,'')+'"'):' alt=""';
   var st=extraStyle?(' style="'+extraStyle+'"'):'';
-  /* ưu tiên local (đã crop đúng) → fallback GitHub */
   return '<img'+c+a+st+' src="'+local+'" data-fb="'+gh+'" onerror="this.onerror=null;this.src=this.dataset.fb" loading="eager" referrerpolicy="no-referrer"/>';
 }
 var allOrders=[],rangeMode='30d',fromTs=null,toTs=null,ADMIN_PASS='thuoccoba2026';
@@ -1008,7 +1067,51 @@ function setRange(mode){rangeMode=mode;var now=new Date();['fToday','f7','f30','
 function money(n){return Number(n||0).toLocaleString('vi-VN')}
 function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function filteredList(){var q=(document.getElementById('q').value||'').trim().toLowerCase(),st=document.getElementById('statusFilter').value;return allOrders.filter(function(o){var ts=new Date(o.createdAt).getTime();if(fromTs!=null&&ts<fromTs)return false;if(toTs!=null&&ts>toTs)return false;if(st&&o.status!==st)return false;if(q){var s=o.shippingInfo||{},items=(o.items||[]).map(function(i){return i.name||''}).join(' '),hay=[o.id,s.fullName,s.phone,s.address,o.note,o.cancelReason,items].join(' ').toLowerCase();if(hay.indexOf(q)===-1)return false}return true})}
-function renderStats(list){var c={pending:0,preparing:0,shipping:0,completed:0,cancelled:0},revenue=0,active=0,cancelAmt=0;list.forEach(function(o){if(c[o.status]!=null)c[o.status]++;var t=Number(o.total||0);if(o.status==='completed')revenue+=t;if(o.status==='cancelled')cancelAmt+=t;else active+=t});var done=list.filter(function(o){return o.status==='completed'}),aov=done.length?Math.round(revenue/done.length):0;document.getElementById('statsCards').innerHTML='<div class="kpi"><div class="label">Đơn (lọc)</div><div class="value">'+list.length+'</div></div><div class="kpi"><div class="label">Doanh thu đã giao</div><div class="value">'+money(revenue)+'đ</div></div><div class="kpi"><div class="label">Giá trị hiệu lực</div><div class="value">'+money(active)+'đ</div></div><div class="kpi"><div class="label">AOV đã giao</div><div class="value">'+money(aov)+'đ</div></div><div class="kpi"><div class="label">Đang xử lý</div><div class="value">'+(c.pending+c.preparing+c.shipping)+'</div><div class="hint">Chờ '+c.pending+'</div></div><div class="kpi"><div class="label">Đã hủy</div><div class="value">'+c.cancelled+'</div><div class="hint">'+money(cancelAmt)+'đ</div></div>'}
+
+/* ====== Danh sách đơn trong kỳ liền trước (cùng độ dài) để tính xu hướng tăng/giảm ====== */
+function previousPeriodList(){
+  if(fromTs==null||toTs==null) return null; // 'Tất cả' -> không có kỳ trước để so sánh
+  var span=toTs-fromTs, prevTo=fromTs-1, prevFrom=prevTo-span;
+  return allOrders.filter(function(o){
+    var ts=new Date(o.createdAt).getTime();
+    return ts>=prevFrom && ts<=prevTo;
+  });
+}
+function trendHtml(curVal, prevVal, hasPrev){
+  if(!hasPrev) return '<span class="trend flat">— so với kỳ trước</span>';
+  if(prevVal<=0){
+    if(curVal<=0) return '<span class="trend flat">— chưa có dữ liệu</span>';
+    return '<span class="trend up">▲ Mới so với kỳ trước</span>';
+  }
+  var pct=((curVal-prevVal)/prevVal)*100;
+  var cls=pct>0.5?'up':(pct<-0.5?'down':'flat');
+  var arrow=pct>0.5?'▲':(pct<-0.5?'▼':'—');
+  return '<span class="trend '+cls+'">'+arrow+' '+Math.abs(pct).toFixed(1)+'% so với kỳ trước</span>';
+}
+
+function renderStats(list){
+  var c={pending:0,preparing:0,shipping:0,completed:0,cancelled:0},revenue=0,active=0,cancelAmt=0;
+  list.forEach(function(o){if(c[o.status]!=null)c[o.status]++;var t=Number(o.total||0);if(o.status==='completed')revenue+=t;if(o.status==='cancelled')cancelAmt+=t;else active+=t});
+  var done=list.filter(function(o){return o.status==='completed'}),aov=done.length?Math.round(revenue/done.length):0;
+
+  var prevList=previousPeriodList();
+  var hasPrev=prevList!=null;
+  var pc={pending:0,preparing:0,shipping:0,completed:0,cancelled:0},prevRevenue=0,prevActive=0,prevAov=0;
+  if(hasPrev){
+    prevList.forEach(function(o){if(pc[o.status]!=null)pc[o.status]++;var t=Number(o.total||0);if(o.status==='completed')prevRevenue+=t;if(o.status!=='cancelled')prevActive+=t});
+    var prevDone=prevList.filter(function(o){return o.status==='completed'});
+    prevAov=prevDone.length?Math.round(prevRevenue/prevDone.length):0;
+  }
+
+  document.getElementById('statsCards').innerHTML=
+    '<div class="kpi kpi-1"><div class="label">Đơn (lọc)</div><div class="value">'+list.length+'</div>'+trendHtml(list.length, hasPrev?prevList.length:0, hasPrev)+'</div>'+
+    '<div class="kpi kpi-2"><div class="label">Doanh thu đã giao</div><div class="value">'+money(revenue)+'đ</div>'+trendHtml(revenue, prevRevenue, hasPrev)+'</div>'+
+    '<div class="kpi kpi-3"><div class="label">Giá trị hiệu lực</div><div class="value">'+money(active)+'đ</div>'+trendHtml(active, prevActive, hasPrev)+'</div>'+
+    '<div class="kpi kpi-4"><div class="label">AOV đã giao</div><div class="value">'+money(aov)+'đ</div>'+trendHtml(aov, prevAov, hasPrev)+'</div>'+
+    '<div class="kpi kpi-5"><div class="label">Đang xử lý</div><div class="value">'+(c.pending+c.preparing+c.shipping)+'</div><div class="hint">Chờ xác nhận: '+c.pending+'</div></div>'+
+    '<div class="kpi kpi-6"><div class="label">Đã hủy</div><div class="value">'+c.cancelled+'</div>'+trendHtml(c.cancelled, hasPrev?pc.cancelled:0, hasPrev)+'</div>';
+}
+
 function renderDash(){var list=filteredList(),c={pending:0,preparing:0,shipping:0,completed:0,cancelled:0};list.forEach(function(o){if(c[o.status]!=null)c[o.status]++});var max=Math.max(1,c.pending,c.preparing,c.shipping,c.completed,c.cancelled),keys=['pending','preparing','shipping','completed','cancelled'];document.getElementById('statusChart').innerHTML=keys.map(function(k){var h=Math.round((c[k]/max)*100),short=(STATUS_LABEL[k]||k).split(' ').pop();return '<div class="bar-wrap"><div class="bar" style="height:'+h+'%"></div><div class="bar-label">'+short+'<br/>'+c[k]+'</div></div>'}).join('');var tip='Hệ thống ổn định.';if(c.pending>=3)tip='Có '+c.pending+' đơn chờ xác nhận — ưu tiên xử lý trong ngày.';else if(c.cancelled>c.completed&&list.length>2)tip='Tỷ lệ hủy cao — kiểm tra phí ship / mô tả SP.';else if(c.shipping>0)tip='Có đơn đang giao — theo dõi vận chuyển.';document.getElementById('insights').textContent=tip}
 
 function buildOrderMessage(o){
@@ -1134,7 +1237,7 @@ function openOrderDetail(orderId){
       '</div>'+
       assetImg('stamp.png','inv-stamp-img','Gian hàng chính hãng')+
     '</div>'+
-    '</div>'+ /* end inv-body */
+    '</div>'+
     '<div class="inv-legal">'+
       '<div class="certs">'+
         assetImg('boct.png','','')+
@@ -1175,15 +1278,20 @@ function closeOrderDetail(){document.getElementById('orderDetailBox').classList.
 function copyOrderDetail(){var t=window._lastOrderMsg||'';if(!t)return;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){alert('Đã copy mẫu tin nhắn!')})}else{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('Đã copy mẫu tin nhắn!')}}
 function printInvoice(){window.print()}
 
-async function loadLoyalty(){var pwd=getPwd();try{var custRes=await fetch('/api/admin/customers',{headers:{'x-admin-password':pwd}});var customers=await custRes.json();if(!Array.isArray(customers))customers=[];var counts={dong:0,bac:0,vang:0,kimcuong:0};customers.forEach(function(c){counts[tierOf(c.points).key]++});document.getElementById('tierCards').innerHTML=TIERS.map(function(t){return '<div class="kpi"><div class="label">Hạng '+t.label+'</div><div class="value">'+(counts[t.key]||0)+'</div><div class="hint">khách</div></div>'}).join('')+'<div class="kpi"><div class="label">Tổng hội viên</div><div class="value">'+customers.length+'</div></div>';document.getElementById('customersBody').innerHTML=customers.length?customers.slice(0,100).map(function(c){var t=tierOf(c.points);return '<tr><td>'+escapeHtml(c.phone)+'</td><td>'+escapeHtml(c.full_name||'—')+'</td><td><b>'+c.points+'</b></td><td><span class="tier-badge '+t.cls+'">'+t.label+'</span></td><td class="muted">'+(c.updated_at?new Date(c.updated_at).toLocaleString('vi-VN'):'—')+'</td></tr>'}).join(''):'<tr><td colspan="5" class="muted">Chưa có hội viên</td></tr>';var redRes=await fetch('/api/admin/redemptions',{headers:{'x-admin-password':pwd}});var redemptions=await redRes.json();if(!Array.isArray(redemptions))redemptions=[];document.getElementById('redemptionsBody').innerHTML=redemptions.length?redemptions.map(function(r){var badgeCls=r.status==='fulfilled'?'completed':'pending';var btn=r.status==='fulfilled'?'<span class="muted">Đã giao</span>':'<button type="button" class="b-ok" onclick="fulfillRedemption('+r.id+')">Đánh dấu đã giao</button>';return '<tr><td>'+escapeHtml(r.phone)+'</td><td>'+escapeHtml(r.gift_label)+'</td><td>'+r.points_cost+'</td><td><span class="badge '+badgeCls+'">'+(r.status==='fulfilled'?'Đã giao':'Chờ giao')+'</span></td><td class="muted">'+new Date(r.created_at).toLocaleString('vi-VN')+'</td><td>'+btn+'</td></tr>'}).join(''):'<tr><td colspan="6" class="muted">Chưa có lượt đổi quà</td></tr>'}catch(e){console.error(e)}}
+async function loadLoyalty(){var pwd=getPwd();try{var custRes=await fetch('/api/admin/customers',{headers:{'x-admin-password':pwd}});var customers=await custRes.json();if(!Array.isArray(customers))customers=[];var counts={dong:0,bac:0,vang:0,kimcuong:0};customers.forEach(function(c){counts[tierOf(c.points).key]++});document.getElementById('tierCards').innerHTML=TIERS.map(function(t){return '<div class="kpi kpi-3"><div class="label">Hạng '+t.label+'</div><div class="value">'+(counts[t.key]||0)+'</div><div class="hint">khách</div></div>'}).join('')+'<div class="kpi kpi-2"><div class="label">Tổng hội viên</div><div class="value">'+customers.length+'</div></div>';document.getElementById('customersBody').innerHTML=customers.length?customers.slice(0,100).map(function(c){var t=tierOf(c.points);return '<tr><td>'+escapeHtml(c.phone)+'</td><td>'+escapeHtml(c.full_name||'—')+'</td><td><b>'+c.points+'</b></td><td><span class="tier-badge '+t.cls+'">'+t.label+'</span></td><td class="muted">'+(c.updated_at?new Date(c.updated_at).toLocaleString('vi-VN'):'—')+'</td></tr>'}).join(''):'<tr><td colspan="5" class="muted">Chưa có hội viên</td></tr>';var redRes=await fetch('/api/admin/redemptions',{headers:{'x-admin-password':pwd}});var redemptions=await redRes.json();if(!Array.isArray(redemptions))redemptions=[];document.getElementById('redemptionsBody').innerHTML=redemptions.length?redemptions.map(function(r){var badgeCls=r.status==='fulfilled'?'completed':'pending';var btn=r.status==='fulfilled'?'<span class="muted">Đã giao</span>':'<button type="button" class="pill-btn pill-ok" onclick="fulfillRedemption('+r.id+')">Đánh dấu đã giao</button>';return '<tr><td>'+escapeHtml(r.phone)+'</td><td>'+escapeHtml(r.gift_label)+'</td><td>'+r.points_cost+'</td><td><span class="badge '+badgeCls+'">'+(r.status==='fulfilled'?'Đã giao':'Chờ giao')+'</span></td><td class="muted">'+new Date(r.created_at).toLocaleString('vi-VN')+'</td><td>'+btn+'</td></tr>'}).join(''):'<tr><td colspan="6" class="muted">Chưa có lượt đổi quà</td></tr>'}catch(e){console.error(e)}}
 async function fulfillRedemption(id){var pwd=getPwd();try{var res=await fetch('/api/admin/redemptions/'+id+'/fulfill',{method:'PATCH',headers:{'x-admin-password':pwd}});if(!res.ok){alert('Lỗi cập nhật');return}loadLoyalty()}catch(e){alert(e.message)}}
 function applyFilters(){var list=filteredList();renderStats(list);var labelMap={today:'Hôm nay','7d':'7 ngày','30d':'30 ngày',all:'Tất cả',custom:'Tùy chọn'};document.getElementById('filterInfo').textContent=' · '+(labelMap[rangeMode]||'')+' · '+list.length+'/'+allOrders.length;var tbody=document.getElementById('tbody');if(!list.length){tbody.innerHTML='<tr><td colspan="6" class="muted">Không có đơn trong bộ lọc</td></tr>';return}
 tbody.innerHTML=list.map(function(o){var s=o.shippingInfo||{},st=o.status||'pending',items=o.items||[];
 var products=items.length?'<div class="products">'+items.map(function(i){return escapeHtml(i.name||'SP')+' ×'+(i.quantity||1)}).join('<br/>')+'</div>':'';
 var note=o.note?'<div class="products">Ghi chú: '+escapeHtml(o.note)+'</div>':'';
-var cancel=(st==='cancelled'&&o.cancelReason)?'<div class="products" style="color:#c0392b">Hủy: '+escapeHtml(o.cancelReason)+'</div>':'';
+var cancel=(st==='cancelled'&&o.cancelReason)?'<div class="products" style="color:#a3243a">Hủy: '+escapeHtml(o.cancelReason)+'</div>':'';
 var time=o.createdAt?new Date(o.createdAt).toLocaleString('vi-VN'):'—';
-return '<tr><td><span class="order-id" onclick="openOrderDetail(\\''+o.id+'\\')">'+escapeHtml(o.id)+'</span><div class="muted" style="font-size:10px;cursor:pointer" onclick="openOrderDetail(\\''+o.id+'\\')">Xem hoá đơn</div></td><td>'+time+'</td><td>'+escapeHtml(s.fullName||'—')+'<br/><span class="muted">'+escapeHtml(s.phone||'')+'</span><br/><span class="muted">'+escapeHtml(s.address||'')+'</span>'+products+note+cancel+'</td><td><b>'+money(o.total)+'đ</b><div class="muted">'+escapeHtml(o.paymentMethod||'COD')+'</div></td><td><span class="badge '+st+'">'+(STATUS_LABEL[st]||st)+'</span></td><td><div class="row-btns"><button type="button" class="b-prep" onclick="setStatus(\\''+o.id+'\\',\\'preparing\\')">Chuẩn bị</button><button type="button" class="b-ship" onclick="setStatus(\\''+o.id+'\\',\\'shipping\\')">Giao</button><button type="button" class="b-ok" onclick="setStatus(\\''+o.id+'\\',\\'completed\\')">Xong</button><button type="button" class="b-bad" onclick="setStatus(\\''+o.id+'\\',\\'cancelled\\')">Hủy</button><button type="button" class="b-jnt" onclick="printJnT(\\''+o.id+'\\')">J&amp;T</button></div></td></tr>'}).join('');
+return '<tr><td><span class="order-id" onclick="openOrderDetail(\\''+o.id+'\\')">'+escapeHtml(o.id)+'</span><div class="muted" style="font-size:10px;cursor:pointer" onclick="openOrderDetail(\\''+o.id+'\\')">Xem hoá đơn</div></td><td>'+time+'</td><td>'+escapeHtml(s.fullName||'—')+'<br/><span class="muted">'+escapeHtml(s.phone||'')+'</span><br/><span class="muted">'+escapeHtml(s.address||'')+'</span>'+products+note+cancel+'</td><td><b>'+money(o.total)+'đ</b><div class="muted">'+escapeHtml(o.paymentMethod||'COD')+'</div></td><td><span class="badge '+st+'">'+(STATUS_LABEL[st]||st)+'</span></td><td><div class="row-btns">'+
+  '<button type="button" class="pill-btn pill-prep" onclick="setStatus(\\''+o.id+'\\',\\'preparing\\')">📦 Chuẩn bị</button>'+
+  '<button type="button" class="pill-btn pill-ship" onclick="setStatus(\\''+o.id+'\\',\\'shipping\\')">🚚 Đang giao</button>'+
+  '<button type="button" class="pill-btn pill-ok" onclick="setStatus(\\''+o.id+'\\',\\'completed\\')">✅ Hoàn tất</button>'+
+  '<button type="button" class="pill-btn pill-bad" onclick="setStatus(\\''+o.id+'\\',\\'cancelled\\')">✕ Hủy đơn</button>'+
+  '</div></td></tr>'}).join('');
 if(!document.getElementById('viewDash').classList.contains('hidden'))renderDash()}
 async function loadOrders(){try{var res=await fetch('/api/orders');allOrders=await res.json();if(!Array.isArray(allOrders))allOrders=[];document.getElementById('lastUpdated').textContent='Cập nhật '+new Date().toLocaleString('vi-VN')+' · '+allOrders.length+' đơn toàn hệ thống';applyFilters()}catch(e){alert('Không tải được đơn: '+e.message)}}
 async function setStatus(orderId,status){var pwd=getPwd();if(!pwd){logout();return}try{var body={status:status};if(status==='cancelled')body.reason=prompt('Lý do hủy:','Hủy bởi admin')||'Hủy bởi admin';var res=await fetch('/api/orders/'+encodeURIComponent(orderId)+'/status',{method:'PATCH',headers:{'Content-Type':'application/json','x-admin-password':pwd},body:JSON.stringify(body)});var data=await res.json();if(!res.ok){alert(data.error||'Lỗi');if(res.status===401)logout();return}loadOrders()}catch(e){alert(e.message)}}
@@ -1202,7 +1310,6 @@ function exportCSV(){
   a.download='thuoc-co-ba-orders.csv';
   a.click();
 }
-function printJnT(orderId){var o=allOrders.find(function(x){return x.id===orderId});if(!o){alert('Không tìm thấy đơn');return}var s=o.shippingInfo||{},items=o.items||[];var productNames=items.length?items.map(function(i){return (i.name||'SP')+' x'+(i.quantity||1)}).join(', '):'Mini App Thuộc Cô Ba Store';var total=money(o.total),phone=s.phone||'',fullName=s.fullName||'Khách',address=s.address||'—',orderCode=String(o.id);var barcodeValue=orderCode.replace(/[^0-9A-Za-z]/g,'').slice(-12)||orderCode;var sortCode=(orderCode.replace(/\\D/g,'').slice(-6)||orderCode.slice(-6)).toUpperCase();var html='<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>J&T '+orderCode+'</title><script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\\/script><script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\\/script><style>@page{size:100mm 150mm;margin:0}body{font-family:Arial;width:100mm}table{width:100%;border-collapse:collapse}td{border:1.5px solid #000;padding:2mm;font-size:11px;vertical-align:top}.sort{font-size:24px;font-weight:900;text-align:center}</style></head><body><table><tr><td><b>Thuộc Cô Ba</b></td><td style="color:#e11d48;font-weight:900">J&T EXPRESS</td><td>ET</td></tr><tr><td colspan="3" style="text-align:center"><svg id="barcode"></svg><div>'+barcodeValue+'</div></td></tr><tr><td colspan="3" class="sort">'+sortCode+'</td></tr><tr><td colspan="2"><b>Gửi:</b> Kho Thuộc Cô Ba · 0977322861<br/>1117/5 Võ Nguyên Giáp, Hoài Nhơn, Gia Lai<br/><br/><b>Nhận:</b> '+fullName+' '+phone+'<br/>'+address+'</td><td style="text-align:center"><canvas id="qrcode"></canvas></td></tr><tr><td colspan="2">Hàng: '+productNames+'<br/>COD</td><td style="text-align:center;font-weight:900">'+total+' đ<br/>COD</td></tr></table><script>try{JsBarcode("#barcode","'+barcodeValue+'",{format:"CODE128",width:1.3,height:40,displayValue:false})}catch(e){}try{QRCode.toCanvas(document.getElementById("qrcode"),"'+orderCode+'",{width:80,margin:0})}catch(e){}setTimeout(function(){print()},400)<\\/script></body></html>';var w=window.open('','blank','width=420,height=720');w.document.write(html);w.document.close()}
 if(getPwd()===ADMIN_PASS){document.getElementById('loginBox').style.display='none';document.getElementById('app').style.display='grid';setRange('30d');loadOrders()}
 </script>
 </body>
