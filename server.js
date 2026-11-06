@@ -7,7 +7,28 @@ const path = require("path");
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use("/admin-assets", express.static(path.join(__dirname, "admin-assets")));
+const ADMIN_ASSETS_DIR = path.join(__dirname, "admin-assets");
+app.use("/admin-assets", express.static(ADMIN_ASSETS_DIR, {
+  maxAge: "7d",
+  fallthrough: true,
+  index: false,
+  setHeaders(res) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+  },
+}));
+// Fallback: serve known assets even if path case differs
+app.get("/admin-assets/:file", (req, res, next) => {
+  const file = String(req.params.file || "").replace(/[^a-zA-Z0-9._-]/g, "");
+  const full = path.join(ADMIN_ASSETS_DIR, file);
+  if (!full.startsWith(ADMIN_ASSETS_DIR)) return res.status(400).end();
+  res.sendFile(full, (err) => {
+    if (err) {
+      console.error("admin-asset missing:", file, err.message);
+      res.status(404).type("text/plain").send("Missing asset: " + file);
+    }
+  });
+});
 
 const { createOrder: createJnTOrder } = require("./src/server/jntService");
 
@@ -25,45 +46,6 @@ app.post("/api/jnt/create-order", async (req, res) => {
 });
 
 const PRIVATE_KEY = "fe49f1b0e06649e498929a7379cfdfbf";
-
-// ===== Zalo Checkout: cập nhật trạng thái giao dịch (updateOrderStatus) =====
-const ZALO_MINI_APP_ID = process.env.ZALO_MINI_APP_ID || "1175503438081610646";
-const ZALO_CHECKOUT_APP_ID = process.env.ZALO_CHECKOUT_APP_ID || ""; // appId trong Notify; nếu trống sẽ dùng appId lưu từ Notify
-
-// resultCode: 1 = thành công, 0 = hoàn tiền/hoàn trả, -1 = thất bại/hủy
-async function updateZaloOrderStatus(order, resultCode) {
-  try {
-    const zaloOrderId = order && order.zaloOrderId;
-    const appId = (order && order.zaloAppId) || ZALO_CHECKOUT_APP_ID;
-    if (!zaloOrderId || !appId) {
-      console.warn("updateZaloOrderStatus: thiếu zaloOrderId/appId cho đơn", order && order.id);
-      return { skipped: true };
-    }
-    if (order.zaloStatusSent === resultCode) return { skipped: true };
-    const str = "appId=" + appId + "&orderId=" + zaloOrderId + "&resultCode=" + resultCode + "&privateKey=" + PRIVATE_KEY;
-    const mac = CryptoJS.HmacSHA256(str, PRIVATE_KEY).toString();
-    const r = await fetch(
-      "https://payment-mini.zalo.me/api/transaction/" + ZALO_MINI_APP_ID + "/cod-callback-payment",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ appId, orderId: zaloOrderId, resultCode, mac }),
-      }
-    );
-    const j = await r.json().catch(() => ({}));
-    console.log("Zalo updateOrderStatus", order.id, zaloOrderId, resultCode, JSON.stringify(j));
-    if (j && j.err === 0) {
-      order.zaloStatusSent = resultCode;
-      try {
-        await pool.query("UPDATE orders SET data = $1 WHERE id = $2", [order, order.id]);
-      } catch (e) {}
-    }
-    return j;
-  } catch (e) {
-    console.error("updateZaloOrderStatus lỗi:", e);
-    return { error: String(e) };
-  }
-}
 const ADMIN_PASSWORD = "thuoccoba2026";
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 
@@ -312,7 +294,6 @@ app.post("/api/orders/:orderId/cancel", async (req, res) => {
       "UPDATE orders SET data = $1, status = $2 WHERE id = $3",
       [order, "cancelled", orderId]
     );
-    updateZaloOrderStatus(order, -1);
     res.json(order);
   } catch (err) {
     console.error(err);
@@ -365,8 +346,6 @@ app.patch("/api/orders/:orderId/status", async (req, res) => {
         console.error("awardPointsForOrder lỗi:", e);
       }
     }
-    if (status === "completed") updateZaloOrderStatus(order, 1);
-    if (status === "cancelled") updateZaloOrderStatus(order, -1);
     res.json(order);
   } catch (err) {
     console.error(err);
@@ -538,15 +517,6 @@ app.post("/api/zalo-notify", async (req, res) => {
         );
         if (result.rows.length) {
           const order = result.rows[0].data;
-          order.zaloOrderId = orderId;
-          order.zaloAppId = appId;
-          order.zaloMethod = method;
-          await pool.query("UPDATE orders SET data = $1 WHERE id = $2", [order, myOrderId]);
-          // Đơn COD: người dùng đã đặt xong -> báo ngay cho Checkout SDK Server
-          // để giao dịch không còn "Đang thực hiện".
-          if (order.status === "cancelled") await updateZaloOrderStatus(order, -1);
-          else if (method === "COD" || order.status === "completed")
-            await updateZaloOrderStatus(order, 1);
           if (
             (String(resultCode) === "1" || resultCode === 1) &&
             order.status !== "cancelled"
@@ -574,153 +544,398 @@ app.post("/api/zalo-callback", (req, res) => {
 
 app.get(["/admin", "/admin.html"], (req, res) => {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.send(getAdminHTML());
+  const proto = (req.headers["x-forwarded-proto"] || req.protocol || "https").split(",")[0].trim();
+  const host = req.headers["x-forwarded-host"] || req.get("host") || "";
+  const base = process.env.PUBLIC_URL || process.env.RAILWAY_PUBLIC_DOMAIN
+    ? (process.env.PUBLIC_URL || ("https://" + process.env.RAILWAY_PUBLIC_DOMAIN))
+    : (proto + "://" + host);
+  res.send(getAdminHTML(String(base).replace(/\/$/, "")));
 });
 
-function getAdminHTML() {
+function getAdminHTML(ASSET_BASE) {
+  const BASE = ASSET_BASE || "";
   return `<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Thuộc Cô Ba · Admin</title>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <style>
-:root{--bg:#f4efe6;--panel:#fffdf9;--card:#fff;--line:#e8d9c4;--gold:#c9a227;--gold2:#d4a84b;--brown:#8B4513;--text:#2c1810;--muted:#7a6548}
+/* ====================== BẢNG MÀU SANG TRỌNG - ĐỎ MẬN (theo ảnh mẫu) ====================== */
+:root{
+  --bg:#f7f0ee;
+  --panel:#fffaf9;
+  --card:#ffffff;
+  --line:#ecd9d6;
+  --primary:#7a1f2b;
+  --primary2:#9c2c3a;
+  --primary-dark:#4a1119;
+  --gold:#c9a227;
+  --gold2:#e0bd52;
+  --text:#2b1416;
+  --muted:#8a6b6a;
+  --ink:#3a1418;
+}
 *{box-sizing:border-box}
-body{margin:0;font-family:'Be Vietnam Pro',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-button,input,select{font:inherit}button{cursor:pointer;border:none;border-radius:10px;padding:9px 14px;font-weight:600}
-.layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
-.sidebar{background:#fff9f0;border-right:1px solid var(--line);padding:18px 12px;position:sticky;top:0;height:100vh}
-.brand{display:flex;gap:10px;align-items:center;padding:8px 8px 18px}
-.brand-badge{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--gold2),var(--brown));display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff}
-.brand h1{font-size:14px;margin:0;color:var(--brown)}.brand span{font-size:11px;color:var(--muted)}
-.nav button{width:100%;text-align:left;background:transparent;color:var(--muted);margin-bottom:4px}
-.nav button.on,.nav button:hover{background:rgba(139,69,19,.08);color:var(--brown)}
-.main{padding:18px 20px 40px}
-.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-.topbar h2{margin:0;font-size:20px;font-weight:800;color:var(--brown)}
-.sub{color:var(--muted);font-size:12px;margin-top:4px}
+body{margin:0;font-family:'Be Vietnam Pro',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit}
+button{cursor:pointer;border:none;border-radius:10px;padding:9px 14px;font-weight:700}
+.layout{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+
+/* Sidebar */
+.sidebar{
+  background:linear-gradient(180deg,var(--primary-dark) 0%,var(--primary) 60%,#5c1620 100%);
+  padding:22px 14px;position:sticky;top:0;height:100vh;
+  box-shadow:2px 0 18px rgba(74,17,25,.25);
+}
+.brand{display:flex;gap:10px;align-items:center;padding:6px 8px 26px;border-bottom:1px solid rgba(230,190,120,.25);margin-bottom:16px}
+.brand-badge{
+  width:44px;height:44px;border-radius:12px;
+  background:linear-gradient(135deg,var(--gold2),var(--gold));
+  display:flex;align-items:center;justify-content:center;font-weight:900;color:#4a1119;
+  font-size:15px;letter-spacing:.5px;box-shadow:0 3px 8px rgba(0,0,0,.25);
+}
+.brand h1{font-size:15px;margin:0;color:#fff2e0;font-weight:800;letter-spacing:.3px}
+.brand span{font-size:10.5px;color:rgba(255,242,224,.65);text-transform:uppercase;letter-spacing:1px}
+.nav button{
+  width:100%;text-align:left;background:transparent;color:rgba(255,242,224,.75);
+  margin-bottom:6px;padding:11px 14px;border-radius:10px;font-size:13.5px;
+  display:flex;align-items:center;gap:10px;transition:all .15s;
+}
+.nav button.on{background:rgba(255,255,255,.14);color:#fff2e0;box-shadow:inset 3px 0 0 var(--gold2)}
+.nav button:hover{background:rgba(255,255,255,.08);color:#fff2e0}
+
+.main{padding:26px 30px 44px}
+.topbar{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.topbar h2{
+  margin:0;font-size:24px;font-weight:900;color:var(--primary);
+  letter-spacing:.3px;position:relative;padding-bottom:8px;
+}
+.topbar h2::after{content:'';position:absolute;left:0;bottom:0;width:46px;height:3px;background:linear-gradient(90deg,var(--gold2),var(--gold));border-radius:3px}
+.sub{color:var(--muted);font-size:12px;margin-top:6px}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
-.btn-gold{background:linear-gradient(135deg,var(--gold2),var(--brown));color:#fff}
-.btn-ghost{background:#fff;border:1px solid var(--line);color:var(--text)}
-.kpis{display:grid;grid-template-columns:repeat(6,minmax(100px,1fr));gap:10px;margin-bottom:14px}
-@media(max-width:1100px){.layout{grid-template-columns:1fr}.sidebar{display:none}.kpis{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 2px 8px rgba(139,69,19,.06)}
-.kpi .label{font-size:11px;color:var(--muted);font-weight:600}
-.kpi .value{font-size:18px;font-weight:800;margin-top:4px;color:var(--brown)}
-.kpi .hint{font-size:11px;color:var(--muted);margin-top:4px}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(139,69,19,.05)}
-.panel-title{font-size:14px;font-weight:700;margin:0 0 10px;color:var(--brown)}
-.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
-.chip{background:#faf6ef;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:7px 12px;font-size:12px}
-.chip.on{background:rgba(139,69,19,.1);border-color:var(--brown);color:var(--brown)}
+.btn-gold{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#4a1119;box-shadow:0 3px 10px rgba(201,162,39,.35)}
+.btn-ghost{background:#fff;border:1px solid var(--line);color:var(--primary)}
+.btn-ghost:hover{border-color:var(--primary2)}
+
+/* ====================== KPI - THẺ CHỈ SỐ CÓ XU HƯỚNG TĂNG/GIẢM ====================== */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(150px,1fr));gap:14px;margin-bottom:22px}
+@media(max-width:1200px){.layout{grid-template-columns:1fr}.sidebar{display:none}.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}.main{padding:18px 16px 32px}}
+.kpi{
+  position:relative;overflow:hidden;border-radius:16px;padding:16px 16px 14px;color:#fff;
+  box-shadow:0 8px 22px -8px rgba(74,17,25,.35);
+}
+.kpi::before{content:'';position:absolute;right:-18px;top:-18px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.12)}
+.kpi .label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;opacity:.88}
+.kpi .value{font-size:21px;font-weight:900;margin-top:8px;letter-spacing:.2px}
+.kpi .trend{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;margin-top:9px;padding:3px 8px;border-radius:20px;background:rgba(255,255,255,.16)}
+.kpi .trend.up{color:#d7ffe6}
+.kpi .trend.down{color:#ffe0e0}
+.kpi .trend.flat{color:rgba(255,255,255,.75)}
+.kpi-1{background:linear-gradient(135deg,#8a2432,#4a1119)}
+.kpi-2{background:linear-gradient(135deg,var(--gold2),#b8860b)}
+.kpi-3{background:linear-gradient(135deg,#a52a3a,#6b1a26)}
+.kpi-4{background:linear-gradient(135deg,#c65d6c,#8a2432)}
+.kpi-5{background:linear-gradient(135deg,#5c1620,#2e0b10)}
+.kpi-6{background:linear-gradient(135deg,#9a8579,#5c4c44)}
+.kpi .hint{font-size:10.5px;opacity:.8;margin-top:4px}
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 3px 14px rgba(74,17,25,.06)}
+.panel-title{font-size:14.5px;font-weight:800;margin:0 0 14px;color:var(--primary);display:flex;align-items:center;gap:8px}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.chip{background:#faf3f1;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600}
+.chip.on{background:linear-gradient(135deg,var(--primary2),var(--primary));border-color:var(--primary);color:#fff}
 input,select{background:#fff;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 12px}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;color:var(--muted);font-weight:600;padding:10px 8px;border-bottom:1px solid var(--line);font-size:11px}
-td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
-.badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700}
-.pending{background:#fff3cd;color:#856404}.preparing{background:#cfe2ff;color:#084298}
-.shipping{background:#e0d4ff;color:#5a3d9a}.completed{background:#d1e7dd;color:#0f5132}.cancelled{background:#f8d7da;color:#842029}
-.row-btns{display:flex;flex-wrap:wrap;gap:4px}
-.row-btns button{font-size:11px;padding:5px 8px;border-radius:8px}
-.b-prep{background:#1e3a5f;color:#93c5fd}.b-ship{background:#312e81;color:#c7d2fe}
-.b-ok{background:#14532d;color:#86efac}.b-bad{background:#7f1d1d;color:#fecaca}.b-jnt{background:#9a3412;color:#fdba74}
+th{text-align:left;color:var(--primary);font-weight:700;padding:10px 8px;border-bottom:2px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+td{padding:12px 8px;border-bottom:1px solid #f3e6e3;vertical-align:top}
+tbody tr:hover{background:#fdf6f5}
+.badge{display:inline-block;padding:4px 11px;border-radius:999px;font-size:11px;font-weight:700}
+.pending{background:#fdf0d6;color:#9a6b12}.preparing{background:#e3ecfb;color:#2451a3}
+.shipping{background:#ece3fb;color:#5a3d9a}.completed{background:#e0f4e6;color:#1a7a3d}.cancelled{background:#fbe3e6;color:#a3243a}
+.row-btns{display:flex;flex-wrap:wrap;gap:5px}
+.pill-btn{
+  font-size:11px;padding:7px 11px;border-radius:20px;font-weight:700;display:inline-flex;
+  align-items:center;gap:5px;transition:all .15s;border:1px solid transparent;
+}
+.pill-btn:active{transform:scale(0.96)}
+.pill-prep{background:#e3ecfb;color:#2451a3}.pill-prep:hover{background:#2451a3;color:#fff}
+.pill-ship{background:#ece3fb;color:#5a3d9a}.pill-ship:hover{background:#5a3d9a;color:#fff}
+.pill-ok{background:#e0f4e6;color:#1a7a3d}.pill-ok:hover{background:#1a7a3d;color:#fff}
+.pill-bad{background:#fbe3e6;color:#a3243a}.pill-bad:hover{background:#a3243a;color:#fff}
 .muted{color:var(--muted);font-size:12px}
-.products{font-size:11px;color:#8a7250;margin-top:4px;line-height:1.4}
-.order-id{cursor:pointer;color:var(--brown);font-weight:800}.order-id:hover{text-decoration:underline}
-.chart{display:flex;align-items:flex-end;gap:8px;height:110px}
+.products{font-size:11px;color:#9c8079;margin-top:4px;line-height:1.4}
+.order-id{cursor:pointer;color:var(--primary);font-weight:800}.order-id:hover{text-decoration:underline}
+.chart{display:flex;align-items:flex-end;gap:10px;height:120px}
 .bar-wrap{flex:1;text-align:center}
-.bar{background:linear-gradient(180deg,var(--gold2),var(--brown));border-radius:8px 8px 4px 4px;min-height:4px}
-.bar-label{font-size:10px;color:var(--muted);margin-top:6px}
-#loginBox{max-width:400px;margin:12vh auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:28px;box-shadow:0 8px 30px rgba(139,69,19,.12)}
-#loginBox h1{margin:0 0 8px;font-size:20px;color:var(--brown)}#loginBox p{color:var(--muted);font-size:13px}
-#loginBox input{width:100%;margin:12px 0}
-#loginBox button{width:100%;background:linear-gradient(135deg,var(--gold2),var(--brown));color:#fff}
-.err{color:#c0392b;font-size:13px;margin-top:8px}
+.bar{background:linear-gradient(180deg,var(--gold2),var(--primary));border-radius:8px 8px 4px 4px;min-height:4px}
+.bar-label{font-size:10px;color:var(--muted);margin-top:6px;font-weight:600}
+#loginBox{max-width:400px;margin:14vh auto;background:#fff;border:1px solid var(--line);border-radius:20px;padding:32px;box-shadow:0 16px 40px rgba(74,17,25,.15)}
+#loginBox h1{margin:0 0 8px;font-size:22px;color:var(--primary);font-weight:900}
+#loginBox p{color:var(--muted);font-size:13px}
+#loginBox input{width:100%;margin:14px 0}
+#loginBox button{width:100%;background:linear-gradient(135deg,var(--gold2),var(--gold));color:#4a1119;font-weight:800}
+.err{color:#a3243a;font-size:13px;margin-top:8px}
 .banner-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .banner-card{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#fff;min-height:120px;position:relative}
 .banner-card .bg{position:absolute;inset:0;opacity:.3;background-size:cover;background-position:center}
 .banner-card .body{position:relative;padding:14px}
-.banner-card h4{margin:0 0 4px;font-size:14px;color:var(--brown)}.banner-card p{margin:0;font-size:12px;color:var(--muted)}
+.banner-card h4{margin:0 0 4px;font-size:14px;color:var(--primary)}.banner-card p{margin:0;font-size:12px;color:var(--muted)}
 .hidden{display:none!important}
 .tier-badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700}
 .t-dong{background:#f5e6d3;color:#8B5A2B}.t-bac{background:#e8eef5;color:#64748b}
 .t-vang{background:#fff3cd;color:#b8860b}.t-kimcuong{background:#e0f2fe;color:#0284c7}
 
-/* ====== HOÁ ĐƠN - khớp mẫu ảnh 12 ====== */
+/* ===== HOÁ ĐƠN — giữ nguyên như đã chốt, không đổi ===== */
 #orderDetailBox{display:none;position:fixed;inset:0;background:rgba(40,28,18,.55);z-index:9999;align-items:center;justify-content:center;padding:8px}
 #orderDetailBox.show{display:flex}
-.invoice-wrap{background:transparent;border-radius:10px;max-width:794px;width:100%;max-height:96vh;overflow:auto;box-shadow:0 16px 48px rgba(0,0,0,.28)}
+.invoice-wrap{background:transparent;border-radius:12px;max-width:640px;width:100%;max-height:96vh;overflow:auto;box-shadow:0 16px 48px rgba(0,0,0,.28)}
 .invoice{
-  position:relative;padding:22px 26px 0;overflow:hidden;
-  background-color:#FBF7F0;
-  background-image:url('/admin-assets/pattern.png');
-  background-repeat:no-repeat;
-  background-position:-30% 68%;
-  background-size:60% auto;
+  position:relative;overflow:hidden;
+  padding:0;
+  background-color:#FFFFFF;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  min-height:0;color:#1e293b;
 }
+.invoice::before{
+  content:"";position:absolute;left:0;top:0;width:100%;height:24px;
+  background:#0d2b4e;z-index:1;
+}
+.invoice::after{display:none;content:none}
+.inv-pattern{
+  position:absolute !important;left:0;top:1%;
+  width:50%;height:80%;
+  object-fit:contain;object-position:left center;
+  opacity:.16;z-index:0 !important;pointer-events:none;
+  margin:0;padding:0;border:0;display:block;
+}
+.invoice > *:not(.inv-pattern){position:relative;z-index:2}
+.invoice img{background:transparent}.invoice img:not(.inv-pattern){max-width:100%}
 
-/* Dải băng xanh chéo trên cùng, chữ trắng, ảnh hũ mắm đè lên góc phải */
-.inv-header{ position:relative; margin:-22px -26px 18px; height:96px; }
-.inv-header-banner{
-  position:absolute; inset:0;
-  background:#1e4d8c;
-  clip-path:polygon(0 0,100% 0,84% 100%,0 100%);
+.inv-body{padding:8px 16px 0}
+
+.inv-header{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  gap:6px;margin-bottom:0;padding-top:8px;
 }
-.inv-header-content{ position:relative; z-index:2; height:100%; display:flex; align-items:center; padding:0 26px; }
-.inv-brand{display:flex;align-items:center;gap:10px}
-.inv-brand img.logo{width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid #fff;background:#fff}
-.inv-brand .name{font-size:15px;font-weight:800;color:#fff;display:flex;align-items:center;gap:5px}
-.inv-brand .name img.verified{width:18px;height:18px;display:inline-block}
-.inv-brand .sub{font-size:12px;color:#cfe0f5;margin-top:1px}
+.inv-brand{display:flex;align-items:center;gap:8px;padding-top:10px}
+.inv-brand img.logo{
+  width:46px;height:46px;border-radius:50%;object-fit:cover;
+  box-shadow:0 2px 6px rgba(0,0,0,.1);flex-shrink:0;
+}
+.inv-brand .name{
+  font-size:13.5px;font-weight:800;color:#1e293b;
+  display:inline-flex;align-items:center;gap:3px;line-height:1.2;
+  white-space:nowrap;
+}
+.inv-brand .name img.verified{
+  width:14px;height:14px;object-fit:contain;flex-shrink:0;
+  margin-left:1px;vertical-align:middle;
+}
+.inv-brand .sub{font-size:11px;color:#64748b;margin-top:1px;font-weight:500}
+
+.inv-jars-wrap{
+  margin-top:-12px;margin-right:-18px;margin-left:auto;
+  flex-shrink:0;display:block;line-height:0;
+}
 .inv-jars{
-  position:absolute; top:6px; right:22px; z-index:3;
-  height:104px;width:auto;max-width:220px;object-fit:contain;
-  filter:drop-shadow(0 8px 10px rgba(0,0,0,.28));
-  transform:rotate(-4deg);
+  height:140px;width:auto;max-width:190px;object-fit:contain;
+  object-position:top right;display:block;margin-left:auto;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.1));
 }
 
-.inv-title{text-align:center;font-size:32px;font-weight:900;color:#2c3e50;letter-spacing:1.5px;margin:6px 0 18px;text-transform:uppercase}
-.inv-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:28px;margin-bottom:14px;position:relative;z-index:2}
-.inv-box h4{margin:0 0 10px;font-size:14px;color:#1e4d8c;font-weight:800}
-.inv-box p{margin:6px 0;font-size:13px;color:#333;line-height:1.45}
-.inv-box .label{color:#666;min-width:130px;display:inline-block}
-.inv-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:4px;position:relative;z-index:2}
-.inv-table th{text-align:left;color:#1e4d8c;font-weight:700;padding:8px 6px;border-bottom:1px solid #c9d6e4;font-size:12px}
-.inv-table th.num,.inv-table td.num{text-align:center;width:70px}
-.inv-table th.money,.inv-table td.money{text-align:right;width:90px}
-.inv-table th.w,.inv-table td.w{text-align:center;width:80px}
-.inv-table td{padding:9px 6px;border-bottom:1px solid #e4dbcb;color:#333}
-.inv-sums{font-size:13px;margin-top:8px;position:relative;z-index:2}
-.inv-sums .row{display:flex;align-items:center;gap:8px;padding:4px 0;color:#333}
-.inv-sums .row .label{min-width:150px;color:#666}
-.inv-total{background:#1e4d8c;color:#fff;border-radius:3px;padding:13px 18px;display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:16px;margin:12px 0 16px;position:relative;z-index:2}
-.inv-bottom{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;margin-bottom:8px;min-height:120px;position:relative;z-index:2}
-.inv-pay h4{margin:0 0 8px;font-size:13px;color:#1e4d8c}
-.inv-pay p{margin:4px 0;font-size:12px;color:#555}
-.inv-stamp-img{width:140px;height:auto;display:block;opacity:.95;background:transparent}
-.inv-certs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0 8px;position:relative;z-index:2}
-.inv-certs img{height:26px;width:auto;object-fit:contain;background:transparent}
-.inv-foot{display:grid;grid-template-columns:1.1fr 1fr;margin:0 -26px 0;min-height:88px;position:relative;z-index:2}
-.inv-foot-left{background:#FBF7F0;padding:12px 22px;display:flex;flex-direction:column;justify-content:center;gap:8px}
-.inv-foot-left .brand-row{display:flex;align-items:center;gap:10px}
-.inv-foot-left .brand-row img{width:42px;height:42px;border-radius:50%;object-fit:cover;background:transparent}
-.inv-foot-left .brand{font-size:17px;font-weight:800;color:#2c1810}
-.inv-foot-right{background:#8B5A2B;color:#fff;padding:14px 18px;display:flex;align-items:center;clip-path:polygon(12% 0,100% 0,100% 100%,0 100%)}
-.inv-foot-right .contact{font-size:11px;line-height:1.7;padding-left:16px}
-.inv-actions{padding:10px 14px;display:flex;gap:8px;justify-content:flex-end;background:#fff;border-top:1px solid #e8d9c4;position:sticky;bottom:0}
-@media(max-width:640px){
-  .inv-grid,.inv-bottom,.inv-foot{grid-template-columns:1fr}
-  .inv-title{font-size:24px}
-  .inv-jars{height:72px}
-  .inv-foot-right{clip-path:none}
-  .inv-stamp-img{margin:8px auto 0}
+.inv-barcode{text-align:center;margin:0}
+.inv-barcode svg{max-width:170px;height:28px;display:block;margin:0 auto}
+.inv-barcode .code{
+  font-size:9px;color:#94a3b8;margin-top:0;letter-spacing:.3px;
+  font-family:ui-monospace,Consolas,monospace;line-height:1.1;
 }
-@media print{#orderDetailBox{position:static!important;background:none!important;display:block!important;padding:0!important}
-.invoice-wrap{box-shadow:none;max-height:none;border-radius:0}
-.inv-actions{display:none!important}.invoice-wrap{box-shadow:none;max-height:none;border-radius:0}.inv-actions{display:none!important}}.invoice-wrap{box-shadow:none;max-height:none}.sidebar,.layout>aside,.topbar,.kpis,.panel:not(.print-hide){}}
+
+.inv-title{
+  text-align:center;font-size:22px;font-weight:900;color:#334155;
+  letter-spacing:.5px;margin:2px 0 8px;text-transform:uppercase;
+}
+
+.inv-grid{
+  display:grid;grid-template-columns:1.2fr 0.9fr;gap:6px 10px;
+  margin-bottom:6px;
+}
+.inv-box:last-child{
+  justify-self:end;
+  width:100%;
+  max-width:260px;
+  margin-left:auto;
+  text-align:left;
+}
+.inv-box:last-child h4{text-align:left}
+.inv-box:last-child .inv-row{
+  grid-template-columns:98px 1fr;
+}
+
+.inv-box h4{margin:0 0 4px;font-size:12.5px;color:#0d2b4e;font-weight:700}
+.inv-row{
+  display:grid;grid-template-columns:108px 1fr;gap:1px 6px;
+  margin:0 0 2px;align-items:start;font-size:12px;line-height:1.35;
+}
+.inv-row .k{color:#64748b;font-weight:500;white-space:nowrap}
+.inv-row .v{color:#1e293b;font-weight:600;word-break:break-word}
+
+.inv-table{
+  width:100%;border-collapse:collapse;font-size:12px;
+  margin:0 0 2px;table-layout:fixed;
+}
+.inv-table th{
+  text-align:left;color:#0d2b4e;font-weight:700;
+  padding:6px 4px;border-bottom:2px solid #0d2b4e;font-size:11.5px;
+  white-space:nowrap;
+}
+.inv-table th.col-name{width:auto}
+.inv-table th.col-qty{width:68px;text-align:center}
+.inv-table th.col-price{width:88px;text-align:right}
+.inv-table th.col-w{width:84px;text-align:center}
+.inv-table td{
+  padding:6px 4px;border-bottom:1px solid #e2e8f0;color:#1e293b;
+  vertical-align:middle;
+}
+.inv-table td.col-qty{text-align:center;font-weight:600}
+.inv-table td.col-price{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.inv-table td.col-w{text-align:center;color:#64748b}
+.inv-table td.col-name{word-break:break-word}
+
+.inv-sums{
+  margin-left:auto;width:220px;font-size:12px;margin-top:2px;
+}
+.inv-sums .row{
+  display:grid;grid-template-columns:1fr 88px;
+  gap:4px;padding:1px 0;color:#475569;align-items:center;
+}
+.inv-sums .row span:last-child,
+.inv-sums .row b{
+  text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#1e293b;
+}
+.inv-sums .inv-voucher span:first-child{color:#16a34a;font-weight:600;font-size:11px}
+
+.inv-total{
+  background:#0d2b4e;color:#fff;
+  padding:8px 12px;display:grid;grid-template-columns:1fr auto;
+  align-items:center;gap:8px;
+  font-weight:800;font-size:13.5px;margin:4px 0 6px;border-radius:2px;
+}
+.inv-total span:last-child{font-variant-numeric:tabular-nums}
+
+.inv-bottom{
+  display:grid;grid-template-columns:1fr 130px;
+  gap:8px 12px;align-items:center;
+  margin-bottom:6px;min-height:0;margin-bottom:4px;
+}
+.inv-pay{align-self:center}
+.inv-pay h4{margin:0 0 5px;font-size:12px;color:#0d2b4e;font-weight:700}
+.inv-pay p{margin:2px 0;font-size:11.5px;color:#475569;line-height:1.4}
+.inv-pay b{color:#1e293b}
+.inv-stamp-img{
+  width:120px;height:auto;display:block;
+  mix-blend-mode:multiply;justify-self:end;align-self:center;margin:0;
+}
+
+.inv-legal{
+  position:relative;
+  background:#0f2744;
+  background-image:url('/admin-assets/footer-bg.png');
+  background-size:cover;
+  background-position:center;
+  border-top:none;
+  padding:12px 28px 10px;margin:0 auto;
+  text-align:center;font-size:10px;color:rgba(255,255,255,.88);line-height:1.5;
+  overflow:hidden;
+  max-width:100%;
+  box-sizing:border-box;
+}
+.inv-legal-inner{
+  max-width:480px;margin:0 auto;
+}
+.inv-legal::before{
+  content:"";position:absolute;inset:0;
+  background:rgba(10,25,50,.55);z-index:0;
+}
+.inv-legal > *{position:relative;z-index:1}
+.inv-legal .certs{
+  display:flex;align-items:center;justify-content:center;
+  gap:8px;flex-wrap:nowrap;margin:0 auto 10px;max-width:100%;
+}
+.inv-legal .certs img{
+  height:32px;width:auto;object-fit:contain;
+  max-width:90px;
+  background:#fff;
+  border:2px solid #2a2a2a;
+  border-radius:999px;
+  padding:6px 18px;
+  box-shadow:0 2px 0 #1a1a1a, 0 3px 6px rgba(0,0,0,.25);
+  box-sizing:content-box;
+}
+.inv-legal .legal-title{
+  font-size:11px;font-weight:700;color:#fff;margin:0 0 4px;
+  display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  flex-wrap:nowrap;white-space:nowrap;
+  line-height:1.2;
+}
+.inv-trophy{
+  height:22px;width:auto;object-fit:contain;vertical-align:middle;
+  display:inline-block;margin-left:2px;flex-shrink:0;
+}
+.inv-legal .legal-line{margin:1px auto;color:rgba(255,255,255,.85);max-width:520px}
+.inv-legal .legal-copy{margin-top:5px;font-size:9.5px;color:rgba(255,255,255,.7)}
+
+.inv-legal-row{
+  display:flex;flex-direction:column;align-items:center;
+  gap:8px;width:100%;max-width:480px;margin:0 auto;
+}
+.inv-legal-row .legal-text{text-align:center;width:100%}
+.inv-legal .legal-addr{
+  white-space:nowrap;
+  font-size:9.5px;
+  overflow:hidden;text-overflow:ellipsis;
+  max-width:100%;
+}
+.inv-qr-wrap{
+  display:flex;justify-content:center;align-items:center;
+  gap:14px;width:100%;margin-top:4px;
+}
+.inv-foot-logo{
+  width:72px;height:72px;object-fit:cover;border-radius:10px;
+  background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);
+}
+.inv-qr{
+  width:72px;height:72px;object-fit:contain;
+  background:#fff;border:2px solid rgba(255,255,255,.4);border-radius:6px;
+}
+
+.inv-actions{
+  padding:10px 14px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;
+  background:#fff;border-top:1px solid #e2e8f0;position:sticky;bottom:0;
+}
+
+@media(max-width:640px){
+  .inv-body{padding:8px 12px 0}
+  .inv-grid,.inv-bottom{grid-template-columns:1fr}
+  .inv-row{grid-template-columns:100px 1fr}
+  .inv-title{font-size:18px;margin:4px 0 8px}
+  .inv-jars{height:120px;max-width:150px}
+  .inv-jars-wrap{margin-top:-8px;margin-right:-12px}
+  .inv-sums{width:100%}
+  .inv-stamp-img{width:100px;margin:4px auto 0;justify-self:center}
+  .inv-legal-row{flex-direction:column}
+  .inv-qr{margin-top:4px}
+  .invoice::before{height:18px}
+}
+@media print{
+  #orderDetailBox{position:static!important;background:none!important;display:block!important;padding:0!important}
+  .invoice-wrap{box-shadow:none;max-height:none;border-radius:0}
+  .inv-actions{display:none!important}
+  body{background:#fff}
+}
 </style>
 </head>
 <body>
@@ -735,12 +950,12 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
   <aside class="sidebar">
     <div class="brand"><div class="brand-badge">CB</div><div><h1>Thuộc Cô Ba</h1><span>Admin Panel</span></div></div>
     <nav class="nav">
-      <button type="button" class="on" id="navOrders" onclick="showView('orders')">📦 Đơn hàng</button>
-      <button type="button" id="navDash" onclick="showView('dash')">📊 Tổng quan</button>
-      <button type="button" id="navLoyalty" onclick="showView('loyalty')">🎖️ Hội viên & Tích điểm</button>
-      <button type="button" id="navBanner" onclick="showView('banner')">🖼️ Banner</button>
-      <button type="button" onclick="exportCSV()">⬇ Xuất CSV</button>
-      <button type="button" onclick="logout()">🚪 Đăng xuất</button>
+      <button type="button" class="on" id="navOrders" onclick="showView('orders')">📦 &nbsp;Đơn hàng</button>
+      <button type="button" id="navDash" onclick="showView('dash')">📊 &nbsp;Tổng quan</button>
+      <button type="button" id="navLoyalty" onclick="showView('loyalty')">🎖️ &nbsp;Hội viên & Tích điểm</button>
+      <button type="button" id="navBanner" onclick="showView('banner')">🖼️ &nbsp;Banner</button>
+      <button type="button" onclick="exportCSV()">⬇ &nbsp;Xuất CSV</button>
+      <button type="button" onclick="logout()">🚪 &nbsp;Đăng xuất</button>
     </nav>
   </aside>
   <main class="main">
@@ -825,6 +1040,21 @@ td{padding:12px 8px;border-bottom:1px solid #f0e6d8;vertical-align:top}
 var STATUS_LABEL={pending:'Chờ xác nhận',preparing:'Đang chuẩn bị',shipping:'Đang giao',completed:'Đã giao',cancelled:'Đã hủy'};
 var TIERS=[{key:'dong',label:'Đồng',minPoints:0,cls:'t-dong'},{key:'bac',label:'Bạc',minPoints:200,cls:'t-bac'},{key:'vang',label:'Vàng',minPoints:500,cls:'t-vang'},{key:'kimcuong',label:'Kim Cương',minPoints:1000,cls:'t-kimcuong'}];
 function tierOf(p){var c=TIERS[0];TIERS.forEach(function(t){if(p>=t.minPoints)c=t});return c}
+var ASSET_BASE='${BASE}';window.ASSET_BASE=ASSET_BASE;var GH_ASSETS='https://raw.githubusercontent.com/onghoangdacsan-dot/thuoccoba-zalo-api/main/admin-assets';function assetUrl(file){
+  var f=String(file||'');
+  while(f.charAt(0)==='/') f=f.slice(1);
+  return GH_ASSETS+'/'+f;
+}
+function assetImg(srcFile, cls, alt, extraStyle){
+  var f=String(srcFile||'');
+  while(f.charAt(0)==='/') f=f.slice(1);
+  var local=(ASSET_BASE||'')+'/admin-assets/'+f;
+  var gh=GH_ASSETS+'/'+f;
+  var c=cls?(' class="'+cls+'"'):'';
+  var a=alt!=null?(' alt="'+String(alt).replace(/"/g,'')+'"'):' alt=""';
+  var st=extraStyle?(' style="'+extraStyle+'"'):'';
+  return '<img'+c+a+st+' src="'+local+'" data-fb="'+gh+'" onerror="this.onerror=null;this.src=this.dataset.fb" loading="eager" referrerpolicy="no-referrer"/>';
+}
 var allOrders=[],rangeMode='30d',fromTs=null,toTs=null,ADMIN_PASS='thuoccoba2026';
 window._lastOrderMsg='';
 function getPwd(){return sessionStorage.getItem('admin_pwd')||''}
@@ -837,7 +1067,51 @@ function setRange(mode){rangeMode=mode;var now=new Date();['fToday','f7','f30','
 function money(n){return Number(n||0).toLocaleString('vi-VN')}
 function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function filteredList(){var q=(document.getElementById('q').value||'').trim().toLowerCase(),st=document.getElementById('statusFilter').value;return allOrders.filter(function(o){var ts=new Date(o.createdAt).getTime();if(fromTs!=null&&ts<fromTs)return false;if(toTs!=null&&ts>toTs)return false;if(st&&o.status!==st)return false;if(q){var s=o.shippingInfo||{},items=(o.items||[]).map(function(i){return i.name||''}).join(' '),hay=[o.id,s.fullName,s.phone,s.address,o.note,o.cancelReason,items].join(' ').toLowerCase();if(hay.indexOf(q)===-1)return false}return true})}
-function renderStats(list){var c={pending:0,preparing:0,shipping:0,completed:0,cancelled:0},revenue=0,active=0,cancelAmt=0;list.forEach(function(o){if(c[o.status]!=null)c[o.status]++;var t=Number(o.total||0);if(o.status==='completed')revenue+=t;if(o.status==='cancelled')cancelAmt+=t;else active+=t});var done=list.filter(function(o){return o.status==='completed'}),aov=done.length?Math.round(revenue/done.length):0;document.getElementById('statsCards').innerHTML='<div class="kpi"><div class="label">Đơn (lọc)</div><div class="value">'+list.length+'</div></div><div class="kpi"><div class="label">Doanh thu đã giao</div><div class="value">'+money(revenue)+'đ</div></div><div class="kpi"><div class="label">Giá trị hiệu lực</div><div class="value">'+money(active)+'đ</div></div><div class="kpi"><div class="label">AOV đã giao</div><div class="value">'+money(aov)+'đ</div></div><div class="kpi"><div class="label">Đang xử lý</div><div class="value">'+(c.pending+c.preparing+c.shipping)+'</div><div class="hint">Chờ '+c.pending+'</div></div><div class="kpi"><div class="label">Đã hủy</div><div class="value">'+c.cancelled+'</div><div class="hint">'+money(cancelAmt)+'đ</div></div>'}
+
+/* ====== Danh sách đơn trong kỳ liền trước (cùng độ dài) để tính xu hướng tăng/giảm ====== */
+function previousPeriodList(){
+  if(fromTs==null||toTs==null) return null; // 'Tất cả' -> không có kỳ trước để so sánh
+  var span=toTs-fromTs, prevTo=fromTs-1, prevFrom=prevTo-span;
+  return allOrders.filter(function(o){
+    var ts=new Date(o.createdAt).getTime();
+    return ts>=prevFrom && ts<=prevTo;
+  });
+}
+function trendHtml(curVal, prevVal, hasPrev){
+  if(!hasPrev) return '<span class="trend flat">— so với kỳ trước</span>';
+  if(prevVal<=0){
+    if(curVal<=0) return '<span class="trend flat">— chưa có dữ liệu</span>';
+    return '<span class="trend up">▲ Mới so với kỳ trước</span>';
+  }
+  var pct=((curVal-prevVal)/prevVal)*100;
+  var cls=pct>0.5?'up':(pct<-0.5?'down':'flat');
+  var arrow=pct>0.5?'▲':(pct<-0.5?'▼':'—');
+  return '<span class="trend '+cls+'">'+arrow+' '+Math.abs(pct).toFixed(1)+'% so với kỳ trước</span>';
+}
+
+function renderStats(list){
+  var c={pending:0,preparing:0,shipping:0,completed:0,cancelled:0},revenue=0,active=0,cancelAmt=0;
+  list.forEach(function(o){if(c[o.status]!=null)c[o.status]++;var t=Number(o.total||0);if(o.status==='completed')revenue+=t;if(o.status==='cancelled')cancelAmt+=t;else active+=t});
+  var done=list.filter(function(o){return o.status==='completed'}),aov=done.length?Math.round(revenue/done.length):0;
+
+  var prevList=previousPeriodList();
+  var hasPrev=prevList!=null;
+  var pc={pending:0,preparing:0,shipping:0,completed:0,cancelled:0},prevRevenue=0,prevActive=0,prevAov=0;
+  if(hasPrev){
+    prevList.forEach(function(o){if(pc[o.status]!=null)pc[o.status]++;var t=Number(o.total||0);if(o.status==='completed')prevRevenue+=t;if(o.status!=='cancelled')prevActive+=t});
+    var prevDone=prevList.filter(function(o){return o.status==='completed'});
+    prevAov=prevDone.length?Math.round(prevRevenue/prevDone.length):0;
+  }
+
+  document.getElementById('statsCards').innerHTML=
+    '<div class="kpi kpi-1"><div class="label">Đơn (lọc)</div><div class="value">'+list.length+'</div>'+trendHtml(list.length, hasPrev?prevList.length:0, hasPrev)+'</div>'+
+    '<div class="kpi kpi-2"><div class="label">Doanh thu đã giao</div><div class="value">'+money(revenue)+'đ</div>'+trendHtml(revenue, prevRevenue, hasPrev)+'</div>'+
+    '<div class="kpi kpi-3"><div class="label">Giá trị hiệu lực</div><div class="value">'+money(active)+'đ</div>'+trendHtml(active, prevActive, hasPrev)+'</div>'+
+    '<div class="kpi kpi-4"><div class="label">AOV đã giao</div><div class="value">'+money(aov)+'đ</div>'+trendHtml(aov, prevAov, hasPrev)+'</div>'+
+    '<div class="kpi kpi-5"><div class="label">Đang xử lý</div><div class="value">'+(c.pending+c.preparing+c.shipping)+'</div><div class="hint">Chờ xác nhận: '+c.pending+'</div></div>'+
+    '<div class="kpi kpi-6"><div class="label">Đã hủy</div><div class="value">'+c.cancelled+'</div>'+trendHtml(c.cancelled, hasPrev?pc.cancelled:0, hasPrev)+'</div>';
+}
+
 function renderDash(){var list=filteredList(),c={pending:0,preparing:0,shipping:0,completed:0,cancelled:0};list.forEach(function(o){if(c[o.status]!=null)c[o.status]++});var max=Math.max(1,c.pending,c.preparing,c.shipping,c.completed,c.cancelled),keys=['pending','preparing','shipping','completed','cancelled'];document.getElementById('statusChart').innerHTML=keys.map(function(k){var h=Math.round((c[k]/max)*100),short=(STATUS_LABEL[k]||k).split(' ').pop();return '<div class="bar-wrap"><div class="bar" style="height:'+h+'%"></div><div class="bar-label">'+short+'<br/>'+c[k]+'</div></div>'}).join('');var tip='Hệ thống ổn định.';if(c.pending>=3)tip='Có '+c.pending+' đơn chờ xác nhận — ưu tiên xử lý trong ngày.';else if(c.cancelled>c.completed&&list.length>2)tip='Tỷ lệ hủy cao — kiểm tra phí ship / mô tả SP.';else if(c.shipping>0)tip='Có đơn đang giao — theo dõi vận chuyển.';document.getElementById('insights').textContent=tip}
 
 function buildOrderMessage(o){
@@ -847,109 +1121,195 @@ function buildOrderMessage(o){
   var time=o.createdAt?new Date(o.createdAt).toLocaleString('vi-VN'):'—';
   var ship=Number(o.shippingFee||0),total=Number(o.total||0);
   var sub=o.subTotal!=null?Number(o.subTotal):total-ship;
-  return '📋 THÔNG TIN ĐƠN HÀNG 📋\\n👤 Tên khách hàng: '+(s.fullName||'—')+'\\n📍 Địa chỉ: '+(s.address||'—')+'\\n📞 Liên hệ (SĐT): '+(s.phone||'—')+'\\n🛍️ Sản phẩm: '+products+'\\n📦 Số lượng: '+qty+'\\n💵 Tổng giá tiền: '+money(sub)+'đ\\n🚚 Phí ship: '+money(ship)+'đ\\n💰 TỔNG THANH TOÁN: '+money(total)+'đ\\n📝 Ghi chú từ khách: '+(o.note||'Không có')+'\\n⏰ Thời gian đặt: '+time+'\\n💳 Hình thức thanh toán: '+(o.paymentMethod==='COD'||!o.paymentMethod?'Thanh toán khi nhận hàng (COD)':o.paymentMethod);
+  var lines=[
+    '📋 THÔNG TIN ĐƠN HÀNG 📋',
+    '👤 Tên khách hàng: '+(s.fullName||'—'),
+    '📍 Địa chỉ: '+(s.address||'—'),
+    '📞 Liên hệ (SĐT): '+(s.phone||'—'),
+    '🛍️ Sản phẩm: '+products,
+    '📦 Số lượng: '+qty,
+    '💵 Tổng giá tiền: '+money(sub)+'đ',
+    '🚚 Phí ship: '+money(ship)+'đ',
+    '💰 TỔNG THANH TOÁN: '+money(total)+'đ',
+    '📝 Ghi chú từ khách: '+(o.note||'Không có'),
+    '⏰ Thời gian đặt: '+time,
+    '💳 Hình thức thanh toán: '+(o.paymentMethod==='COD'||!o.paymentMethod?'Thanh toán khi nhận hàng (COD)':o.paymentMethod)
+  ];
+  return lines.join(String.fromCharCode(10));
 }
 
 function openOrderDetail(orderId){
   var o=allOrders.find(function(x){return x.id===orderId});
   if(!o)return;
   window._lastOrderMsg=buildOrderMessage(o);
+
   var s=o.shippingInfo||{},items=o.items||[];
   var created=o.createdAt?new Date(o.createdAt):null;
-  var timeStr=created?created.toLocaleTimeString('vi-VN'):'—';
+  var timeStr=created?created.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):'—';
   var dateStr=created?created.toLocaleDateString('vi-VN'):'—';
   var ship=Number(o.shippingFee||0),total=Number(o.total||0);
-  var sub=o.subTotal!=null?Number(o.subTotal):total-ship;
+  var sub=o.subTotal!=null?Number(o.subTotal):Math.max(0,total-ship);
   var statusLabel=STATUS_LABEL[o.status]||o.status||'Đã xác nhận';
+
+  var discount=0;
+  if(o.discount!=null) discount=Number(o.discount)||0;
+  else if(o.autoDiscount!=null) discount=Number(o.autoDiscount)||0;
+  else if(o.voucherDiscount!=null) discount=Number(o.voucherDiscount)||0;
+  else discount=Math.max(0, Math.round((sub+ship)-total));
+
+  var voucherLabel=o.voucherLabel||o.promoLabel||o.discountLabel||'';
+  if(!voucherLabel && discount>0){
+    if(discount===5000) voucherLabel='Giảm 5.000đ khi quan tâm Zalo OA';
+    else if(ship===0 && sub>=500000) voucherLabel='Miễn phí vận chuyển đơn từ 500.000đ';
+    else voucherLabel='Ưu đãi / voucher từ Mini App';
+  }
+  var voucherRow=discount>0
+    ? ('<div class="row inv-voucher"><span>'+escapeHtml(voucherLabel)+'</span><span style="color:#16a34a">-'+money(discount)+'đ</span></div>')
+    : (ship===0 && sub>=500000
+        ? '<div class="row inv-voucher"><span>Miễn phí vận chuyển đơn từ 500.000đ</span><span style="color:#16a34a">-0đ</span></div>'
+        : '');
+
   var rows=items.length?items.map(function(i){
     var line=Number(i.price||0)*Number(i.quantity||1);
     var weight=i.weight||i.unit||'—';
-    return '<tr><td>'+escapeHtml(i.name||'Sản phẩm')+'</td><td class="num">'+(i.quantity||1)+'</td><td class="money">'+money(line)+'đ</td><td class="w">'+escapeHtml(String(weight))+'</td></tr>';
-  }).join(''):'<tr><td colspan="4" style="color:#888">Không có sản phẩm</td></tr>';
+    return '<tr>'+
+      '<td class="col-name">'+escapeHtml(i.name||'Sản phẩm')+'</td>'+
+      '<td class="col-qty">'+(i.quantity||1)+'</td>'+
+      '<td class="col-price">'+money(line)+'đ</td>'+
+      '<td class="col-w">'+escapeHtml(String(weight))+'</td>'+
+    '</tr>';
+  }).join(''):'<tr><td colspan="4" style="color:#888;text-align:center">Không có sản phẩm</td></tr>';
 
   document.getElementById('invoiceBody').innerHTML=
+    assetImg('pattern.png','inv-pattern','')+
+    '<div class="inv-body">'+
     '<div class="inv-header">'+
-      '<div class="inv-header-banner"></div>'+
-      '<div class="inv-header-content">'+
-        '<div class="inv-brand">'+
-          '<img class="logo" src="/admin-assets/logo.png" alt="Logo"/>'+
-          '<div>'+
-            '<div class="name">Hộ kinh doanh Thuộc Cô Ba <img class="verified" src="/admin-assets/verified.png" alt=""/></div>'+
-            '<div class="sub">Đặc sản Tam Quan</div>'+
-          '</div>'+
+      '<div class="inv-brand">'+
+        assetImg('logo.png','logo','')+
+        '<div>'+
+          '<div class="name">Hộ kinh doanh Thuộc Cô Ba '+assetImg('verified.png','verified','')+'</div>'+
+          '<div class="sub">Đặc sản Tam Quan</div>'+
         '</div>'+
       '</div>'+
-      '<img class="inv-jars" src="/admin-assets/jars.png" alt=""/>'+
+      '<div class="inv-jars-wrap">'+
+        assetImg('jars.png','inv-jars','')+
+      '</div>'+
     '</div>'+
-    '<div class="inv-title">Hoá đơn bán hàng</div>'+
+    '<div class="inv-barcode"><svg id="invBarcode"></svg><div class="code">'+escapeHtml(o.id)+'</div></div>'+
+    '<div class="inv-title">HOÁ ĐƠN BÁN HÀNG ONLINE</div>'+
     '<div class="inv-grid">'+
-      '<div class="inv-box"><h4>Thông tin khách hàng</h4>'+
-        '<p><span class="label">Địa chỉ:</span> '+escapeHtml(s.address||'—')+'</p>'+
-        '<p><span class="label">Số điện thoại:</span> '+escapeHtml(s.phone||'—')+'</p>'+
-        '<p><span class="label">Họ &amp; tên khách hàng:</span> <b>'+escapeHtml(s.fullName||'—')+'</b></p>'+
+      '<div class="inv-box">'+
+        '<h4>Thông tin khách hàng</h4>'+
+        '<div class="inv-row"><span class="k">Địa chỉ:</span><span class="v">'+escapeHtml(s.address||'—')+'</span></div>'+
+        '<div class="inv-row"><span class="k">Số điện thoại:</span><span class="v">'+escapeHtml(s.phone||'—')+'</span></div>'+
+        '<div class="inv-row"><span class="k">Họ &amp; tên:</span><span class="v">'+escapeHtml(s.fullName||'—')+'</span></div>'+
       '</div>'+
-      '<div class="inv-box"><h4>Chi tiết đơn hàng</h4>'+
-        '<p><span class="label">Thời gian đặt:</span> '+timeStr+'</p>'+
-        '<p><span class="label">Ngày/tháng/năm:</span> '+dateStr+'</p>'+
-        '<p><span class="label">Ghi chú từ khách:</span> '+escapeHtml(o.note||'—')+'</p>'+
+      '<div class="inv-box">'+
+        '<h4>Chi tiết đơn hàng</h4>'+
+        '<div class="inv-row"><span class="k">Thời gian đặt:</span><span class="v">'+timeStr+'</span></div>'+
+        '<div class="inv-row"><span class="k">Ngày/tháng/năm:</span><span class="v">'+dateStr+'</span></div>'+
+        '<div class="inv-row"><span class="k">Ghi chú từ khách:</span><span class="v">'+escapeHtml(o.note||'—')+'</span></div>'+
       '</div>'+
     '</div>'+
-    '<table class="inv-table"><thead><tr><th>Danh sách sản phẩm</th><th class="num">Số lượng</th><th class="money">Giá</th><th class="w">Trọng lượng</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<table class="inv-table">'+
+      '<thead><tr>'+
+        '<th class="col-name">Danh sách sản phẩm</th>'+
+        '<th class="col-qty">Số lượng</th>'+
+        '<th class="col-price">Giá</th>'+
+        '<th class="col-w">Trọng lượng</th>'+
+      '</tr></thead>'+
+      '<tbody>'+rows+'</tbody>'+
+    '</table>'+
     '<div class="inv-sums">'+
-      '<div class="row"><span class="label">Tổng giá trị đơn</span><b>'+money(sub)+'đ</b></div>'+
-      '<div class="row"><span class="label">Phí vận chuyển</span><b>'+money(ship)+'đ</b></div>'+
+      '<div class="row"><span>Tổng giá trị đơn</span><span>'+money(sub)+'đ</span></div>'+
+      '<div class="row"><span>Phí vận chuyển</span><span>'+money(ship)+'đ</span></div>'+
+      voucherRow+
     '</div>'+
-    '<div class="inv-total"><span>Tổng thanh toán</span><span>'+money(total)+'đ</span></div>'+
+    '<div class="inv-total">'+
+      '<span>Tổng thanh toán</span><span>'+money(total)+'đ</span>'+
+    '</div>'+
     '<div class="inv-bottom">'+
-      '<div class="inv-pay"><h4>Payment Information</h4>'+
+      '<div class="inv-pay">'+
+        '<h4>Payment Information</h4>'+
         '<p>Mã đơn hàng: <b>'+escapeHtml(o.id)+'</b></p>'+
         '<p>Đơn vị vận chuyển: J&amp;T Express</p>'+
         '<p>Tình trạng đơn hàng: <b>'+escapeHtml(statusLabel)+'</b></p>'+
       '</div>'+
-      '<img class="inv-stamp-img" src="/admin-assets/stamp.png" alt="Gian hàng chính hãng"/>'+
+      assetImg('stamp.png','inv-stamp-img','Gian hàng chính hãng')+
     '</div>'+
-    '<div class="inv-certs">'+
-      '<img src="/admin-assets/boct.png" alt=""/>'+
-      '<img src="/admin-assets/ocop.jpg" alt=""/>'+
-      '<img src="/admin-assets/hangvn.png" alt=""/>'+
-      '<img src="/admin-assets/haccp.png" alt=""/>'+
-      '<img src="/admin-assets/vfa.png" alt=""/>'+
     '</div>'+
-    '<div class="inv-foot">'+
-      '<div class="inv-foot-left">'+
-        '<div class="brand-row">'+
-          '<img src="/admin-assets/logo-footer.png" alt=""/>'+
-          '<div class="brand">Thuộc Cô Ba Store</div>'+
+    '<div class="inv-legal">'+
+      '<div class="certs">'+
+        assetImg('boct.png','','')+
+        assetImg('ocop.png','','')+
+        assetImg('hangvn.png','','')+
+        assetImg('haccp.png','','')+
+        assetImg('vfa.png','','')+
+      '</div>'+
+      '<div class="inv-legal-row">'+
+        '<div class="legal-text">'+
+          '<div class="legal-title">® Ứng dụng Thuộc Cô Ba Store — Phiên bản cao cấp được Zalo chứng nhận '+assetImg('trophy.png','inv-trophy','')+'</div>'+
+          '<div class="legal-line">Chịu trách nhiệm quản lý nội dung: Nguyễn Thị Thuộc</div>'+
+          '<div class="legal-line">Tổng đài hỗ trợ: 0977322861</div>'+
+          '<div class="legal-line">Mã số doanh nghiệp: 83271137688-001 do Cục cảnh sát QLHC về TTXH</div>'+
+          '<div class="legal-line legal-addr">Địa chỉ: 1117/5 Võ Nguyên Giáp, khu phố Tăng Long 2, phường Tam Quan Nam, thị xã Hoài Nhơn, tỉnh Bình Định (Gia Lai mới)</div>'+
+          '<div class="legal-copy">Được sở hữu độc quyền của hộ kinh doanh Nguyễn Thị Thuộc™</div>'+
+        '</div>'+
+        '<div class="inv-qr-wrap">'+
+          assetImg('logo-footer.png','inv-foot-logo','')+
+          '<img class="inv-qr" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&amp;margin=8&amp;data='+encodeURIComponent('https://zalo.me/s/1175503438081610646/')+'" alt="QR Mini App" width="72" height="72"/>'+
         '</div>'+
       '</div>'+
-      '<div class="inv-foot-right"><div class="contact">'+
-        '☎ 0977 322 861<br/>'+
-        '🌐 https://zalo.me/s/1175503438081610646/<br/>'+
-        '✉ thetam7716@gmail.com<br/>'+
-        '⌂ 1117/5 Võ Nguyên Giáp - Hoài Nhơn - Gia Lai'+
-      '</div></div>'+
     '</div>';
 
   document.getElementById('orderDetailBox').classList.add('show');
+  setTimeout(function(){
+    try{
+      var el=document.getElementById('invBarcode');
+      var code=String(o.id||'').replace(/[^0-9A-Za-z_-]/g,'')||('ORD'+Date.now());
+      if(el && window.JsBarcode){
+        JsBarcode(el, code, {format:'CODE128',width:1.6,height:40,displayValue:false,margin:0,background:'transparent'});
+      }
+    }catch(e){console.warn(e)}
+  },40);
 }
+
 function closeOrderDetail(){document.getElementById('orderDetailBox').classList.remove('show')}
 function copyOrderDetail(){var t=window._lastOrderMsg||'';if(!t)return;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){alert('Đã copy mẫu tin nhắn!')})}else{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('Đã copy mẫu tin nhắn!')}}
 function printInvoice(){window.print()}
 
-async function loadLoyalty(){var pwd=getPwd();try{var custRes=await fetch('/api/admin/customers',{headers:{'x-admin-password':pwd}});var customers=await custRes.json();if(!Array.isArray(customers))customers=[];var counts={dong:0,bac:0,vang:0,kimcuong:0};customers.forEach(function(c){counts[tierOf(c.points).key]++});document.getElementById('tierCards').innerHTML=TIERS.map(function(t){return '<div class="kpi"><div class="label">Hạng '+t.label+'</div><div class="value">'+(counts[t.key]||0)+'</div><div class="hint">khách</div></div>'}).join('')+'<div class="kpi"><div class="label">Tổng hội viên</div><div class="value">'+customers.length+'</div></div>';document.getElementById('customersBody').innerHTML=customers.length?customers.slice(0,100).map(function(c){var t=tierOf(c.points);return '<tr><td>'+escapeHtml(c.phone)+'</td><td>'+escapeHtml(c.full_name||'—')+'</td><td><b>'+c.points+'</b></td><td><span class="tier-badge '+t.cls+'">'+t.label+'</span></td><td class="muted">'+(c.updated_at?new Date(c.updated_at).toLocaleString('vi-VN'):'—')+'</td></tr>'}).join(''):'<tr><td colspan="5" class="muted">Chưa có hội viên</td></tr>';var redRes=await fetch('/api/admin/redemptions',{headers:{'x-admin-password':pwd}});var redemptions=await redRes.json();if(!Array.isArray(redemptions))redemptions=[];document.getElementById('redemptionsBody').innerHTML=redemptions.length?redemptions.map(function(r){var badgeCls=r.status==='fulfilled'?'completed':'pending';var btn=r.status==='fulfilled'?'<span class="muted">Đã giao</span>':'<button type="button" class="b-ok" onclick="fulfillRedemption('+r.id+')">Đánh dấu đã giao</button>';return '<tr><td>'+escapeHtml(r.phone)+'</td><td>'+escapeHtml(r.gift_label)+'</td><td>'+r.points_cost+'</td><td><span class="badge '+badgeCls+'">'+(r.status==='fulfilled'?'Đã giao':'Chờ giao')+'</span></td><td class="muted">'+new Date(r.created_at).toLocaleString('vi-VN')+'</td><td>'+btn+'</td></tr>'}).join(''):'<tr><td colspan="6" class="muted">Chưa có lượt đổi quà</td></tr>'}catch(e){console.error(e)}}
+async function loadLoyalty(){var pwd=getPwd();try{var custRes=await fetch('/api/admin/customers',{headers:{'x-admin-password':pwd}});var customers=await custRes.json();if(!Array.isArray(customers))customers=[];var counts={dong:0,bac:0,vang:0,kimcuong:0};customers.forEach(function(c){counts[tierOf(c.points).key]++});document.getElementById('tierCards').innerHTML=TIERS.map(function(t){return '<div class="kpi kpi-3"><div class="label">Hạng '+t.label+'</div><div class="value">'+(counts[t.key]||0)+'</div><div class="hint">khách</div></div>'}).join('')+'<div class="kpi kpi-2"><div class="label">Tổng hội viên</div><div class="value">'+customers.length+'</div></div>';document.getElementById('customersBody').innerHTML=customers.length?customers.slice(0,100).map(function(c){var t=tierOf(c.points);return '<tr><td>'+escapeHtml(c.phone)+'</td><td>'+escapeHtml(c.full_name||'—')+'</td><td><b>'+c.points+'</b></td><td><span class="tier-badge '+t.cls+'">'+t.label+'</span></td><td class="muted">'+(c.updated_at?new Date(c.updated_at).toLocaleString('vi-VN'):'—')+'</td></tr>'}).join(''):'<tr><td colspan="5" class="muted">Chưa có hội viên</td></tr>';var redRes=await fetch('/api/admin/redemptions',{headers:{'x-admin-password':pwd}});var redemptions=await redRes.json();if(!Array.isArray(redemptions))redemptions=[];document.getElementById('redemptionsBody').innerHTML=redemptions.length?redemptions.map(function(r){var badgeCls=r.status==='fulfilled'?'completed':'pending';var btn=r.status==='fulfilled'?'<span class="muted">Đã giao</span>':'<button type="button" class="pill-btn pill-ok" onclick="fulfillRedemption('+r.id+')">Đánh dấu đã giao</button>';return '<tr><td>'+escapeHtml(r.phone)+'</td><td>'+escapeHtml(r.gift_label)+'</td><td>'+r.points_cost+'</td><td><span class="badge '+badgeCls+'">'+(r.status==='fulfilled'?'Đã giao':'Chờ giao')+'</span></td><td class="muted">'+new Date(r.created_at).toLocaleString('vi-VN')+'</td><td>'+btn+'</td></tr>'}).join(''):'<tr><td colspan="6" class="muted">Chưa có lượt đổi quà</td></tr>'}catch(e){console.error(e)}}
 async function fulfillRedemption(id){var pwd=getPwd();try{var res=await fetch('/api/admin/redemptions/'+id+'/fulfill',{method:'PATCH',headers:{'x-admin-password':pwd}});if(!res.ok){alert('Lỗi cập nhật');return}loadLoyalty()}catch(e){alert(e.message)}}
 function applyFilters(){var list=filteredList();renderStats(list);var labelMap={today:'Hôm nay','7d':'7 ngày','30d':'30 ngày',all:'Tất cả',custom:'Tùy chọn'};document.getElementById('filterInfo').textContent=' · '+(labelMap[rangeMode]||'')+' · '+list.length+'/'+allOrders.length;var tbody=document.getElementById('tbody');if(!list.length){tbody.innerHTML='<tr><td colspan="6" class="muted">Không có đơn trong bộ lọc</td></tr>';return}
 tbody.innerHTML=list.map(function(o){var s=o.shippingInfo||{},st=o.status||'pending',items=o.items||[];
 var products=items.length?'<div class="products">'+items.map(function(i){return escapeHtml(i.name||'SP')+' ×'+(i.quantity||1)}).join('<br/>')+'</div>':'';
 var note=o.note?'<div class="products">Ghi chú: '+escapeHtml(o.note)+'</div>':'';
-var cancel=(st==='cancelled'&&o.cancelReason)?'<div class="products" style="color:#c0392b">Hủy: '+escapeHtml(o.cancelReason)+'</div>':'';
+var cancel=(st==='cancelled'&&o.cancelReason)?'<div class="products" style="color:#a3243a">Hủy: '+escapeHtml(o.cancelReason)+'</div>':'';
 var time=o.createdAt?new Date(o.createdAt).toLocaleString('vi-VN'):'—';
-return '<tr><td><span class="order-id" onclick="openOrderDetail(\\''+o.id+'\\')">'+escapeHtml(o.id)+'</span><div class="muted" style="font-size:10px;cursor:pointer" onclick="openOrderDetail(\\''+o.id+'\\')">Xem hoá đơn</div></td><td>'+time+'</td><td>'+escapeHtml(s.fullName||'—')+'<br/><span class="muted">'+escapeHtml(s.phone||'')+'</span><br/><span class="muted">'+escapeHtml(s.address||'')+'</span>'+products+note+cancel+'</td><td><b>'+money(o.total)+'đ</b><div class="muted">'+escapeHtml(o.paymentMethod||'COD')+'</div></td><td><span class="badge '+st+'">'+(STATUS_LABEL[st]||st)+'</span></td><td><div class="row-btns"><button type="button" class="b-prep" onclick="setStatus(\\''+o.id+'\\',\\'preparing\\')">Chuẩn bị</button><button type="button" class="b-ship" onclick="setStatus(\\''+o.id+'\\',\\'shipping\\')">Giao</button><button type="button" class="b-ok" onclick="setStatus(\\''+o.id+'\\',\\'completed\\')">Xong</button><button type="button" class="b-bad" onclick="setStatus(\\''+o.id+'\\',\\'cancelled\\')">Hủy</button><button type="button" class="b-jnt" onclick="printJnT(\\''+o.id+'\\')">J&amp;T</button></div></td></tr>'}).join('');
+return '<tr><td><span class="order-id" onclick="openOrderDetail(\\''+o.id+'\\')">'+escapeHtml(o.id)+'</span><div class="muted" style="font-size:10px;cursor:pointer" onclick="openOrderDetail(\\''+o.id+'\\')">Xem hoá đơn</div></td><td>'+time+'</td><td>'+escapeHtml(s.fullName||'—')+'<br/><span class="muted">'+escapeHtml(s.phone||'')+'</span><br/><span class="muted">'+escapeHtml(s.address||'')+'</span>'+products+note+cancel+'</td><td><b>'+money(o.total)+'đ</b><div class="muted">'+escapeHtml(o.paymentMethod||'COD')+'</div></td><td><span class="badge '+st+'">'+(STATUS_LABEL[st]||st)+'</span></td><td><div class="row-btns">'+
+  '<button type="button" class="pill-btn pill-prep" onclick="setStatus(\\''+o.id+'\\',\\'preparing\\')">📦 Chuẩn bị</button>'+
+  '<button type="button" class="pill-btn pill-ship" onclick="setStatus(\\''+o.id+'\\',\\'shipping\\')">🚚 Đang giao</button>'+
+  '<button type="button" class="pill-btn pill-ok" onclick="setStatus(\\''+o.id+'\\',\\'completed\\')">✅ Hoàn tất</button>'+
+  '<button type="button" class="pill-btn pill-bad" onclick="setStatus(\\''+o.id+'\\',\\'cancelled\\')">✕ Hủy đơn</button>'+
+  '</div></td></tr>'}).join('');
 if(!document.getElementById('viewDash').classList.contains('hidden'))renderDash()}
 async function loadOrders(){try{var res=await fetch('/api/orders');allOrders=await res.json();if(!Array.isArray(allOrders))allOrders=[];document.getElementById('lastUpdated').textContent='Cập nhật '+new Date().toLocaleString('vi-VN')+' · '+allOrders.length+' đơn toàn hệ thống';applyFilters()}catch(e){alert('Không tải được đơn: '+e.message)}}
 async function setStatus(orderId,status){var pwd=getPwd();if(!pwd){logout();return}try{var body={status:status};if(status==='cancelled')body.reason=prompt('Lý do hủy:','Hủy bởi admin')||'Hủy bởi admin';var res=await fetch('/api/orders/'+encodeURIComponent(orderId)+'/status',{method:'PATCH',headers:{'Content-Type':'application/json','x-admin-password':pwd},body:JSON.stringify(body)});var data=await res.json();if(!res.ok){alert(data.error||'Lỗi');if(res.status===401)logout();return}loadOrders()}catch(e){alert(e.message)}}
-function exportCSV(){var list=filteredList();if(!list.length){alert('Không có dữ liệu');return}var rows=[['Mã','Thời gian','Khách','SĐT','Địa chỉ','SP','Tổng','Trạng thái','Ghi chú','Lý do hủy']];list.forEach(function(o){var s=o.shippingInfo||{};rows.push([o.id,o.createdAt||'',s.fullName||'',s.phone||'',s.address||'',(o.items||[]).map(function(i){return (i.name||'')+' x'+(i.quantity||1)}).join('; '),o.total||0,o.status||'',o.note||'',o.cancelReason||''])});var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"'}).join(',')}).join('\\n');var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='thuoc-co-ba-orders.csv';a.click()}
-function printJnT(orderId){var o=allOrders.find(function(x){return x.id===orderId});if(!o){alert('Không tìm thấy đơn');return}var s=o.shippingInfo||{},items=o.items||[];var productNames=items.length?items.map(function(i){return (i.name||'SP')+' x'+(i.quantity||1)}).join(', '):'Mini App Thuộc Cô Ba Store';var total=money(o.total),phone=s.phone||'',fullName=s.fullName||'Khách',address=s.address||'—',orderCode=String(o.id);var barcodeValue=orderCode.replace(/[^0-9A-Za-z]/g,'').slice(-12)||orderCode;var sortCode=(orderCode.replace(/\\D/g,'').slice(-6)||orderCode.slice(-6)).toUpperCase();var html='<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>J&T '+orderCode+'</title><script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\\/script><script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\\/script><style>@page{size:100mm 150mm;margin:0}body{font-family:Arial;width:100mm}table{width:100%;border-collapse:collapse}td{border:1.5px solid #000;padding:2mm;font-size:11px;vertical-align:top}.sort{font-size:24px;font-weight:900;text-align:center}</style></head><body><table><tr><td><b>Thuộc Cô Ba</b></td><td style="color:#e11d48;font-weight:900">J&T EXPRESS</td><td>ET</td></tr><tr><td colspan="3" style="text-align:center"><svg id="barcode"></svg><div>'+barcodeValue+'</div></td></tr><tr><td colspan="3" class="sort">'+sortCode+'</td></tr><tr><td colspan="2"><b>Gửi:</b> Kho Thuộc Cô Ba · 0977322861<br/>1117/5 Võ Nguyên Giáp, Hoài Nhơn, Gia Lai<br/><br/><b>Nhận:</b> '+fullName+' '+phone+'<br/>'+address+'</td><td style="text-align:center"><canvas id="qrcode"></canvas></td></tr><tr><td colspan="2">Hàng: '+productNames+'<br/>COD</td><td style="text-align:center;font-weight:900">'+total+' đ<br/>COD</td></tr></table><script>try{JsBarcode("#barcode","'+barcodeValue+'",{format:"CODE128",width:1.3,height:40,displayValue:false})}catch(e){}try{QRCode.toCanvas(document.getElementById("qrcode"),"'+orderCode+'",{width:80,margin:0})}catch(e){}setTimeout(function(){print()},400)<\\/script></body></html>';var w=window.open('','blank','width=420,height=720');w.document.write(html);w.document.close()}
+function exportCSV(){
+  var list=filteredList();
+  if(!list.length){alert('Không có dữ liệu');return}
+  var rows=[['Mã','Thời gian','Khách','SĐT','Địa chỉ','SP','Tổng','Trạng thái','Ghi chú','Lý do hủy']];
+  list.forEach(function(o){
+    var s=o.shippingInfo||{};
+    rows.push([o.id,o.createdAt||'',s.fullName||'',s.phone||'',s.address||'',(o.items||[]).map(function(i){return (i.name||'')+' x'+(i.quantity||1)}).join('; '),o.total||0,o.status||'',o.note||'',o.cancelReason||'']);
+  });
+  var nl=String.fromCharCode(10);
+  var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"'}).join(',')}).join(nl);
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([String.fromCharCode(0xFEFF)+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='thuoc-co-ba-orders.csv';
+  a.click();
+}
 if(getPwd()===ADMIN_PASS){document.getElementById('loginBox').style.display='none';document.getElementById('app').style.display='grid';setRange('30d');loadOrders()}
 </script>
 </body>
