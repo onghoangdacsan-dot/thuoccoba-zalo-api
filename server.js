@@ -46,6 +46,46 @@ app.post("/api/jnt/create-order", async (req, res) => {
 });
 
 const PRIVATE_KEY = "fe49f1b0e06649e498929a7379cfdfbf";
+
+// ===== Zalo Checkout: cập nhật trạng thái giao dịch (updateOrderStatus) =====
+const ZALO_MINI_APP_ID = process.env.ZALO_MINI_APP_ID || "1175503438081610646";
+const ZALO_CHECKOUT_APP_ID = process.env.ZALO_CHECKOUT_APP_ID || ""; // appId trong Notify; nếu trống sẽ dùng appId lưu từ Notify
+
+// resultCode: 1 = thành công, 0 = hoàn tiền/hoàn trả, -1 = thất bại/hủy
+async function updateZaloOrderStatus(order, resultCode) {
+  try {
+    const zaloOrderId = order && order.zaloOrderId;
+    const appId = (order && order.zaloAppId) || ZALO_CHECKOUT_APP_ID;
+    if (!zaloOrderId || !appId) {
+      console.warn("updateZaloOrderStatus: thiếu zaloOrderId/appId cho đơn", order && order.id);
+      return { skipped: true };
+    }
+    if (order.zaloStatusSent === resultCode) return { skipped: true };
+    const str = "appId=" + appId + "&orderId=" + zaloOrderId + "&resultCode=" + resultCode + "&privateKey=" + PRIVATE_KEY;
+    const mac = CryptoJS.HmacSHA256(str, PRIVATE_KEY).toString();
+    const r = await fetch(
+      "https://payment-mini.zalo.me/api/transaction/" + ZALO_MINI_APP_ID + "/cod-callback-payment",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appId, orderId: zaloOrderId, resultCode, mac }),
+      }
+    );
+    const j = await r.json().catch(() => ({}));
+    console.log("Zalo updateOrderStatus", order.id, zaloOrderId, resultCode, JSON.stringify(j));
+    if (j && j.err === 0) {
+      order.zaloStatusSent = resultCode;
+      try {
+        await pool.query("UPDATE orders SET data = $1 WHERE id = $2", [order, order.id]);
+      } catch (e) {}
+    }
+    return j;
+  } catch (e) {
+    console.error("updateZaloOrderStatus lỗi:", e);
+    return { error: String(e) };
+  }
+}
+
 const ADMIN_PASSWORD = "thuoccoba2026";
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 
@@ -294,6 +334,7 @@ app.post("/api/orders/:orderId/cancel", async (req, res) => {
       "UPDATE orders SET data = $1, status = $2 WHERE id = $3",
       [order, "cancelled", orderId]
     );
+    updateZaloOrderStatus(order, -1);
     res.json(order);
   } catch (err) {
     console.error(err);
@@ -346,6 +387,8 @@ app.patch("/api/orders/:orderId/status", async (req, res) => {
         console.error("awardPointsForOrder lỗi:", e);
       }
     }
+    if (status === "completed") updateZaloOrderStatus(order, 1);
+    if (status === "cancelled") updateZaloOrderStatus(order, -1);
     res.json(order);
   } catch (err) {
     console.error(err);
@@ -517,6 +560,13 @@ app.post("/api/zalo-notify", async (req, res) => {
         );
         if (result.rows.length) {
           const order = result.rows[0].data;
+          order.zaloOrderId = orderId;
+          order.zaloAppId = appId;
+          order.zaloMethod = method;
+          await pool.query("UPDATE orders SET data = $1 WHERE id = $2", [order, myOrderId]);
+          if (order.status === "cancelled") await updateZaloOrderStatus(order, -1);
+          else if (method === "COD" || order.status === "completed")
+            await updateZaloOrderStatus(order, 1);
           if (
             (String(resultCode) === "1" || resultCode === 1) &&
             order.status !== "cancelled"
